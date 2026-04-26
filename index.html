@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arcade Mini Games</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <header class="topbar">
+        <button class="icon-button hidden" id="backButton" type="button" aria-label="Back">
+          <span aria-hidden="true">‹</span>
+        </button>
+        <div class="brand-mark" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div>
+          <p class="kicker">Neon Cabinet</p>
+          <h1 id="screenTitle">Mini Arcade</h1>
+        </div>
+        <button class="icon-button" id="muteButton" type="button" aria-label="Toggle audio">
+          <span id="muteIcon" aria-hidden="true">♪</span>
+        </button>
+      </header>
+
+      <main>
+        <section class="screen screen-active intro-screen" id="introScreen" aria-labelledby="introTitle">
+          <div class="hero-visual" aria-hidden="true">
+            <canvas id="attractCanvas" width="800" height="500"></canvas>
+          </div>
+          <div class="intro-panel">
+            <p class="kicker">Insert coin</p>
+            <h2 id="introTitle">Mini Arcade</h2>
+            <p class="intro-copy">Pick a game, tune the cabinet, or remap your controls before the next run.</p>
+            <div class="intro-stats" aria-label="Arcade status">
+              <span><strong id="introCabinetCount">5</strong> Cabinets</span>
+              <span><strong>60s</strong> Runs</span>
+              <span><strong>8s</strong> Levels</span>
+            </div>
+            <div class="menu-stack">
+              <button class="primary-button" id="playButton" type="button">Play</button>
+              <button class="secondary-button" id="settingsButton" type="button">Settings</button>
+              <button class="secondary-button" id="keybindButton" type="button">Keybinds</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen games-screen" id="gamesScreen" aria-labelledby="gamesTitle">
+          <div class="section-heading">
+            <p class="kicker">Choose a cabinet</p>
+            <h2 id="gamesTitle">Mini-Games</h2>
+          </div>
+          <div class="game-grid" id="gameGrid"></div>
+        </section>
+
+        <section class="screen about-screen" id="aboutScreen" aria-labelledby="aboutTitle">
+          <div class="about-layout">
+            <div class="about-marquee" id="aboutMarquee" aria-hidden="true">
+              <span class="preview-line preview-line-a"></span>
+              <span class="preview-line preview-line-b"></span>
+              <span class="preview-token"></span>
+            </div>
+            <article class="about-panel">
+              <p class="kicker" id="aboutKicker">Cabinet brief</p>
+              <h2 id="aboutTitle">Game</h2>
+              <p class="intro-copy" id="aboutDescription"></p>
+              <div class="about-info" id="aboutInfo"></div>
+              <div class="footer-actions left-actions">
+                <button class="primary-button compact" id="aboutPlayButton" type="button">Play</button>
+                <button class="secondary-button compact" id="aboutBackButton" type="button">All Games</button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="screen settings-screen" id="settingsScreen" aria-labelledby="settingsTitle">
+          <div class="section-heading">
+            <p class="kicker">Cabinet options</p>
+            <h2 id="settingsTitle">Settings</h2>
+          </div>
+          <div class="settings-layout">
+            <label class="setting-row">
+              <span>
+                <strong>Audio</strong>
+                <small>Sound effects for menus and gameplay</small>
+              </span>
+              <input id="audioToggle" type="checkbox" />
+            </label>
+            <label class="setting-row">
+              <span>
+                <strong>Music</strong>
+                <small>Low arcade pulse while menus are open</small>
+              </span>
+              <input id="musicToggle" type="checkbox" />
+            </label>
+            <label class="setting-row range-row">
+              <span>
+                <strong>Volume</strong>
+                <small id="volumeValue">70%</small>
+              </span>
+              <input id="volumeSlider" min="0" max="100" step="5" type="range" />
+            </label>
+            <label class="setting-row">
+              <span>
+                <strong>Reduced motion</strong>
+                <small>Calmer background effects</small>
+              </span>
+              <input id="motionToggle" type="checkbox" />
+            </label>
+          </div>
+        </section>
+
+        <section class="screen keybind-screen" id="keybindScreen" aria-labelledby="keybindTitle">
+          <div class="section-heading">
+            <p class="kicker">Controls</p>
+            <h2 id="keybindTitle">Keybinds</h2>
+          </div>
+          <div class="keybind-grid" id="keybindGrid"></div>
+          <div class="footer-actions">
+            <button class="secondary-button compact" id="resetKeysButton" type="button">Reset Defaults</button>
+          </div>
+        </section>
+
+        <section class="screen play-screen" id="playScreen" aria-labelledby="playTitle">
+          <div class="game-hud">
+            <div>
+              <p class="kicker" id="gameSubtitle">Now playing</p>
+              <h2 id="playTitle">Game</h2>
+            </div>
+            <div class="hud-stats">
+              <span>Score <strong id="scoreValue">0</strong></span>
+              <span>Level <strong id="levelValue">1</strong></span>
+              <span>Combo <strong id="comboValue">x1</strong></span>
+              <span>Best <strong id="bestValue">0</strong></span>
+              <span>Time <strong id="timeValue">0</strong></span>
+            </div>
+          </div>
+          <canvas id="gameCanvas" width="960" height="540"></canvas>
+          <div class="play-actions">
+            <button class="secondary-button compact" id="restartButton" type="button">Restart</button>
+            <button class="secondary-button compact" id="quitButton" type="button">Quit</button>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>

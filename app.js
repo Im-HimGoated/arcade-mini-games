@@ -1,0 +1,1580 @@
+(() => {
+  const screens = {
+    intro: document.querySelector("#introScreen"),
+    games: document.querySelector("#gamesScreen"),
+    about: document.querySelector("#aboutScreen"),
+    settings: document.querySelector("#settingsScreen"),
+    keybinds: document.querySelector("#keybindScreen"),
+    play: document.querySelector("#playScreen"),
+  };
+
+  const screenTitle = document.querySelector("#screenTitle");
+  const backButton = document.querySelector("#backButton");
+  const muteButton = document.querySelector("#muteButton");
+  const muteIcon = document.querySelector("#muteIcon");
+  const gameGrid = document.querySelector("#gameGrid");
+  const introCabinetCount = document.querySelector("#introCabinetCount");
+  const aboutMarquee = document.querySelector("#aboutMarquee");
+  const aboutKicker = document.querySelector("#aboutKicker");
+  const aboutTitle = document.querySelector("#aboutTitle");
+  const aboutDescription = document.querySelector("#aboutDescription");
+  const aboutInfo = document.querySelector("#aboutInfo");
+  const aboutPlayButton = document.querySelector("#aboutPlayButton");
+  const aboutBackButton = document.querySelector("#aboutBackButton");
+  const keybindGrid = document.querySelector("#keybindGrid");
+  const audioToggle = document.querySelector("#audioToggle");
+  const musicToggle = document.querySelector("#musicToggle");
+  const motionToggle = document.querySelector("#motionToggle");
+  const volumeSlider = document.querySelector("#volumeSlider");
+  const volumeValue = document.querySelector("#volumeValue");
+  const playTitle = document.querySelector("#playTitle");
+  const gameSubtitle = document.querySelector("#gameSubtitle");
+  const scoreValue = document.querySelector("#scoreValue");
+  const levelValue = document.querySelector("#levelValue");
+  const comboValue = document.querySelector("#comboValue");
+  const bestValue = document.querySelector("#bestValue");
+  const timeValue = document.querySelector("#timeValue");
+  const gameCanvas = document.querySelector("#gameCanvas");
+  const gameContext = gameCanvas.getContext("2d");
+  const attractCanvas = document.querySelector("#attractCanvas");
+  const attractContext = attractCanvas.getContext("2d");
+
+  const defaultSettings = {
+    audio: true,
+    music: false,
+    volume: 70,
+    reducedMotion: false,
+  };
+
+  const defaultKeybinds = {
+    left: "ArrowLeft",
+    right: "ArrowRight",
+    up: "ArrowUp",
+    down: "ArrowDown",
+    action: "Space",
+    pause: "Escape",
+  };
+
+  const keybindLabels = {
+    left: ["Move Left", "Ships, cursors, and lane changes"],
+    right: ["Move Right", "Ships, cursors, and lane changes"],
+    up: ["Move Up", "Cursors and lane changes"],
+    down: ["Move Down", "Cursors and lane changes"],
+    action: ["Action", "Dash, pop, and confirm"],
+    pause: ["Pause / Back", "Leave the active cabinet"],
+  };
+
+  const gameDefinitions = [
+    {
+      id: "dodger",
+      title: "Neon Dodger",
+      subtitle: "Drift through falling voltage",
+      hook: "Collect charge cells, graze hazards, and chain shields through an accelerating storm.",
+      rules: "Survive a 60-second voltage storm. Close calls and pickups build combo, but direct hits burn lives.",
+      controls: "Move with the directional keys. Hold Action to boost through tight openings.",
+      strategy: "Graze hazards when you have room, then cash in the combo on charge and shield pickups.",
+      tag: "Survival",
+      accent: "#ff3d81",
+      glow: "rgba(255, 61, 129, 0.7)",
+      background: "linear-gradient(135deg, #2a1030, #061a28 58%, #20111f)",
+    },
+    {
+      id: "popper",
+      title: "Target Pop",
+      subtitle: "Snap shots before the signal drops",
+      hook: "Hit moving targets fast for streak bonuses while decoys crowd the board.",
+      rules: "Move the crosshair and pop the real signal target before its timer expires. Decoys punish reckless shots.",
+      controls: "Move with the directional keys. Press Action to fire.",
+      strategy: "Wait half a beat when decoys spawn. Bonus targets are worth breaking rhythm for.",
+      tag: "Precision",
+      accent: "#34d6ff",
+      glow: "rgba(52, 214, 255, 0.7)",
+      background: "linear-gradient(135deg, #071c2c, #16142f 58%, #261327)",
+    },
+    {
+      id: "runner",
+      title: "Circuit Runner",
+      subtitle: "Switch lanes through a busy board",
+      hook: "Grab data chips, dash for speed points, and dodge denser traffic each level.",
+      rules: "Switch lanes through a 60-second circuit sprint. Chips and gates score points; red blocks end the run.",
+      controls: "Use Up/Down or Left/Right to change lanes. Hold Action to dash forward.",
+      strategy: "Dashing raises your score, but it also tightens your reaction window.",
+      tag: "Reflex",
+      accent: "#58f29f",
+      glow: "rgba(88, 242, 159, 0.7)",
+      background: "linear-gradient(135deg, #062118, #1d1824 58%, #10243a)",
+    },
+    {
+      id: "flap",
+      title: "Skyline Flap",
+      subtitle: "Hop through neon towers",
+      hook: "Tap to flap through moving gates while wind and tower speed rise each level.",
+      rules: "Stay airborne and pass as many gates as possible in 60 seconds. Hitting a tower or the floor ends the flight.",
+      controls: "Press Action, Up, or Space to flap. Gravity does the rest.",
+      strategy: "Flap earlier than you think. The safest path is usually just above the gate center.",
+      tag: "Timing",
+      accent: "#ffd166",
+      glow: "rgba(255, 209, 102, 0.72)",
+      background: "linear-gradient(135deg, #17243d, #112d35 58%, #372044)",
+    },
+    {
+      id: "tictactoe",
+      title: "Neon Noughts",
+      subtitle: "Arcade tic-tac-toe duel",
+      hook: "Outthink the cabinet AI in quick rounds where the opponent gets sharper as you win.",
+      rules: "Place Xs to get three in a row. Wins score big, draws keep the run alive, and each round resets the board.",
+      controls: "Move the cursor with the directional keys. Press Action to place your mark.",
+      strategy: "Take center or a corner early. At higher levels, block forks before chasing your own line.",
+      tag: "Strategy",
+      accent: "#b78cff",
+      glow: "rgba(183, 140, 255, 0.72)",
+      background: "linear-gradient(135deg, #1b173a, #12313a 58%, #33152e)",
+    },
+  ];
+
+  let settings = loadStored("arcade-settings", defaultSettings);
+  let keybinds = loadStored("arcade-keybinds", defaultKeybinds);
+  let currentScreen = "intro";
+  let selectedAboutGame = null;
+  let activeGame = null;
+  let gameLoopId = 0;
+  let lastFrameTime = 0;
+  let listeningFor = null;
+  let attractCanvasWidth = 0;
+  let attractCanvasHeight = 0;
+  const pressed = new Set();
+
+  const audio = {
+    context: null,
+    musicOscillator: null,
+    musicGain: null,
+    ensure() {
+      if (!settings.audio) return null;
+      if (!this.context) this.context = new AudioContext();
+      if (this.context.state === "suspended") this.context.resume();
+      return this.context;
+    },
+    beep(frequency = 420, duration = 0.08, type = "square") {
+      const context = this.ensure();
+      if (!context) return;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = type;
+      oscillator.frequency.value = frequency;
+      gain.gain.value = Math.max(0.01, settings.volume / 100) * 0.06;
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start();
+      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration);
+      oscillator.stop(context.currentTime + duration);
+    },
+    startMusic() {
+      if (!settings.audio || !settings.music || this.musicOscillator) return;
+      const context = this.ensure();
+      if (!context) return;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = "triangle";
+      oscillator.frequency.value = 96;
+      gain.gain.value = Math.max(0.01, settings.volume / 100) * 0.018;
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start();
+      this.musicOscillator = oscillator;
+      this.musicGain = gain;
+    },
+    stopMusic() {
+      if (this.musicOscillator) {
+        this.musicOscillator.stop();
+        this.musicOscillator.disconnect();
+      }
+      this.musicOscillator = null;
+      this.musicGain = null;
+    },
+    refresh() {
+      if (!settings.audio || !settings.music || currentScreen === "play") {
+        this.stopMusic();
+        return;
+      }
+      this.startMusic();
+      if (this.musicGain) this.musicGain.gain.value = Math.max(0.01, settings.volume / 100) * 0.018;
+    },
+  };
+
+  function loadStored(key, fallback) {
+    try {
+      return { ...fallback, ...JSON.parse(localStorage.getItem(key)) };
+    } catch {
+      return { ...fallback };
+    }
+  }
+
+  function getBestScore(id) {
+    return Number(localStorage.getItem(`arcade-best-${id}`) || 0);
+  }
+
+  function saveBestScore(id, score) {
+    if (score > getBestScore(id)) localStorage.setItem(`arcade-best-${id}`, score.toString());
+  }
+
+  function saveSettings() {
+    localStorage.setItem("arcade-settings", JSON.stringify(settings));
+    applySettings();
+  }
+
+  function saveKeybinds() {
+    localStorage.setItem("arcade-keybinds", JSON.stringify(keybinds));
+    renderKeybinds();
+  }
+
+  function applySettings() {
+    audioToggle.checked = settings.audio;
+    musicToggle.checked = settings.music;
+    motionToggle.checked = settings.reducedMotion;
+    volumeSlider.value = settings.volume;
+    volumeValue.textContent = `${settings.volume}%`;
+    muteIcon.textContent = settings.audio ? "♪" : "x";
+    document.body.classList.toggle("reduced-motion", settings.reducedMotion);
+    audio.refresh();
+  }
+
+  function showScreen(name) {
+    Object.entries(screens).forEach(([screenName, element]) => {
+      element.classList.toggle("screen-active", screenName === name);
+    });
+    currentScreen = name;
+    const titleMap = {
+      intro: "Mini Arcade",
+      games: "Pick Game",
+      about: selectedAboutGame?.title ?? "About",
+      settings: "Settings",
+      keybinds: "Keybinds",
+      play: activeGame?.title ?? "Playing",
+    };
+    screenTitle.textContent = titleMap[name];
+    backButton.classList.toggle("hidden", name === "intro");
+    if (name !== "play") stopGameLoop();
+    audio.refresh();
+  }
+
+  function renderGameCards() {
+    gameGrid.innerHTML = "";
+    gameDefinitions.forEach((game) => {
+      const card = document.createElement("article");
+      card.className = "game-card";
+      card.style.setProperty("--preview-bg", game.background);
+      card.style.setProperty("--preview-accent", game.accent);
+      card.style.setProperty("--preview-glow", game.glow);
+      card.innerHTML = `
+        <div class="game-preview" aria-hidden="true">
+          <span class="preview-line preview-line-a"></span>
+          <span class="preview-line preview-line-b"></span>
+          <span class="preview-token"></span>
+        </div>
+        <div class="game-card-body">
+          <div>
+            <p class="kicker">Starter game</p>
+            <h3>${game.title}</h3>
+            <p>${game.subtitle}</p>
+            <small class="game-hook">${game.hook}</small>
+          </div>
+          <div class="card-meta">
+            <span>${game.tag}</span>
+            <span>Best ${getBestScore(game.id)}</span>
+            <span>60s run</span>
+          </div>
+          <div class="card-actions">
+            <button class="primary-button compact" type="button" data-action="play">Play</button>
+            <button class="secondary-button compact" type="button" data-action="about">About</button>
+          </div>
+        </div>
+      `;
+      card.querySelector('[data-action="play"]').addEventListener("click", () => startGame(game.id));
+      card.querySelector('[data-action="about"]').addEventListener("click", () => showAbout(game.id));
+      gameGrid.append(card);
+    });
+  }
+
+  function showAbout(id) {
+    const game = gameDefinitions.find((definition) => definition.id === id);
+    if (!game) return;
+    selectedAboutGame = game;
+    aboutKicker.textContent = `${game.tag} cabinet`;
+    aboutTitle.textContent = game.title;
+    aboutDescription.textContent = game.hook;
+    aboutMarquee.style.setProperty("--preview-bg", game.background);
+    aboutMarquee.style.setProperty("--preview-accent", game.accent);
+    aboutMarquee.style.setProperty("--preview-glow", game.glow);
+    aboutInfo.innerHTML = `
+      <section>
+        <strong>Rules</strong>
+        <p>${game.rules}</p>
+      </section>
+      <section>
+        <strong>Controls</strong>
+        <p>${game.controls}</p>
+      </section>
+      <section>
+        <strong>Strategy</strong>
+        <p>${game.strategy}</p>
+      </section>
+      <section>
+        <strong>Best Score</strong>
+        <p>${getBestScore(game.id)}</p>
+      </section>
+    `;
+    showScreen("about");
+    audio.beep(420, 0.06, "triangle");
+  }
+
+  function renderKeybinds() {
+    keybindGrid.innerHTML = "";
+    Object.entries(keybindLabels).forEach(([action, [title, description]]) => {
+      const row = document.createElement("div");
+      row.className = "keybind-row";
+      row.innerHTML = `
+        <span>
+          <strong>${title}</strong>
+          <small>${description}</small>
+        </span>
+        <button class="key-button" type="button" data-action="${action}">${formatKey(keybinds[action])}</button>
+      `;
+      const button = row.querySelector("button");
+      button.addEventListener("click", () => {
+        listeningFor = action;
+        document.querySelectorAll(".key-button").forEach((keyButton) => {
+          keyButton.classList.toggle("listening", keyButton === button);
+        });
+        button.textContent = "Press a key";
+        audio.beep(660, 0.06, "triangle");
+      });
+      keybindGrid.append(row);
+    });
+  }
+
+  function formatKey(code) {
+    const names = {
+      ArrowLeft: "<",
+      ArrowRight: ">",
+      ArrowUp: "^",
+      ArrowDown: "v",
+      Space: "Space",
+      Escape: "Esc",
+    };
+    return names[code] ?? code.replace(/^Key/, "").replace(/^Digit/, "");
+  }
+
+  function actionPressed(action) {
+    return pressed.has(keybinds[action]);
+  }
+
+  function startGame(id) {
+    stopGameLoop();
+    const definition = gameDefinitions.find((game) => game.id === id);
+    activeGame = createGame(definition);
+    playTitle.textContent = definition.title;
+    gameSubtitle.textContent = definition.subtitle;
+    scoreValue.textContent = "0";
+    levelValue.textContent = "1";
+    comboValue.textContent = "x1";
+    bestValue.textContent = getBestScore(definition.id).toString();
+    timeValue.textContent = "60";
+    showScreen("play");
+    audio.beep(540, 0.08);
+    lastFrameTime = performance.now();
+    gameLoopId = requestAnimationFrame(gameLoop);
+  }
+
+  function stopGameLoop() {
+    if (gameLoopId) cancelAnimationFrame(gameLoopId);
+    gameLoopId = 0;
+    lastFrameTime = 0;
+    pressed.clear();
+  }
+
+  function gameLoop(time) {
+    if (!activeGame || currentScreen !== "play") return;
+    const delta = Math.min(0.04, (time - lastFrameTime) / 1000 || 0);
+    lastFrameTime = time;
+    activeGame.update(delta);
+    activeGame.draw(gameContext);
+    scoreValue.textContent = Math.floor(activeGame.score).toString();
+    levelValue.textContent = activeGame.level.toString();
+    comboValue.textContent = `x${activeGame.combo}`;
+    bestValue.textContent = Math.max(getBestScore(activeGame.definition.id), Math.floor(activeGame.score)).toString();
+    timeValue.textContent = Math.max(0, Math.ceil(activeGame.timeLeft)).toString();
+    gameLoopId = requestAnimationFrame(gameLoop);
+  }
+
+  function createGame(definition) {
+    const base = createBaseGame(definition);
+    if (definition.id === "dodger") return createDodger(base);
+    if (definition.id === "popper") return createPopper(base);
+    if (definition.id === "flap") return createFlap(base);
+    if (definition.id === "tictactoe") return createTicTacToe(base);
+    return createRunner(base);
+  }
+
+  function createBaseGame(definition) {
+    return {
+      definition,
+      score: 0,
+      elapsed: 0,
+      timeLeft: 60,
+      level: 1,
+      combo: 1,
+      comboTimer: 0,
+      over: false,
+      savedBest: false,
+      flash: 0,
+      particles: [],
+      messages: [],
+      updateTimer(delta) {
+        if (this.over) return;
+        this.elapsed += delta;
+        this.timeLeft = Math.max(0, 60 - this.elapsed);
+        this.level = Math.min(12, Math.floor(this.elapsed / 8) + 1);
+        this.comboTimer = Math.max(0, this.comboTimer - delta);
+        if (this.comboTimer <= 0) this.combo = 1;
+        if (this.timeLeft <= 0) this.finish();
+        this.flash = Math.max(0, this.flash - delta);
+        this.updateEffects(delta);
+      },
+      addScore(points, x = gameCanvas.width / 2, y = 90, label = "") {
+        const value = Math.ceil(points * this.combo);
+        this.score += value;
+        if (label) this.messages.push({ x, y, text: `${label} +${value}`, age: 0, life: 0.85 });
+      },
+      pushCombo(amount = 1) {
+        this.combo = Math.min(9, this.combo + amount);
+        this.comboTimer = 2.8;
+      },
+      breakCombo() {
+        this.combo = 1;
+        this.comboTimer = 0;
+      },
+      burst(x, y, color, count = 12) {
+        for (let i = 0; i < count; i += 1) {
+          const angle = random(0, Math.PI * 2);
+          const speed = random(60, 230);
+          this.particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: random(2, 6),
+            color,
+            age: 0,
+            life: random(0.35, 0.8),
+          });
+        }
+      },
+      updateEffects(delta) {
+        this.particles.forEach((particle) => {
+          particle.x += particle.vx * delta;
+          particle.y += particle.vy * delta;
+          particle.vx *= 0.96;
+          particle.vy *= 0.96;
+          particle.age += delta;
+        });
+        this.particles = this.particles.filter((particle) => particle.age < particle.life);
+        this.messages.forEach((message) => {
+          message.y -= 42 * delta;
+          message.age += delta;
+        });
+        this.messages = this.messages.filter((message) => message.age < message.life);
+      },
+      finish() {
+        this.over = true;
+        if (!this.savedBest) {
+          saveBestScore(this.definition.id, Math.floor(this.score));
+          renderGameCards();
+          this.savedBest = true;
+        }
+      },
+      drawBase(context) {
+        drawGameBackground(context, this.elapsed);
+      },
+      drawEffects(context) {
+        this.particles.forEach((particle) => {
+          const alpha = 1 - particle.age / particle.life;
+          context.globalAlpha = alpha;
+          context.fillStyle = particle.color;
+          context.shadowColor = particle.color;
+          context.shadowBlur = 16;
+          context.beginPath();
+          context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+          context.fill();
+        });
+        context.globalAlpha = 1;
+        context.shadowBlur = 0;
+        this.messages.forEach((message) => {
+          const alpha = 1 - message.age / message.life;
+          context.globalAlpha = alpha;
+          drawText(context, message.text, message.x, message.y, "#ffd166", "900 24px system-ui", "center");
+        });
+        context.globalAlpha = 1;
+      },
+      drawEnd(context, label) {
+        if (!this.over) return;
+        const best = getBestScore(this.definition.id);
+        context.fillStyle = "rgba(6, 7, 15, 0.82)";
+        context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+        context.strokeStyle = this.definition.accent;
+        context.lineWidth = 4;
+        context.strokeRect(270, 166, 420, 208);
+        context.fillStyle = "#f5f7ff";
+        context.font = "900 54px system-ui";
+        context.textAlign = "center";
+        context.fillText(label, gameCanvas.width / 2, gameCanvas.height / 2 - 18);
+        context.fillStyle = "#ffd166";
+        context.font = "800 22px system-ui";
+        context.fillText(`Score ${Math.floor(this.score)} | Best ${best}`, gameCanvas.width / 2, gameCanvas.height / 2 + 30);
+        context.fillStyle = "#a9b1ce";
+        context.font = "700 17px system-ui";
+        context.fillText("Restart or quit from the cabinet controls", gameCanvas.width / 2, gameCanvas.height / 2 + 68);
+      },
+    };
+  }
+
+  function createDodger(base) {
+    return {
+      ...base,
+      player: { x: 480, y: 462, size: 34, speed: 330, shield: 0 },
+      hazards: [],
+      charges: [],
+      spawn: 0,
+      chargeSpawn: 1.4,
+      lives: 3,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const direction = Number(actionPressed("right")) - Number(actionPressed("left"));
+        const vertical = Number(actionPressed("down")) - Number(actionPressed("up"));
+        const boost = actionPressed("action") ? 1.5 : 1;
+        this.player.x += direction * this.player.speed * boost * delta;
+        this.player.y += vertical * this.player.speed * 0.72 * delta;
+        this.player.x = clamp(this.player.x, 28, gameCanvas.width - 28);
+        this.player.y = clamp(this.player.y, gameCanvas.height * 0.48, gameCanvas.height - 32);
+        this.player.shield = Math.max(0, this.player.shield - delta);
+
+        this.spawn -= delta;
+        if (this.spawn <= 0) {
+          this.spawn = Math.max(0.13, 0.72 - this.level * 0.045);
+          const waves = 1 + Number(this.level >= 4 && Math.random() < 0.45) + Number(this.level >= 8 && Math.random() < 0.25);
+          for (let i = 0; i < waves; i += 1) {
+            this.hazards.push({
+              x: random(24, gameCanvas.width - 24),
+              y: -34 - i * 22,
+              r: random(14, 29 + this.level),
+              speed: random(175, 260) + this.level * 28,
+              wobble: random(0.6, 1.6),
+              phase: random(0, Math.PI * 2),
+              grazed: false,
+            });
+          }
+        }
+
+        this.chargeSpawn -= delta;
+        if (this.chargeSpawn <= 0) {
+          this.chargeSpawn = random(2.6, 4.4);
+          this.charges.push({
+            x: random(40, gameCanvas.width - 40),
+            y: -30,
+            r: 13,
+            speed: 130 + this.level * 18,
+            shield: Math.random() < 0.28,
+          });
+        }
+
+        this.hazards.forEach((hazard) => {
+          hazard.x += Math.sin(this.elapsed * hazard.wobble + hazard.phase) * this.level * 14 * delta;
+          hazard.y += hazard.speed * delta;
+        });
+        this.charges.forEach((charge) => {
+          charge.y += charge.speed * delta;
+        });
+        this.hazards = this.hazards.filter((hazard) => hazard.y < gameCanvas.height + 40);
+        this.charges = this.charges.filter((charge) => charge.y < gameCanvas.height + 40);
+
+        for (const hazard of this.hazards) {
+          const gap = distance(hazard.x, hazard.y, this.player.x, this.player.y);
+          if (!hazard.grazed && gap < hazard.r + this.player.size * 1.1 && gap > hazard.r + this.player.size * 0.56) {
+            hazard.grazed = true;
+            this.pushCombo();
+            this.addScore(8 + this.level, hazard.x, hazard.y, "Graze");
+            this.burst(hazard.x, hazard.y, "#ffd166", 7);
+          }
+          if (gap < hazard.r + this.player.size * 0.52) {
+            hazard.y = gameCanvas.height + 80;
+            if (this.player.shield > 0) {
+              this.player.shield = 0;
+              this.addScore(18, this.player.x, this.player.y - 38, "Shield");
+            } else {
+              this.lives -= 1;
+              this.breakCombo();
+            }
+            this.flash = 0.18;
+            this.burst(this.player.x, this.player.y, "#ff5b5b", 18);
+            audio.beep(120, 0.12, "sawtooth");
+            if (this.lives <= 0) this.finish();
+          }
+        }
+
+        for (const charge of this.charges) {
+          if (distance(charge.x, charge.y, this.player.x, this.player.y) < charge.r + this.player.size * 0.58) {
+            charge.y = gameCanvas.height + 80;
+            this.pushCombo(charge.shield ? 2 : 1);
+            if (charge.shield) this.player.shield = 5;
+            this.addScore(charge.shield ? 45 : 24, charge.x, charge.y, charge.shield ? "Shield" : "Charge");
+            this.burst(charge.x, charge.y, charge.shield ? "#58f29f" : "#34d6ff", 14);
+            audio.beep(charge.shield ? 860 : 680, 0.06, "triangle");
+          }
+        }
+        this.score += delta * (15 + this.level * 3);
+      },
+      draw(context) {
+        this.drawBase(context);
+        drawBadge(context, `Lives ${this.lives}`, 24, 34, "#ffd166");
+        if (this.player.shield > 0) drawBadge(context, `Shield ${Math.ceil(this.player.shield)}`, 140, 34, "#58f29f");
+        this.charges.forEach((charge) => drawOrb(context, charge.x, charge.y, charge.r, charge.shield ? "#58f29f" : "#34d6ff"));
+        this.hazards.forEach((hazard) => drawShard(context, hazard.x, hazard.y, hazard.r, this.elapsed));
+        drawShip(context, this.player.x, this.player.y, this.player.size, this.player.shield > 0);
+        this.drawEffects(context);
+        if (this.flash) {
+          context.fillStyle = `rgba(255, 91, 91, ${this.flash * 2})`;
+          context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+        }
+        this.drawEnd(context, this.lives <= 0 ? "Run Lost" : "Run Complete");
+      },
+    };
+  }
+
+  function createPopper(base) {
+    return {
+      ...base,
+      cursor: { x: 480, y: 270, speed: 430 },
+      target: makeTarget(1),
+      decoys: [],
+      shots: 0,
+      actionWasDown: false,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        this.cursor.x += (Number(actionPressed("right")) - Number(actionPressed("left"))) * this.cursor.speed * delta;
+        this.cursor.y += (Number(actionPressed("down")) - Number(actionPressed("up"))) * this.cursor.speed * delta;
+        this.cursor.x = clamp(this.cursor.x, 24, gameCanvas.width - 24);
+        this.cursor.y = clamp(this.cursor.y, 24, gameCanvas.height - 24);
+
+        this.target.x += this.target.vx * delta;
+        this.target.y += this.target.vy * delta;
+        if (this.target.x < this.target.r || this.target.x > gameCanvas.width - this.target.r) this.target.vx *= -1;
+        if (this.target.y < this.target.r || this.target.y > gameCanvas.height - this.target.r) this.target.vy *= -1;
+        this.target.timer -= delta;
+
+        this.decoys.forEach((decoy) => {
+          decoy.x += decoy.vx * delta;
+          decoy.y += decoy.vy * delta;
+          decoy.life -= delta;
+          if (decoy.x < decoy.r || decoy.x > gameCanvas.width - decoy.r) decoy.vx *= -1;
+          if (decoy.y < decoy.r || decoy.y > gameCanvas.height - decoy.r) decoy.vy *= -1;
+        });
+        this.decoys = this.decoys.filter((decoy) => decoy.life > 0);
+
+        if (this.target.timer <= 0) {
+          this.target = makeTarget(this.level);
+          this.score = Math.max(0, this.score - 8);
+          this.breakCombo();
+          audio.beep(160, 0.06, "triangle");
+        }
+        if (this.decoys.length < Math.min(6, Math.floor(this.level / 2)) && Math.random() < delta * (0.35 + this.level * 0.08)) {
+          this.decoys.push(makeDecoy(this.level));
+        }
+
+        const actionIsDown = actionPressed("action");
+        if (actionIsDown && !this.actionWasDown) {
+          this.shots += 1;
+          const hit = distance(this.cursor.x, this.cursor.y, this.target.x, this.target.y) < this.target.r;
+          const decoyHit = this.decoys.find((decoy) => distance(this.cursor.x, this.cursor.y, decoy.x, decoy.y) < decoy.r);
+          if (hit) {
+            this.pushCombo(this.target.bonus ? 2 : 1);
+            this.addScore((this.target.bonus ? 44 : 28) + this.target.timer * 5 + this.level * 3, this.target.x, this.target.y, this.target.bonus ? "Bonus" : "Hit");
+            this.burst(this.target.x, this.target.y, this.target.bonus ? "#ffd166" : "#34d6ff", this.target.bonus ? 24 : 16);
+            this.target = makeTarget(this.level);
+            audio.beep(760, 0.06, "square");
+          } else if (decoyHit) {
+            this.score = Math.max(0, this.score - 12);
+            this.breakCombo();
+            decoyHit.life = 0;
+            this.burst(decoyHit.x, decoyHit.y, "#ff5b5b", 12);
+            audio.beep(110, 0.08, "sawtooth");
+          } else {
+            this.score = Math.max(0, this.score - 3);
+            audio.beep(180, 0.05, "triangle");
+          }
+        }
+        this.actionWasDown = actionIsDown;
+      },
+      draw(context) {
+        this.drawBase(context);
+        this.decoys.forEach((decoy) => drawTarget(context, decoy.x, decoy.y, decoy.r, "#ff5b5b", decoy.life / 4));
+        drawTarget(context, this.target.x, this.target.y, this.target.r, this.target.bonus ? "#ffd166" : "#34d6ff", this.target.timer / this.target.maxTimer);
+        drawCrosshair(context, this.cursor.x, this.cursor.y);
+        this.drawEffects(context);
+        this.drawEnd(context, "Signal Cleared");
+      },
+    };
+  }
+
+  function createRunner(base) {
+    return {
+      ...base,
+      lane: 1,
+      runnerX: 150,
+      obstacles: [],
+      chips: [],
+      spawn: 0.45,
+      chipSpawn: 1.2,
+      shield: 0,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const actionIsDown = actionPressed("action");
+        if ((actionPressed("up") || actionPressed("left")) && !this.upWasDown) {
+          this.lane = clamp(this.lane - 1, 0, 2);
+          audio.beep(360, 0.04, "triangle");
+        }
+        if ((actionPressed("down") || actionPressed("right")) && !this.downWasDown) {
+          this.lane = clamp(this.lane + 1, 0, 2);
+          audio.beep(440, 0.04, "triangle");
+        }
+        this.upWasDown = actionPressed("up") || actionPressed("left");
+        this.downWasDown = actionPressed("down") || actionPressed("right");
+        this.runnerX = actionIsDown ? 204 : 150;
+        this.shield = Math.max(0, this.shield - delta);
+
+        this.spawn -= delta;
+        if (this.spawn <= 0) {
+          this.spawn = Math.max(0.32, random(0.92, 1.28) - this.level * 0.07);
+          const count = 1 + Number(this.level >= 5 && Math.random() < 0.38) + Number(this.level >= 9 && Math.random() < 0.24);
+          const used = new Set();
+          for (let i = 0; i < count; i += 1) {
+            let lane = Math.floor(random(0, 3));
+            if (used.size < 3) while (used.has(lane)) lane = Math.floor(random(0, 3));
+            used.add(lane);
+            this.obstacles.push({
+              x: gameCanvas.width + 58 + i * 44,
+              lane,
+              w: random(34, 64),
+              speed: 260 + this.level * 38 + Number(actionIsDown) * 55,
+              type: Math.random() < 0.18 ? "gate" : "block",
+            });
+          }
+        }
+
+        this.chipSpawn -= delta;
+        if (this.chipSpawn <= 0) {
+          this.chipSpawn = random(1.6, 2.8);
+          this.chips.push({
+            x: gameCanvas.width + 35,
+            lane: Math.floor(random(0, 3)),
+            speed: 235 + this.level * 24,
+            shield: Math.random() < 0.22,
+          });
+        }
+
+        this.obstacles.forEach((obstacle) => {
+          obstacle.x -= obstacle.speed * delta;
+        });
+        this.chips.forEach((chip) => {
+          chip.x -= chip.speed * delta;
+        });
+        this.obstacles = this.obstacles.filter((obstacle) => obstacle.x > -90);
+        this.chips = this.chips.filter((chip) => chip.x > -50);
+
+        for (const chip of this.chips) {
+          if (chip.lane === this.lane && Math.abs(chip.x - this.runnerX) < 36) {
+            chip.x = -80;
+            this.pushCombo(chip.shield ? 2 : 1);
+            if (chip.shield) this.shield = 4.5;
+            this.addScore(chip.shield ? 52 : 30, this.runnerX, laneY(chip.lane), chip.shield ? "Guard" : "Chip");
+            this.burst(this.runnerX, laneY(this.lane), chip.shield ? "#58f29f" : "#ffd166", 14);
+            audio.beep(chip.shield ? 840 : 680, 0.05, "triangle");
+          }
+        }
+
+        for (const obstacle of this.obstacles) {
+          if (obstacle.lane === this.lane && Math.abs(obstacle.x - this.runnerX) < obstacle.w + 22) {
+            obstacle.x = -120;
+            if (this.shield > 0 || obstacle.type === "gate") {
+              this.addScore(obstacle.type === "gate" ? 26 : 14, this.runnerX, laneY(this.lane), obstacle.type === "gate" ? "Gate" : "Guard");
+              this.burst(this.runnerX, laneY(this.lane), obstacle.type === "gate" ? "#34d6ff" : "#58f29f", 12);
+              if (obstacle.type !== "gate") this.shield = 0;
+            } else {
+              this.breakCombo();
+              this.flash = 0.2;
+              this.finish();
+              audio.beep(90, 0.18, "sawtooth");
+            }
+          }
+        }
+        this.score += delta * (20 + this.level * 4 + (actionIsDown ? 16 : 0));
+      },
+      draw(context) {
+        this.drawBase(context);
+        [0, 1, 2].forEach((lane) => {
+          const y = laneY(lane);
+          context.strokeStyle = lane === this.lane ? "rgba(88,242,159,0.84)" : "rgba(255,255,255,0.14)";
+          context.lineWidth = lane === this.lane ? 6 : 2;
+          context.beginPath();
+          context.moveTo(40, y);
+          context.lineTo(gameCanvas.width - 40, y);
+          context.stroke();
+        });
+        this.chips.forEach((chip) => drawChip(context, chip.x, laneY(chip.lane), chip.shield ? "#58f29f" : "#ffd166"));
+        this.obstacles.forEach((obstacle) => drawObstacle(context, obstacle.x, laneY(obstacle.lane), obstacle.w, obstacle.type));
+        drawRunner(context, this.runnerX, laneY(this.lane), this.shield > 0);
+        if (this.shield > 0) drawBadge(context, `Guard ${Math.ceil(this.shield)}`, 24, 34, "#58f29f");
+        this.drawEffects(context);
+        if (this.flash) {
+          context.fillStyle = `rgba(255, 91, 91, ${this.flash * 2})`;
+          context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+        }
+        this.drawEnd(context, this.timeLeft <= 0 ? "Board Cleared" : "Crash");
+      },
+    };
+  }
+
+  function createFlap(base) {
+    return {
+      ...base,
+      bird: { x: 210, y: 260, vy: 0, r: 18 },
+      gates: [],
+      spawn: 0,
+      flapWasDown: false,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const flapDown = actionPressed("action") || actionPressed("up");
+        if (flapDown && !this.flapWasDown) {
+          this.bird.vy = -330 - this.level * 9;
+          this.pushCombo(0);
+          this.burst(this.bird.x - 10, this.bird.y + 12, "#ffd166", 5);
+          audio.beep(560, 0.04, "triangle");
+        }
+        this.flapWasDown = flapDown;
+
+        const wind = Math.sin(this.elapsed * 1.3) * this.level * 7;
+        this.bird.vy += (760 + this.level * 22) * delta;
+        this.bird.y += this.bird.vy * delta;
+        this.bird.x = 210 + wind;
+        this.spawn -= delta;
+
+        if (this.spawn <= 0) {
+          const gap = Math.max(128, 190 - this.level * 7);
+          const center = random(120 + gap / 2, gameCanvas.height - 100 - gap / 2);
+          this.spawn = Math.max(0.92, 1.55 - this.level * 0.045);
+          this.gates.push({
+            x: gameCanvas.width + 50,
+            width: 70,
+            center,
+            gap,
+            speed: 220 + this.level * 22,
+            passed: false,
+          });
+        }
+
+        this.gates.forEach((gate) => {
+          gate.x -= gate.speed * delta;
+          if (!gate.passed && gate.x + gate.width < this.bird.x) {
+            gate.passed = true;
+            this.pushCombo();
+            this.addScore(32 + this.level * 4, this.bird.x + 40, this.bird.y, "Gate");
+            this.burst(this.bird.x, this.bird.y, "#58f29f", 12);
+            audio.beep(780, 0.05, "square");
+          }
+        });
+        this.gates = this.gates.filter((gate) => gate.x > -100);
+
+        const hitCeiling = this.bird.y - this.bird.r < 0;
+        const hitFloor = this.bird.y + this.bird.r > gameCanvas.height - 40;
+        const hitGate = this.gates.some((gate) => {
+          const inColumn = this.bird.x + this.bird.r > gate.x && this.bird.x - this.bird.r < gate.x + gate.width;
+          const outsideGap = this.bird.y - this.bird.r < gate.center - gate.gap / 2 || this.bird.y + this.bird.r > gate.center + gate.gap / 2;
+          return inColumn && outsideGap;
+        });
+
+        if (hitCeiling || hitFloor || hitGate) {
+          this.breakCombo();
+          this.flash = 0.22;
+          this.burst(this.bird.x, this.bird.y, "#ff5b5b", 22);
+          audio.beep(100, 0.18, "sawtooth");
+          this.finish();
+        }
+        this.score += delta * (8 + this.level * 2);
+      },
+      draw(context) {
+        this.drawBase(context);
+        drawBadge(context, "Flap", 24, 34, "#ffd166");
+        this.gates.forEach((gate) => drawGate(context, gate));
+        drawBird(context, this.bird.x, this.bird.y, this.bird.r, this.bird.vy);
+        context.fillStyle = "rgba(255,255,255,0.1)";
+        context.fillRect(0, gameCanvas.height - 40, gameCanvas.width, 40);
+        this.drawEffects(context);
+        if (this.flash) {
+          context.fillStyle = `rgba(255, 91, 91, ${this.flash * 2})`;
+          context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+        }
+        this.drawEnd(context, this.timeLeft <= 0 ? "Flight Complete" : "Flight Down");
+      },
+    };
+  }
+
+  function createTicTacToe(base) {
+    return {
+      ...base,
+      board: Array(9).fill(""),
+      cursor: 4,
+      playerTurn: true,
+      round: 1,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      roundMessage: "Your move",
+      resetTimer: 0,
+      moveWasDown: false,
+      actionWasDown: false,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        if (this.resetTimer > 0) {
+          this.resetTimer -= delta;
+          if (this.resetTimer <= 0) this.resetBoard();
+          return;
+        }
+
+        const horizontal = Number(actionPressed("right")) - Number(actionPressed("left"));
+        const vertical = Number(actionPressed("down")) - Number(actionPressed("up"));
+        const moving = horizontal !== 0 || vertical !== 0;
+        if (moving && !this.moveWasDown) {
+          const row = Math.floor(this.cursor / 3);
+          const col = this.cursor % 3;
+          this.cursor = clamp(row + vertical, 0, 2) * 3 + clamp(col + horizontal, 0, 2);
+          audio.beep(330, 0.035, "triangle");
+        }
+        this.moveWasDown = moving;
+
+        const actionDown = actionPressed("action");
+        if (actionDown && !this.actionWasDown && this.playerTurn && !this.board[this.cursor]) {
+          this.board[this.cursor] = "X";
+          this.burst(cellCenter(this.cursor).x, cellCenter(this.cursor).y, "#34d6ff", 10);
+          audio.beep(620, 0.05, "square");
+          this.resolveBoard();
+          if (!this.resetTimer && !this.over) {
+            this.playerTurn = false;
+            this.aiMove();
+            this.resolveBoard();
+            this.playerTurn = true;
+          }
+        }
+        this.actionWasDown = actionDown;
+      },
+      aiMove() {
+        const empty = this.board.map((value, index) => (value ? null : index)).filter((value) => value !== null);
+        if (!empty.length) return;
+        const smartChance = Math.min(0.92, 0.38 + this.level * 0.05 + this.wins * 0.05);
+        let move = null;
+        if (Math.random() < smartChance) {
+          move = findWinningMove(this.board, "O") ?? findWinningMove(this.board, "X");
+          if (move === null && !this.board[4]) move = 4;
+          if (move === null) {
+            const corners = [0, 2, 6, 8].filter((index) => !this.board[index]);
+            if (corners.length) move = corners[Math.floor(random(0, corners.length))];
+          }
+        }
+        if (move === null) move = empty[Math.floor(random(0, empty.length))];
+        this.board[move] = "O";
+        this.burst(cellCenter(move).x, cellCenter(move).y, "#ff3d81", 10);
+        audio.beep(260, 0.05, "triangle");
+      },
+      resolveBoard() {
+        const winner = getWinner(this.board);
+        if (winner === "X") {
+          this.wins += 1;
+          this.roundMessage = "Round won";
+          this.pushCombo(2);
+          this.addScore(130 + this.level * 12 + this.wins * 18, gameCanvas.width / 2, 96, "Win");
+          this.resetTimer = 1.1;
+        } else if (winner === "O") {
+          this.losses += 1;
+          this.roundMessage = "Round lost";
+          this.breakCombo();
+          this.score = Math.max(0, this.score - 35);
+          this.resetTimer = 1.25;
+        } else if (this.board.every(Boolean)) {
+          this.draws += 1;
+          this.roundMessage = "Draw";
+          this.addScore(35 + this.level * 5, gameCanvas.width / 2, 96, "Draw");
+          this.resetTimer = 1;
+        }
+      },
+      resetBoard() {
+        this.round += 1;
+        this.board = Array(9).fill("");
+        this.cursor = 4;
+        this.playerTurn = true;
+        this.roundMessage = "Your move";
+      },
+      draw(context) {
+        this.drawBase(context);
+        drawBadge(context, `Round ${this.round}`, 24, 34, "#b78cff");
+        drawBadge(context, `W ${this.wins} D ${this.draws} L ${this.losses}`, 140, 34, "#ffd166");
+        drawTicTacToeBoard(context, this.board, this.cursor, this.roundMessage);
+        this.drawEffects(context);
+        this.drawEnd(context, "Match Over");
+      },
+    };
+  }
+
+  function makeTarget(level) {
+    const timer = Math.max(1.1, random(2.2, 4.2) - level * 0.14);
+    return {
+      x: random(90, gameCanvas.width - 90),
+      y: random(80, gameCanvas.height - 80),
+      r: Math.max(22, random(34, 58) - level * 1.6),
+      timer,
+      maxTimer: timer,
+      vx: random(-22, 22) * level,
+      vy: random(-18, 18) * level,
+      bonus: Math.random() < 0.18,
+    };
+  }
+
+  function makeDecoy(level) {
+    return {
+      x: random(80, gameCanvas.width - 80),
+      y: random(70, gameCanvas.height - 70),
+      r: random(24, 44),
+      vx: random(-35, 35) + level * random(-7, 7),
+      vy: random(-32, 32) + level * random(-6, 6),
+      life: random(2.5, 4.4),
+    };
+  }
+
+  function laneY(lane) {
+    return 170 + lane * 110;
+  }
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function random(min, max) {
+    return Math.random() * (max - min) + min;
+  }
+
+  function distance(ax, ay, bx, by) {
+    return Math.hypot(ax - bx, ay - by);
+  }
+
+  function getWinner(board) {
+    const lines = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8],
+      [2, 4, 6],
+    ];
+    for (const [a, b, c] of lines) {
+      if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
+    }
+    return "";
+  }
+
+  function findWinningMove(board, mark) {
+    for (let index = 0; index < board.length; index += 1) {
+      if (board[index]) continue;
+      const testBoard = [...board];
+      testBoard[index] = mark;
+      if (getWinner(testBoard) === mark) return index;
+    }
+    return null;
+  }
+
+  function cellCenter(index) {
+    const size = 112;
+    const gap = 14;
+    const startX = gameCanvas.width / 2 - (size * 3 + gap * 2) / 2;
+    const startY = 132;
+    return {
+      x: startX + (index % 3) * (size + gap) + size / 2,
+      y: startY + Math.floor(index / 3) * (size + gap) + size / 2,
+    };
+  }
+
+  function drawGameBackground(context, elapsed) {
+    const width = gameCanvas.width;
+    const height = gameCanvas.height;
+    context.clearRect(0, 0, width, height);
+    const gradient = context.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, "#050712");
+    gradient.addColorStop(0.5, "#111827");
+    gradient.addColorStop(1, "#211331");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, width, height);
+
+    context.save();
+    context.globalAlpha = 0.35;
+    for (let i = 0; i < 42; i += 1) {
+      const x = (i * 137 + elapsed * 16) % width;
+      const y = (i * 71) % height;
+      context.fillStyle = i % 3 === 0 ? "#34d6ff" : i % 3 === 1 ? "#ff3d81" : "#ffd166";
+      context.fillRect(x, y, 2, 2);
+    }
+    context.restore();
+
+    context.strokeStyle = "rgba(255,255,255,0.07)";
+    context.lineWidth = 1;
+    const offset = settings.reducedMotion ? 0 : (elapsed * 38) % 48;
+    for (let x = -48; x <= width + 48; x += 48) {
+      context.beginPath();
+      context.moveTo(x + offset * 0.35, 0);
+      context.lineTo(x - offset, height);
+      context.stroke();
+    }
+    for (let y = -48; y <= height + 48; y += 48) {
+      context.beginPath();
+      context.moveTo(0, y + offset);
+      context.lineTo(width, y + offset);
+      context.stroke();
+    }
+  }
+
+  function drawText(context, text, x, y, color, font, align) {
+    context.fillStyle = color;
+    context.font = font;
+    context.textAlign = align;
+    context.fillText(text, x, y);
+  }
+
+  function drawBadge(context, text, x, y, color) {
+    context.save();
+    context.fillStyle = "rgba(6, 7, 15, 0.72)";
+    context.strokeStyle = color;
+    context.lineWidth = 2;
+    roundedRect(context, x, y - 24, 96, 34, 7);
+    context.fill();
+    context.stroke();
+    drawText(context, text, x + 48, y - 1, color, "800 16px system-ui", "center");
+    context.restore();
+  }
+
+  function drawOrb(context, x, y, radius, color) {
+    context.save();
+    context.fillStyle = color;
+    context.shadowColor = color;
+    context.shadowBlur = 22;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = "rgba(255,255,255,0.75)";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.arc(x, y, radius + 5, 0, Math.PI * 2);
+    context.stroke();
+    context.restore();
+  }
+
+  function drawShard(context, x, y, radius, elapsed) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(elapsed * 2 + x * 0.01);
+    context.fillStyle = "#ff3d81";
+    context.shadowColor = "rgba(255,61,129,0.75)";
+    context.shadowBlur = 22;
+    context.beginPath();
+    context.moveTo(0, -radius);
+    context.lineTo(radius * 0.72, -radius * 0.18);
+    context.lineTo(radius * 0.34, radius);
+    context.lineTo(-radius * 0.72, radius * 0.22);
+    context.closePath();
+    context.fill();
+    context.strokeStyle = "rgba(255,255,255,0.4)";
+    context.stroke();
+    context.restore();
+  }
+
+  function drawShip(context, x, y, size, shielded) {
+    context.save();
+    context.fillStyle = "#34d6ff";
+    context.shadowColor = "rgba(52,214,255,0.85)";
+    context.shadowBlur = 28;
+    context.beginPath();
+    context.moveTo(x, y - size);
+    context.lineTo(x + size * 0.82, y + size * 0.72);
+    context.lineTo(x, y + size * 0.42);
+    context.lineTo(x - size * 0.82, y + size * 0.72);
+    context.closePath();
+    context.fill();
+    context.fillStyle = "#f5f7ff";
+    context.beginPath();
+    context.arc(x, y - 4, size * 0.18, 0, Math.PI * 2);
+    context.fill();
+    if (shielded) {
+      context.strokeStyle = "#58f29f";
+      context.lineWidth = 4;
+      context.beginPath();
+      context.arc(x, y, size * 1.1, 0, Math.PI * 2);
+      context.stroke();
+    }
+    context.restore();
+  }
+
+  function drawTarget(context, x, y, radius, color, progress) {
+    context.save();
+    context.strokeStyle = color;
+    context.lineWidth = 5;
+    context.shadowColor = color;
+    context.shadowBlur = 22;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.stroke();
+    context.beginPath();
+    context.arc(x, y, radius * 0.45, 0, Math.PI * 2);
+    context.stroke();
+    context.strokeStyle = "#f5f7ff";
+    context.lineWidth = 3;
+    context.beginPath();
+    context.arc(x, y, radius + 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * clamp(progress, 0, 1));
+    context.stroke();
+    context.restore();
+  }
+
+  function drawCrosshair(context, x, y) {
+    context.save();
+    context.strokeStyle = "#ffd166";
+    context.lineWidth = 3;
+    context.shadowColor = "rgba(255,209,102,0.8)";
+    context.shadowBlur = 18;
+    context.beginPath();
+    context.moveTo(x - 25, y);
+    context.lineTo(x + 25, y);
+    context.moveTo(x, y - 25);
+    context.lineTo(x, y + 25);
+    context.stroke();
+    context.fillStyle = "rgba(255,209,102,0.2)";
+    context.beginPath();
+    context.arc(x, y, 8, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
+  }
+
+  function drawChip(context, x, y, color) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(Math.PI / 4);
+    context.fillStyle = color;
+    context.shadowColor = color;
+    context.shadowBlur = 18;
+    context.fillRect(-12, -12, 24, 24);
+    context.strokeStyle = "rgba(255,255,255,0.65)";
+    context.strokeRect(-17, -17, 34, 34);
+    context.restore();
+  }
+
+  function drawObstacle(context, x, y, width, type) {
+    context.save();
+    context.fillStyle = type === "gate" ? "rgba(52,214,255,0.34)" : "#ff3d81";
+    context.strokeStyle = type === "gate" ? "#34d6ff" : "rgba(255,255,255,0.45)";
+    context.shadowColor = type === "gate" ? "#34d6ff" : "rgba(255,61,129,0.75)";
+    context.shadowBlur = 20;
+    roundedRect(context, x - width / 2, y - 28, width, 56, 8);
+    context.fill();
+    context.stroke();
+    context.restore();
+  }
+
+  function drawGate(context, gate) {
+    context.save();
+    const topHeight = gate.center - gate.gap / 2;
+    const bottomY = gate.center + gate.gap / 2;
+    context.fillStyle = "rgba(255,209,102,0.86)";
+    context.strokeStyle = "#f5f7ff";
+    context.shadowColor = "rgba(255,209,102,0.65)";
+    context.shadowBlur = 20;
+    roundedRect(context, gate.x, -8, gate.width, topHeight + 8, 8);
+    context.fill();
+    context.stroke();
+    roundedRect(context, gate.x, bottomY, gate.width, gameCanvas.height - bottomY - 40, 8);
+    context.fill();
+    context.stroke();
+    context.fillStyle = "rgba(6,7,15,0.42)";
+    for (let y = 18; y < topHeight; y += 26) context.fillRect(gate.x + 10, y, gate.width - 20, 4);
+    for (let y = bottomY + 18; y < gameCanvas.height - 50; y += 26) context.fillRect(gate.x + 10, y, gate.width - 20, 4);
+    context.restore();
+  }
+
+  function drawBird(context, x, y, radius, velocity) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(clamp(velocity / 600, -0.45, 0.7));
+    context.fillStyle = "#ffd166";
+    context.shadowColor = "rgba(255,209,102,0.8)";
+    context.shadowBlur = 24;
+    context.beginPath();
+    context.arc(0, 0, radius, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "#ff3d81";
+    context.beginPath();
+    context.moveTo(radius - 1, -4);
+    context.lineTo(radius + 20, 4);
+    context.lineTo(radius - 1, 12);
+    context.closePath();
+    context.fill();
+    context.fillStyle = "#f5f7ff";
+    context.beginPath();
+    context.arc(7, -6, 5, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "#080a12";
+    context.beginPath();
+    context.arc(9, -6, 2, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = "#34d6ff";
+    context.lineWidth = 4;
+    context.beginPath();
+    context.moveTo(-8, 5);
+    context.quadraticCurveTo(-28, 0, -34, 18);
+    context.stroke();
+    context.restore();
+  }
+
+  function drawTicTacToeBoard(context, board, cursor, message) {
+    const size = 112;
+    const gap = 14;
+    const startX = gameCanvas.width / 2 - (size * 3 + gap * 2) / 2;
+    const startY = 132;
+    drawText(context, message, gameCanvas.width / 2, 102, "#ffd166", "900 28px system-ui", "center");
+    for (let index = 0; index < 9; index += 1) {
+      const x = startX + (index % 3) * (size + gap);
+      const y = startY + Math.floor(index / 3) * (size + gap);
+      context.save();
+      context.fillStyle = index === cursor ? "rgba(183,140,255,0.2)" : "rgba(17,21,34,0.74)";
+      context.strokeStyle = index === cursor ? "#b78cff" : "rgba(255,255,255,0.16)";
+      context.lineWidth = index === cursor ? 4 : 2;
+      roundedRect(context, x, y, size, size, 8);
+      context.fill();
+      context.stroke();
+      if (board[index] === "X") {
+        context.strokeStyle = "#34d6ff";
+        context.shadowColor = "#34d6ff";
+        context.shadowBlur = 20;
+        context.lineWidth = 9;
+        context.beginPath();
+        context.moveTo(x + 28, y + 28);
+        context.lineTo(x + size - 28, y + size - 28);
+        context.moveTo(x + size - 28, y + 28);
+        context.lineTo(x + 28, y + size - 28);
+        context.stroke();
+      } else if (board[index] === "O") {
+        context.strokeStyle = "#ff3d81";
+        context.shadowColor = "#ff3d81";
+        context.shadowBlur = 20;
+        context.lineWidth = 9;
+        context.beginPath();
+        context.arc(x + size / 2, y + size / 2, 31, 0, Math.PI * 2);
+        context.stroke();
+      }
+      context.restore();
+    }
+  }
+
+  function drawRunner(context, x, y, shielded) {
+    context.save();
+    context.fillStyle = "#58f29f";
+    context.shadowColor = "rgba(88,242,159,0.8)";
+    context.shadowBlur = 24;
+    roundedRect(context, x - 28, y - 24, 56, 48, 8);
+    context.fill();
+    context.fillStyle = "#f5f7ff";
+    context.fillRect(x + 6, y - 9, 13, 7);
+    context.fillStyle = "#0b1020";
+    context.fillRect(x - 17, y + 15, 36, 6);
+    if (shielded) {
+      context.strokeStyle = "#58f29f";
+      context.lineWidth = 4;
+      context.beginPath();
+      context.arc(x, y, 38, 0, Math.PI * 2);
+      context.stroke();
+    }
+    context.restore();
+  }
+
+  function roundedRect(context, x, y, width, height, radius) {
+    context.beginPath();
+    if (typeof context.roundRect === "function") {
+      context.roundRect(x, y, width, height, radius);
+      return;
+    }
+    context.moveTo(x + radius, y);
+    context.lineTo(x + width - radius, y);
+    context.quadraticCurveTo(x + width, y, x + width, y + radius);
+    context.lineTo(x + width, y + height - radius);
+    context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    context.lineTo(x + radius, y + height);
+    context.quadraticCurveTo(x, y + height, x, y + height - radius);
+    context.lineTo(x, y + radius);
+    context.quadraticCurveTo(x, y, x + radius, y);
+  }
+
+  function resizeAttractCanvas() {
+    const rect = attractCanvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    const width = Math.max(320, Math.floor(rect.width * ratio));
+    const height = Math.max(240, Math.floor(rect.height * ratio));
+    if (attractCanvas.width !== width) attractCanvas.width = width;
+    if (attractCanvas.height !== height) attractCanvas.height = height;
+    attractCanvasWidth = rect.width;
+    attractCanvasHeight = rect.height;
+    attractContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+  }
+
+  function runAttractMode(time = 0) {
+    resizeAttractCanvas();
+    const width = attractCanvasWidth;
+    const height = attractCanvasHeight;
+    attractContext.clearRect(0, 0, width, height);
+    const gradient = attractContext.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, "#111522");
+    gradient.addColorStop(0.52, "#08182a");
+    gradient.addColorStop(1, "#25122b");
+    attractContext.fillStyle = gradient;
+    attractContext.fillRect(0, 0, width, height);
+    const speed = settings.reducedMotion ? 0 : time * 0.036;
+
+    for (let y = 0; y < height; y += 24) {
+      attractContext.fillStyle = "rgba(255,255,255,0.08)";
+      attractContext.fillRect(0, y, width, 1);
+    }
+    for (let i = 0; i < 26; i += 1) {
+      const x = ((i * 83 + speed) % (width + 100)) - 50;
+      const y = 42 + ((i * 57) % Math.max(80, height - 84));
+      const color = i % 3 === 0 ? "#ff3d81" : i % 3 === 1 ? "#34d6ff" : "#ffd166";
+      attractContext.strokeStyle = color;
+      attractContext.fillStyle = color;
+      attractContext.lineWidth = 3;
+      attractContext.shadowBlur = 20;
+      attractContext.shadowColor = color;
+      if (i % 4 === 0) {
+        attractContext.save();
+        attractContext.translate(x, y);
+        attractContext.rotate(time * 0.001 + i);
+        attractContext.strokeRect(-18, -18, 36, 36);
+        attractContext.restore();
+      } else {
+        attractContext.beginPath();
+        attractContext.arc(x, y, 14 + (i % 4) * 5, 0, Math.PI * 2);
+        attractContext.stroke();
+      }
+    }
+    attractContext.shadowBlur = 0;
+    attractContext.fillStyle = "rgba(6, 7, 15, 0.36)";
+    attractContext.fillRect(0, height - 92, width, 92);
+    drawText(attractContext, `${gameDefinitions.length} cabinets online`, 28, height - 54, "#f5f7ff", "900 28px system-ui", "left");
+    drawText(attractContext, "Difficulty rises every 8 seconds", 30, height - 25, "#a9b1ce", "700 15px system-ui", "left");
+    requestAnimationFrame(runAttractMode);
+  }
+
+  document.querySelector("#playButton").addEventListener("click", () => {
+    audio.beep(520);
+    showScreen("games");
+  });
+  document.querySelector("#settingsButton").addEventListener("click", () => {
+    audio.beep(440);
+    showScreen("settings");
+  });
+  document.querySelector("#keybindButton").addEventListener("click", () => {
+    audio.beep(620);
+    showScreen("keybinds");
+  });
+  document.querySelector("#resetKeysButton").addEventListener("click", () => {
+    keybinds = { ...defaultKeybinds };
+    saveKeybinds();
+    audio.beep(520);
+  });
+  document.querySelector("#restartButton").addEventListener("click", () => {
+    if (activeGame) startGame(activeGame.definition.id);
+  });
+  document.querySelector("#quitButton").addEventListener("click", () => {
+    audio.beep(240);
+    showScreen("games");
+  });
+  aboutPlayButton.addEventListener("click", () => {
+    if (selectedAboutGame) startGame(selectedAboutGame.id);
+  });
+  aboutBackButton.addEventListener("click", () => {
+    audio.beep(300);
+    showScreen("games");
+  });
+
+  backButton.addEventListener("click", () => {
+    audio.beep(300);
+    showScreen(currentScreen === "play" || currentScreen === "about" ? "games" : "intro");
+  });
+
+  muteButton.addEventListener("click", () => {
+    settings.audio = !settings.audio;
+    saveSettings();
+    if (settings.audio) audio.beep(520);
+  });
+
+  audioToggle.addEventListener("change", () => {
+    settings.audio = audioToggle.checked;
+    saveSettings();
+  });
+
+  musicToggle.addEventListener("change", () => {
+    settings.music = musicToggle.checked;
+    saveSettings();
+    audio.beep(360);
+  });
+
+  motionToggle.addEventListener("change", () => {
+    settings.reducedMotion = motionToggle.checked;
+    saveSettings();
+  });
+
+  volumeSlider.addEventListener("input", () => {
+    settings.volume = Number(volumeSlider.value);
+    saveSettings();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (listeningFor) {
+      event.preventDefault();
+      keybinds[listeningFor] = event.code;
+      listeningFor = null;
+      saveKeybinds();
+      audio.beep(700, 0.06);
+      return;
+    }
+    if (Object.values(keybinds).includes(event.code)) event.preventDefault();
+    pressed.add(event.code);
+    if (currentScreen === "play" && event.code === keybinds.pause) showScreen("games");
+  });
+
+  window.addEventListener("keyup", (event) => {
+    pressed.delete(event.code);
+  });
+
+  window.addEventListener("resize", resizeAttractCanvas);
+
+  renderGameCards();
+  introCabinetCount.textContent = gameDefinitions.length.toString();
+  renderKeybinds();
+  applySettings();
+  showScreen("intro");
+  runAttractMode();
+})();
