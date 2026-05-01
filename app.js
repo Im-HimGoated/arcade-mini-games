@@ -13,7 +13,13 @@
   const muteButton = document.querySelector("#muteButton");
   const muteIcon = document.querySelector("#muteIcon");
   const gameGrid = document.querySelector("#gameGrid");
+  const gameSearch = document.querySelector("#gameSearch");
+  const filterTabs = document.querySelector("#filterTabs");
   const introCabinetCount = document.querySelector("#introCabinetCount");
+  const totalBestScore = document.querySelector("#totalBestScore");
+  const favoriteCabinet = document.querySelector("#favoriteCabinet");
+  const dailyChallenge = document.querySelector("#dailyChallenge");
+  const cabinetSpotlight = document.querySelector("#cabinetSpotlight");
   const aboutMarquee = document.querySelector("#aboutMarquee");
   const aboutKicker = document.querySelector("#aboutKicker");
   const aboutTitle = document.querySelector("#aboutTitle");
@@ -137,6 +143,7 @@
   let currentScreen = "intro";
   let selectedAboutGame = null;
   let activeGame = null;
+  let activeFilter = "all";
   let gameLoopId = 0;
   let lastFrameTime = 0;
   let listeningFor = null;
@@ -213,8 +220,19 @@
     return Number(localStorage.getItem(`arcade-best-${id}`) || 0);
   }
 
+  function getPlayCount(id) {
+    return Number(localStorage.getItem(`arcade-plays-${id}`) || 0);
+  }
+
+  function recordPlay(id) {
+    localStorage.setItem(`arcade-plays-${id}`, (getPlayCount(id) + 1).toString());
+  }
+
   function saveBestScore(id, score) {
-    if (score > getBestScore(id)) localStorage.setItem(`arcade-best-${id}`, score.toString());
+    if (score > getBestScore(id)) {
+      localStorage.setItem(`arcade-best-${id}`, score.toString());
+      updateIntroDashboard();
+    }
   }
 
   function saveSettings() {
@@ -243,6 +261,7 @@
       element.classList.toggle("screen-active", screenName === name);
     });
     currentScreen = name;
+    document.body.dataset.screen = name;
     const titleMap = {
       intro: "Mini Arcade",
       games: "Pick Game",
@@ -259,12 +278,25 @@
 
   function renderGameCards() {
     gameGrid.innerHTML = "";
-    gameDefinitions.forEach((game) => {
+    const query = gameSearch.value.trim().toLowerCase();
+    const visibleGames = gameDefinitions.filter((game) => {
+      const matchesFilter = activeFilter === "all" || game.tag === activeFilter;
+      const haystack = `${game.title} ${game.subtitle} ${game.hook} ${game.tag}`.toLowerCase();
+      return matchesFilter && haystack.includes(query);
+    });
+
+    if (!visibleGames.length) {
+      gameGrid.innerHTML = `<div class="empty-cabinets">No cabinets match that search.</div>`;
+      return;
+    }
+
+    visibleGames.forEach((game, index) => {
       const card = document.createElement("article");
       card.className = "game-card";
       card.style.setProperty("--preview-bg", game.background);
       card.style.setProperty("--preview-accent", game.accent);
       card.style.setProperty("--preview-glow", game.glow);
+      card.style.setProperty("--stagger", `${index * 55}ms`);
       card.innerHTML = `
         <div class="game-preview" aria-hidden="true">
           <span class="preview-line preview-line-a"></span>
@@ -278,9 +310,14 @@
             <p>${game.subtitle}</p>
             <small class="game-hook">${game.hook}</small>
           </div>
+          <div class="cabinet-readout" aria-label="${game.title} cabinet stats">
+            <span><strong>${getBestScore(game.id)}</strong> Best</span>
+            <span><strong>${getPlayCount(game.id)}</strong> Plays</span>
+            <span><strong>${difficultyFor(game)}</strong> Heat</span>
+          </div>
           <div class="card-meta">
             <span>${game.tag}</span>
-            <span>Best ${getBestScore(game.id)}</span>
+            <span>${game.controls.split(".")[0]}</span>
             <span>60s run</span>
           </div>
           <div class="card-actions">
@@ -293,6 +330,46 @@
       card.querySelector('[data-action="about"]').addEventListener("click", () => showAbout(game.id));
       gameGrid.append(card);
     });
+  }
+
+  function difficultyFor(game) {
+    const scale = {
+      Survival: "Medium",
+      Precision: "Sharp",
+      Reflex: "Fast",
+      Timing: "Tricky",
+      Strategy: "Smart",
+    };
+    return scale[game.tag] || "Normal";
+  }
+
+  function getDailyGame() {
+    const daySeed = Math.floor(Date.now() / 86_400_000);
+    return gameDefinitions[daySeed % gameDefinitions.length];
+  }
+
+  function updateIntroDashboard() {
+    const totalBest = gameDefinitions.reduce((sum, game) => sum + getBestScore(game.id), 0);
+    const mostPlayed = [...gameDefinitions].sort((a, b) => getPlayCount(b.id) - getPlayCount(a.id))[0];
+    const daily = getDailyGame();
+    totalBestScore.textContent = totalBest.toString();
+    favoriteCabinet.textContent = getPlayCount(mostPlayed.id) ? mostPlayed.title : "None";
+    dailyChallenge.textContent = daily.title;
+    renderCabinetSpotlight(daily);
+  }
+
+  function renderCabinetSpotlight(game) {
+    cabinetSpotlight.style.setProperty("--preview-accent", game.accent);
+    cabinetSpotlight.style.setProperty("--preview-glow", game.glow);
+    cabinetSpotlight.innerHTML = `
+      <div>
+        <span>Featured Cabinet</span>
+        <strong>${game.title}</strong>
+        <p>${game.subtitle}. ${game.strategy}</p>
+      </div>
+      <button class="secondary-button compact" type="button">Quick Play</button>
+    `;
+    cabinetSpotlight.querySelector("button").addEventListener("click", () => startGame(game.id));
   }
 
   function showAbout(id) {
@@ -371,6 +448,9 @@
   function startGame(id) {
     stopGameLoop();
     const definition = gameDefinitions.find((game) => game.id === id);
+    recordPlay(definition.id);
+    updateIntroDashboard();
+    renderGameCards();
     activeGame = createGame(definition);
     playTitle.textContent = definition.title;
     gameSubtitle.textContent = definition.subtitle;
@@ -1499,6 +1579,15 @@
     audio.beep(620);
     showScreen("keybinds");
   });
+  gameSearch.addEventListener("input", renderGameCards);
+  filterTabs.addEventListener("click", (event) => {
+    const button = event.target.closest(".filter-tab");
+    if (!button) return;
+    activeFilter = button.dataset.filter;
+    filterTabs.querySelectorAll(".filter-tab").forEach((tab) => tab.classList.toggle("active", tab === button));
+    renderGameCards();
+    audio.beep(420, 0.04, "triangle");
+  });
   document.querySelector("#resetKeysButton").addEventListener("click", () => {
     keybinds = { ...defaultKeybinds };
     saveKeybinds();
@@ -1561,6 +1650,12 @@
       return;
     }
     if (Object.values(keybinds).includes(event.code)) event.preventDefault();
+    if ((currentScreen === "games" || currentScreen === "intro") && /^Digit[1-5]$/.test(event.code)) {
+      const index = Number(event.code.replace("Digit", "")) - 1;
+      const game = gameDefinitions[index];
+      if (game) startGame(game.id);
+      return;
+    }
     pressed.add(event.code);
     if (currentScreen === "play" && event.code === keybinds.pause) showScreen("games");
   });
@@ -1573,6 +1668,7 @@
 
   renderGameCards();
   introCabinetCount.textContent = gameDefinitions.length.toString();
+  updateIntroDashboard();
   renderKeybinds();
   applySettings();
   showScreen("intro");

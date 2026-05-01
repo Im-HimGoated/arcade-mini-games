@@ -46,6 +46,12 @@ button {
   cursor: pointer;
 }
 
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid rgba(52, 214, 255, 0.42);
+  outline-offset: 3px;
+}
+
 .app-shell {
   display: grid;
   grid-template-rows: auto 1fr;
@@ -63,6 +69,8 @@ button {
   grid-template-columns: 44px 54px 1fr 44px;
   min-height: 84px;
   padding: 18px clamp(18px, 4vw, 42px);
+  position: relative;
+  z-index: 5;
 }
 
 .brand-mark {
@@ -215,6 +223,76 @@ main {
   font-size: 1.28rem;
 }
 
+.intro-command {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 0 12px;
+}
+
+.intro-command article,
+.spotlight-panel {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.intro-command article {
+  min-width: 0;
+  padding: 11px 10px;
+}
+
+.intro-command span,
+.spotlight-panel span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.intro-command strong {
+  color: var(--cool);
+  display: block;
+  font-size: 1rem;
+  margin-top: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spotlight-panel {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  margin: 0 0 20px;
+  overflow: hidden;
+  padding: 14px;
+  position: relative;
+}
+
+.spotlight-panel::before {
+  background: linear-gradient(180deg, var(--preview-accent), transparent);
+  box-shadow: 0 0 24px var(--preview-glow);
+  content: "";
+  inset: 0 auto 0 0;
+  position: absolute;
+  width: 4px;
+}
+
+.spotlight-panel strong {
+  display: block;
+  font-size: 1.05rem;
+  margin-top: 4px;
+}
+
+.spotlight-panel p {
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 7px 0 0;
+}
+
 .menu-stack {
   display: grid;
   gap: 12px;
@@ -288,6 +366,63 @@ main {
   max-width: 1120px;
 }
 
+.game-toolbar {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(260px, 380px) minmax(0, 1fr);
+  margin: 0 auto 18px;
+  max-width: 1120px;
+}
+
+.game-search {
+  display: grid;
+  gap: 8px;
+}
+
+.game-search span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.game-search input {
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  min-height: 46px;
+  outline: 0;
+  padding: 0 14px;
+}
+
+.filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.filter-tab {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  min-height: 36px;
+  padding: 8px 12px;
+  text-transform: uppercase;
+}
+
+.filter-tab.active,
+.filter-tab:hover {
+  background: rgba(52, 214, 255, 0.14);
+  border-color: rgba(52, 214, 255, 0.44);
+  color: var(--cool);
+}
+
 .game-grid {
   display: grid;
   gap: 16px;
@@ -306,6 +441,9 @@ main {
   min-height: 360px;
   overflow: hidden;
   padding: 0 0 18px;
+  transform: translateY(0);
+  animation: cabinetIn 420ms ease both;
+  animation-delay: var(--stagger, 0ms);
 }
 
 .game-card:hover {
@@ -405,6 +543,31 @@ main {
   margin-top: 10px;
 }
 
+.cabinet-readout {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cabinet-readout span {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  padding: 9px 8px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.cabinet-readout strong {
+  color: var(--cool);
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 2px;
+}
+
 .card-meta {
   color: var(--sun);
   display: flex;
@@ -426,6 +589,15 @@ main {
   display: grid;
   gap: 8px;
   grid-template-columns: 1fr 1fr;
+}
+
+.empty-cabinets {
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  color: var(--muted);
+  grid-column: 1 / -1;
+  padding: 34px;
+  text-align: center;
 }
 
 .about-layout {
@@ -634,6 +806,18 @@ input[type="range"] {
   width: 100%;
 }
 
+@keyframes cabinetIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 860px) {
   .intro-screen.screen-active {
     align-content: start;
@@ -647,6 +831,15 @@ input[type="range"] {
 
   .game-grid {
     grid-template-columns: 1fr;
+  }
+
+  .game-toolbar {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .filter-tabs {
+    justify-content: flex-start;
   }
 
   .about-layout {
@@ -704,8 +897,15 @@ input[type="range"] {
   }
 
   .intro-stats,
+  .intro-command,
+  .cabinet-readout,
   .card-actions {
     grid-template-columns: 1fr;
+  }
+
+  .spotlight-panel {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .hud-stats span {
