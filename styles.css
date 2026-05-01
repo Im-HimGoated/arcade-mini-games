@@ -805,6 +805,196 @@ input[type="range"] {
   width: 100%;
 }
 
+/* Visual polish pass */
+:root {
+  --bg: #03040b;
+  --panel: rgba(13, 18, 32, 0.86);
+  --panel-strong: rgba(22, 29, 50, 0.96);
+  --line: rgba(177, 211, 255, 0.17);
+  --text: #f7fbff;
+  --muted: #9aa8c8;
+  --violet: #9b7cff;
+  --shadow: 0 28px 90px rgba(0, 0, 0, 0.46);
+}
+
+body {
+  background:
+    linear-gradient(135deg, rgba(255, 61, 129, 0.17), transparent 30%),
+    linear-gradient(225deg, rgba(52, 214, 255, 0.16), transparent 38%),
+    linear-gradient(180deg, rgba(155, 124, 255, 0.12), transparent 46%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 6px),
+    var(--bg);
+  overflow: hidden;
+}
+
+body::before {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 72px 72px;
+  content: "";
+  inset: 84px 0 0;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.78), transparent 75%);
+  pointer-events: none;
+  position: fixed;
+  z-index: -1;
+}
+
+.topbar {
+  background:
+    linear-gradient(90deg, rgba(255, 61, 129, 0.12), transparent 28%),
+    linear-gradient(270deg, rgba(52, 214, 255, 0.12), transparent 32%),
+    rgba(3, 5, 13, 0.86);
+  border-bottom-color: rgba(177, 211, 255, 0.14);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.26);
+}
+
+h2 {
+  font-size: clamp(2.45rem, 8vw, 6.25rem);
+}
+
+.intro-screen {
+  gap: clamp(24px, 5vw, 64px);
+  grid-template-columns: minmax(0, 1.1fr) minmax(330px, 480px);
+  margin: 0 auto;
+  max-width: 1240px;
+}
+
+.hero-visual {
+  background:
+    linear-gradient(135deg, rgba(255, 61, 129, 0.12), transparent 38%),
+    linear-gradient(225deg, rgba(52, 214, 255, 0.12), transparent 45%),
+    #070a12;
+  border-color: rgba(177, 211, 255, 0.18);
+  box-shadow:
+    var(--shadow),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.045),
+    0 0 70px rgba(52, 214, 255, 0.12);
+  min-height: 470px;
+}
+
+.hero-visual::before {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  content: "";
+  inset: 16px;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+.hero-visual::after {
+  background: linear-gradient(90deg, var(--hot), var(--sun), var(--cool), var(--mint));
+  bottom: 0;
+  content: "";
+  height: 4px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  z-index: 3;
+}
+
+#attractCanvas {
+  min-height: 470px;
+}
+
+.intro-panel,
+.about-panel {
+  background:
+    linear-gradient(135deg, rgba(52, 214, 255, 0.09), transparent 42%),
+    linear-gradient(180deg, rgba(21, 28, 48, 0.92), rgba(9, 13, 25, 0.88));
+  border-color: rgba(177, 211, 255, 0.16);
+  box-shadow:
+    var(--shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.intro-panel {
+  position: relative;
+}
+
+.intro-panel::before {
+  background: linear-gradient(180deg, var(--cool), var(--hot));
+  border-radius: 8px 0 0 8px;
+  content: "";
+  inset: 14px auto 14px 0;
+  position: absolute;
+  width: 4px;
+}
+
+.intro-copy,
+.game-hook {
+  color: #d5ddf3;
+}
+
+.primary-button {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 34%),
+    linear-gradient(135deg, var(--hot), #ef7c31);
+  box-shadow:
+    0 14px 36px rgba(255, 61, 129, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.secondary-button,
+.icon-button {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035));
+}
+
+.primary-button:hover,
+.secondary-button:hover,
+.icon-button:hover {
+  box-shadow: 0 14px 34px rgba(52, 214, 255, 0.12);
+}
+
+.game-card,
+.setting-row,
+.keybind-row,
+.hud-stats span {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.075), transparent 38%),
+    linear-gradient(180deg, rgba(24, 30, 48, 0.96), rgba(9, 13, 25, 0.95));
+  border-color: rgba(177, 211, 255, 0.13);
+  box-shadow:
+    0 22px 70px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.game-card:hover {
+  border-color: rgba(52, 214, 255, 0.38);
+  box-shadow:
+    0 26px 82px rgba(0, 0, 0, 0.4),
+    0 0 42px rgba(52, 214, 255, 0.1);
+}
+
+.game-preview {
+  border-bottom-color: rgba(177, 211, 255, 0.13);
+}
+
+.game-card h3 {
+  font-size: 1.34rem;
+}
+
+.intro-stats span,
+.intro-command article,
+.spotlight-panel,
+.cabinet-readout span,
+.about-info section {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(177, 211, 255, 0.12);
+}
+
+.spotlight-panel {
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.spotlight-panel:hover {
+  border-color: rgba(52, 214, 255, 0.34);
+  transform: translateY(-1px);
+}
+
 @keyframes cabinetIn {
   from {
     opacity: 0;
