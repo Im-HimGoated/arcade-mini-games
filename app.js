@@ -222,8 +222,14 @@
     musicGain: null,
     ensure() {
       if (!settings.audio) return null;
-      if (!this.context) this.context = new AudioContext();
-      if (this.context.state === "suspended") this.context.resume();
+      const AudioEngine = window.AudioContext || window.webkitAudioContext;
+      if (!AudioEngine) return null;
+      try {
+        if (!this.context) this.context = new AudioEngine();
+        if (this.context.state === "suspended") this.context.resume();
+      } catch {
+        return null;
+      }
       return this.context;
     },
     beep(frequency = 420, duration = 0.08, type = "square") {
@@ -338,6 +344,7 @@
     screenTitle.textContent = titleMap[name];
     backButton.classList.toggle("hidden", name === "intro");
     if (name !== "play") stopGameLoop();
+    if (name === "games") renderGameCards();
     audio.refresh();
   }
 
@@ -395,6 +402,15 @@
       card.querySelector('[data-action="about"]').addEventListener("click", () => showAbout(game.id));
       gameGrid.append(card);
     });
+  }
+
+  function resetGameBrowser() {
+    activeFilter = "all";
+    gameSearch.value = "";
+    filterTabs.querySelectorAll(".filter-tab").forEach((tab) => {
+      tab.classList.toggle("active", tab.dataset.filter === "all");
+    });
+    renderGameCards();
   }
 
   function difficultyFor(game) {
@@ -2294,8 +2310,9 @@
   }
 
   document.querySelector("#playButton").addEventListener("click", () => {
-    audio.beep(520);
+    resetGameBrowser();
     showScreen("games");
+    audio.beep(520);
   });
   document.querySelector("#settingsButton").addEventListener("click", () => {
     audio.beep(440);
