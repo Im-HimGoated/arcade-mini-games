@@ -66,7 +66,7 @@
     right: ["Move Right", "Ships, cursors, and lane changes"],
     up: ["Move Up", "Cursors and lane changes"],
     down: ["Move Down", "Cursors and lane changes"],
-    action: ["Action", "Dash, pop, and confirm"],
+    action: ["Action", "Dash, pop, drop, and confirm"],
     pause: ["Pause / Back", "Leave the active cabinet"],
   };
 
@@ -135,6 +135,71 @@
       accent: "#b78cff",
       glow: "rgba(183, 140, 255, 0.72)",
       background: "linear-gradient(135deg, #1b173a, #12313a 58%, #33152e)",
+    },
+    {
+      id: "tetris",
+      title: "Stack Shift",
+      subtitle: "Tetris-style neon stacking",
+      hook: "Rotate falling blocks, clear lines, and keep the grid alive as the drop speed climbs.",
+      rules: "Fill full rows to clear them. The run ends when new blocks cannot enter the grid.",
+      controls: "Move with Left/Right, soft drop with Down, rotate with Up, and hard drop with Action.",
+      strategy: "Keep one side clean for long pieces. Early flat stacks make the faster levels survivable.",
+      tag: "Strategy",
+      accent: "#34d6ff",
+      glow: "rgba(52, 214, 255, 0.7)",
+      background: "linear-gradient(135deg, #081d35, #18204c 58%, #27142b)",
+    },
+    {
+      id: "twenty48",
+      title: "2048 Reactor",
+      subtitle: "Merge tiles into brighter cores",
+      hook: "Slide energy tiles together, build bigger numbers, and chase chain bonuses before the board locks.",
+      rules: "Matching tiles merge when pushed together. The run ends when no moves remain.",
+      controls: "Use the directional keys to slide the whole board.",
+      strategy: "Choose a favorite corner and feed it. Random moves fill the reactor fast.",
+      tag: "Strategy",
+      accent: "#ffd166",
+      glow: "rgba(255, 209, 102, 0.72)",
+      background: "linear-gradient(135deg, #2a2210, #102835 58%, #2a1732)",
+    },
+    {
+      id: "driftboss",
+      title: "Neon Drift Boss",
+      subtitle: "One-button corner control",
+      hook: "Hold to drift right, release to slide left, and stay on a shrinking zigzag road.",
+      rules: "Keep the car on the neon road. Distance scores points, and checkpoints add bonuses.",
+      controls: "Hold Action or Right to turn right. Release to turn left.",
+      strategy: "Tap in short bursts. Long holds are fast, but the road punishes over-corrections.",
+      tag: "Timing",
+      accent: "#ff3d81",
+      glow: "rgba(255, 61, 129, 0.7)",
+      background: "linear-gradient(135deg, #2a1028, #101f34 58%, #332012)",
+    },
+    {
+      id: "snake",
+      title: "Byte Snake",
+      subtitle: "Classic snake with neon speed",
+      hook: "Eat data pellets, grow longer, and survive as the grid gets tighter every level.",
+      rules: "Collect pellets to score and grow. Hitting walls or your own trail ends the run.",
+      controls: "Use the directional keys to steer.",
+      strategy: "Leave escape lanes around the edges. A perfect pellet is not worth boxing yourself in.",
+      tag: "Survival",
+      accent: "#58f29f",
+      glow: "rgba(88, 242, 159, 0.7)",
+      background: "linear-gradient(135deg, #06251a, #14213b 58%, #17192d)",
+    },
+    {
+      id: "breaker",
+      title: "Prism Breaker",
+      subtitle: "Breakout with power streaks",
+      hook: "Bounce a hot signal ball through brick waves while the paddle gets less forgiving.",
+      rules: "Clear bricks for points. Missing the ball costs a life; clearing the wall reloads harder bricks.",
+      controls: "Move the paddle with Left/Right. Hold Action for a faster paddle.",
+      strategy: "Aim for side tunnels. Once the ball gets above the bricks, the score climbs quickly.",
+      tag: "Precision",
+      accent: "#b78cff",
+      glow: "rgba(183, 140, 255, 0.72)",
+      background: "linear-gradient(135deg, #17133d, #0e2538 58%, #321725)",
     },
   ];
 
@@ -305,7 +370,7 @@
         </div>
         <div class="game-card-body">
           <div>
-            <p class="kicker">Starter game</p>
+            <p class="kicker">Arcade cabinet</p>
             <h3>${game.title}</h3>
             <p>${game.subtitle}</p>
             <small class="game-hook">${game.hook}</small>
@@ -492,6 +557,11 @@
     if (definition.id === "popper") return createPopper(base);
     if (definition.id === "flap") return createFlap(base);
     if (definition.id === "tictactoe") return createTicTacToe(base);
+    if (definition.id === "tetris") return createTetris(base);
+    if (definition.id === "twenty48") return createTwenty48(base);
+    if (definition.id === "driftboss") return createDriftBoss(base);
+    if (definition.id === "snake") return createSnake(base);
+    if (definition.id === "breaker") return createBreaker(base);
     return createRunner(base);
   }
 
@@ -1116,6 +1186,350 @@
     };
   }
 
+  const tetrisPieces = [
+    { color: "#34d6ff", cells: [[1, 0], [0, 1], [1, 1], [2, 1]] },
+    { color: "#ffd166", cells: [[0, 0], [1, 0], [0, 1], [1, 1]] },
+    { color: "#ff3d81", cells: [[0, 1], [1, 1], [2, 1], [3, 1]] },
+    { color: "#58f29f", cells: [[1, 0], [2, 0], [0, 1], [1, 1]] },
+    { color: "#b78cff", cells: [[0, 0], [1, 0], [1, 1], [2, 1]] },
+    { color: "#ff8a3d", cells: [[0, 0], [0, 1], [1, 1], [2, 1]] },
+    { color: "#8ee8ff", cells: [[2, 0], [0, 1], [1, 1], [2, 1]] },
+  ];
+
+  function createTetris(base) {
+    const cols = 10;
+    const rows = 18;
+    return {
+      ...base,
+      cols,
+      rows,
+      grid: Array.from({ length: rows }, () => Array(cols).fill(null)),
+      current: makeTetrisPiece(),
+      dropTimer: 0,
+      lines: 0,
+      input: {},
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const left = actionPressed("left");
+        const right = actionPressed("right");
+        const down = actionPressed("down");
+        const up = actionPressed("up");
+        const action = actionPressed("action");
+        if (left && !this.input.left) this.tryMove(-1, 0);
+        if (right && !this.input.right) this.tryMove(1, 0);
+        if (up && !this.input.up) this.tryRotate();
+        if (action && !this.input.action) {
+          while (this.tryMove(0, 1)) this.addScore(1);
+          this.lockPiece();
+        }
+        this.input = { left, right, down, up, action };
+
+        const interval = Math.max(0.08, 0.82 - this.level * 0.055);
+        this.dropTimer += delta * (down ? 7 : 1);
+        while (this.dropTimer >= interval && !this.over) {
+          this.dropTimer -= interval;
+          if (!this.tryMove(0, 1)) this.lockPiece();
+        }
+        this.score += delta * 4;
+      },
+      tryMove(dx, dy) {
+        const next = { ...this.current, x: this.current.x + dx, y: this.current.y + dy };
+        if (this.collides(next)) return false;
+        this.current = next;
+        return true;
+      },
+      tryRotate() {
+        const rotated = this.current.cells.map(([x, y]) => [1 - y, x]);
+        const kicks = [0, -1, 1, -2, 2];
+        for (const kick of kicks) {
+          const next = { ...this.current, x: this.current.x + kick, cells: rotated };
+          if (!this.collides(next)) {
+            this.current = next;
+            audio.beep(520, 0.035, "triangle");
+            return;
+          }
+        }
+      },
+      collides(piece) {
+        return piece.cells.some(([cx, cy]) => {
+          const x = piece.x + cx;
+          const y = piece.y + cy;
+          return x < 0 || x >= cols || y >= rows || (y >= 0 && this.grid[y][x]);
+        });
+      },
+      lockPiece() {
+        this.current.cells.forEach(([cx, cy]) => {
+          const x = this.current.x + cx;
+          const y = this.current.y + cy;
+          if (y >= 0 && y < rows && x >= 0 && x < cols) this.grid[y][x] = this.current.color;
+        });
+        const before = this.grid.length;
+        this.grid = this.grid.filter((row) => row.some((cell) => !cell));
+        const cleared = before - this.grid.length;
+        while (this.grid.length < rows) this.grid.unshift(Array(cols).fill(null));
+        if (cleared) {
+          this.lines += cleared;
+          this.pushCombo(cleared);
+          this.addScore((cleared * cleared * 90) + this.level * 20, gameCanvas.width / 2, 94, `${cleared} Line`);
+          this.burst(gameCanvas.width / 2, 280, "#34d6ff", 18 + cleared * 6);
+          audio.beep(700 + cleared * 70, 0.06, "square");
+        }
+        this.current = makeTetrisPiece();
+        if (this.collides(this.current)) {
+          this.flash = 0.2;
+          this.finish();
+        }
+      },
+      draw(context) {
+        this.drawBase(context);
+        drawBadge(context, `Lines ${this.lines}`, 24, 34, "#34d6ff");
+        drawTetrisBoard(context, this);
+        this.drawEffects(context);
+        this.drawEnd(context, this.timeLeft <= 0 ? "Stack Saved" : "Stack Locked");
+      },
+    };
+  }
+
+  function createTwenty48(base) {
+    return {
+      ...base,
+      grid: make2048Grid(),
+      input: {},
+      moves: 0,
+      biggest: 2,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const direction = getPressedDirection();
+        if (direction && !this.input[direction]) {
+          const result = slide2048(this.grid, direction);
+          if (result.moved) {
+            this.grid = result.grid;
+            this.moves += 1;
+            this.biggest = Math.max(this.biggest, result.biggest);
+            this.addScore(result.gained || 4, gameCanvas.width / 2, 95, result.gained ? "Merge" : "Move");
+            if (result.gained) this.pushCombo(result.gained >= 64 ? 2 : 1);
+            add2048Tile(this.grid);
+            audio.beep(result.gained ? 720 : 420, 0.045, "triangle");
+            if (!canMove2048(this.grid)) this.finish();
+          } else {
+            audio.beep(150, 0.035, "triangle");
+          }
+        }
+        this.input = {
+          left: actionPressed("left"),
+          right: actionPressed("right"),
+          up: actionPressed("up"),
+          down: actionPressed("down"),
+        };
+      },
+      draw(context) {
+        this.drawBase(context);
+        drawBadge(context, `Moves ${this.moves}`, 24, 34, "#ffd166");
+        drawBadge(context, `Best ${this.biggest}`, 140, 34, "#58f29f");
+        draw2048Board(context, this.grid);
+        this.drawEffects(context);
+        this.drawEnd(context, this.timeLeft <= 0 ? "Reactor Stable" : "Grid Locked");
+      },
+    };
+  }
+
+  function createDriftBoss(base) {
+    const points = [];
+    for (let y = -180; y <= gameCanvas.height + 180; y += 90) {
+      const previous = points[points.length - 1]?.x ?? gameCanvas.width / 2;
+      points.push({ x: clamp(previous + random(-145, 145), 170, gameCanvas.width - 170), y });
+    }
+    return {
+      ...base,
+      car: { x: gameCanvas.width / 2, y: 420, angle: 0 },
+      road: points,
+      distance: 0,
+      checkpoint: 0,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const speed = 150 + this.level * 22;
+        const width = Math.max(128, 250 - this.level * 9);
+        const turningRight = actionPressed("action") || actionPressed("right");
+        this.car.x += (turningRight ? 1 : -1) * (180 + this.level * 10) * delta;
+        this.car.angle = turningRight ? 0.36 : -0.36;
+        this.road.forEach((point) => {
+          point.y += speed * delta;
+        });
+        while (this.road[0].y > -130) {
+          const nextX = clamp(this.road[0].x + random(-185, 185), 150, gameCanvas.width - 150);
+          this.road.unshift({ x: nextX, y: this.road[0].y - 90 });
+        }
+        this.road = this.road.filter((point) => point.y < gameCanvas.height + 190);
+        this.distance += speed * delta;
+        this.score += delta * (24 + this.level * 7);
+        if (this.distance - this.checkpoint > 720) {
+          this.checkpoint = this.distance;
+          this.pushCombo();
+          this.addScore(90 + this.level * 8, this.car.x, this.car.y - 55, "Check");
+          this.burst(this.car.x, this.car.y, "#ff3d81", 12);
+          audio.beep(760, 0.05, "square");
+        }
+
+        const center = roadCenterAt(this.road, this.car.y);
+        if (Math.abs(this.car.x - center) > width / 2 - 18) {
+          this.flash = 0.22;
+          this.burst(this.car.x, this.car.y, "#ff5b5b", 24);
+          audio.beep(90, 0.18, "sawtooth");
+          this.finish();
+        }
+      },
+      draw(context) {
+        this.drawBase(context);
+        drawBadge(context, `${Math.floor(this.distance / 10)}m`, 24, 34, "#ff3d81");
+        drawDriftRoad(context, this.road, Math.max(128, 250 - this.level * 9));
+        drawDriftCar(context, this.car);
+        this.drawEffects(context);
+        if (this.flash) {
+          context.fillStyle = `rgba(255, 91, 91, ${this.flash * 2})`;
+          context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+        }
+        this.drawEnd(context, this.timeLeft <= 0 ? "Boss Run" : "Off Road");
+      },
+    };
+  }
+
+  function createSnake(base) {
+    return {
+      ...base,
+      cols: 24,
+      rows: 15,
+      snake: [{ x: 7, y: 7 }, { x: 6, y: 7 }, { x: 5, y: 7 }],
+      dir: { x: 1, y: 0 },
+      nextDir: { x: 1, y: 0 },
+      pellet: { x: 16, y: 7 },
+      stepTimer: 0,
+      eaten: 0,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const next = directionFromKeys(this.nextDir);
+        if (next && !(next.x === -this.dir.x && next.y === -this.dir.y)) this.nextDir = next;
+        this.stepTimer += delta;
+        const interval = Math.max(0.07, 0.22 - this.level * 0.012);
+        while (this.stepTimer >= interval && !this.over) {
+          this.stepTimer -= interval;
+          this.dir = this.nextDir;
+          const head = this.snake[0];
+          const nextHead = { x: head.x + this.dir.x, y: head.y + this.dir.y };
+          const hitWall = nextHead.x < 0 || nextHead.x >= this.cols || nextHead.y < 0 || nextHead.y >= this.rows;
+          const hitSelf = this.snake.some((part) => part.x === nextHead.x && part.y === nextHead.y);
+          if (hitWall || hitSelf) {
+            this.flash = 0.2;
+            this.finish();
+            audio.beep(100, 0.16, "sawtooth");
+            return;
+          }
+          this.snake.unshift(nextHead);
+          if (nextHead.x === this.pellet.x && nextHead.y === this.pellet.y) {
+            this.eaten += 1;
+            this.pushCombo();
+            this.addScore(42 + this.level * 5, gameCanvas.width / 2, 94, "Byte");
+            this.pellet = makeSnakePellet(this.cols, this.rows, this.snake);
+            this.burst(480, 270, "#58f29f", 10);
+            audio.beep(720, 0.045, "triangle");
+          } else {
+            this.snake.pop();
+          }
+        }
+        this.score += delta * (8 + this.level);
+      },
+      draw(context) {
+        this.drawBase(context);
+        drawBadge(context, `Bytes ${this.eaten}`, 24, 34, "#58f29f");
+        drawSnakeBoard(context, this);
+        this.drawEffects(context);
+        this.drawEnd(context, this.timeLeft <= 0 ? "Trail Complete" : "Snake Crash");
+      },
+    };
+  }
+
+  function createBreaker(base) {
+    return {
+      ...base,
+      paddle: { x: 480, y: 492, width: 140 },
+      ball: { x: 480, y: 410, vx: 210, vy: -250, r: 10 },
+      bricks: makeBricks(1),
+      lives: 3,
+      wave: 1,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const paddleSpeed = (actionPressed("action") ? 560 : 410) + this.level * 10;
+        this.paddle.width = Math.max(92, 146 - this.level * 4);
+        this.paddle.x += (Number(actionPressed("right")) - Number(actionPressed("left"))) * paddleSpeed * delta;
+        this.paddle.x = clamp(this.paddle.x, this.paddle.width / 2 + 20, gameCanvas.width - this.paddle.width / 2 - 20);
+
+        this.ball.x += this.ball.vx * delta;
+        this.ball.y += this.ball.vy * delta;
+        const speedBoost = 1 + this.level * 0.012;
+        if (this.ball.x < this.ball.r || this.ball.x > gameCanvas.width - this.ball.r) this.ball.vx *= -1;
+        if (this.ball.y < this.ball.r) this.ball.vy = Math.abs(this.ball.vy);
+        const paddleHit =
+          this.ball.vy > 0 &&
+          this.ball.y + this.ball.r > this.paddle.y - 12 &&
+          this.ball.y - this.ball.r < this.paddle.y + 14 &&
+          Math.abs(this.ball.x - this.paddle.x) < this.paddle.width / 2 + this.ball.r;
+        if (paddleHit) {
+          const offset = (this.ball.x - this.paddle.x) / (this.paddle.width / 2);
+          this.ball.vx = offset * 310 * speedBoost;
+          this.ball.vy = -Math.abs(this.ball.vy) * 1.01;
+          audio.beep(420, 0.035, "triangle");
+        }
+
+        for (const brick of this.bricks) {
+          if (!brick.live) continue;
+          if (
+            this.ball.x + this.ball.r > brick.x &&
+            this.ball.x - this.ball.r < brick.x + brick.w &&
+            this.ball.y + this.ball.r > brick.y &&
+            this.ball.y - this.ball.r < brick.y + brick.h
+          ) {
+            brick.live = false;
+            this.ball.vy *= -1;
+            this.pushCombo();
+            this.addScore(32 + this.level * 4, brick.x + brick.w / 2, brick.y, "Break");
+            this.burst(brick.x + brick.w / 2, brick.y + brick.h / 2, brick.color, 8);
+            audio.beep(680, 0.04, "square");
+            break;
+          }
+        }
+
+        if (this.ball.y > gameCanvas.height + 30) {
+          this.lives -= 1;
+          this.breakCombo();
+          if (this.lives <= 0) {
+            this.finish();
+          } else {
+            this.ball = { x: this.paddle.x, y: 410, vx: random(-210, 210), vy: -260, r: 10 };
+            audio.beep(130, 0.1, "sawtooth");
+          }
+        }
+        if (!this.bricks.some((brick) => brick.live)) {
+          this.wave += 1;
+          this.bricks = makeBricks(this.wave);
+          this.addScore(180 + this.level * 20, gameCanvas.width / 2, 94, "Wave");
+          this.burst(gameCanvas.width / 2, 170, "#b78cff", 22);
+        }
+      },
+      draw(context) {
+        this.drawBase(context);
+        drawBadge(context, `Lives ${this.lives}`, 24, 34, "#ffd166");
+        drawBadge(context, `Wave ${this.wave}`, 140, 34, "#b78cff");
+        drawBreaker(context, this);
+        this.drawEffects(context);
+        this.drawEnd(context, this.timeLeft <= 0 ? "Wall Cleared" : "Signal Lost");
+      },
+    };
+  }
+
   function makeTarget(level) {
     const timer = Math.max(1.1, random(2.2, 4.2) - level * 0.14);
     return {
@@ -1193,6 +1607,318 @@
       x: startX + (index % 3) * (size + gap) + size / 2,
       y: startY + Math.floor(index / 3) * (size + gap) + size / 2,
     };
+  }
+
+  function makeTetrisPiece() {
+    const template = tetrisPieces[Math.floor(random(0, tetrisPieces.length))];
+    return {
+      color: template.color,
+      cells: template.cells.map(([x, y]) => [x, y]),
+      x: 3,
+      y: -1,
+    };
+  }
+
+  function make2048Grid() {
+    const grid = Array.from({ length: 4 }, () => Array(4).fill(0));
+    add2048Tile(grid);
+    add2048Tile(grid);
+    return grid;
+  }
+
+  function add2048Tile(grid) {
+    const empty = [];
+    grid.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (!value) empty.push({ x, y });
+      });
+    });
+    if (!empty.length) return;
+    const spot = empty[Math.floor(random(0, empty.length))];
+    grid[spot.y][spot.x] = Math.random() < 0.88 ? 2 : 4;
+  }
+
+  function getPressedDirection() {
+    if (actionPressed("left")) return "left";
+    if (actionPressed("right")) return "right";
+    if (actionPressed("up")) return "up";
+    if (actionPressed("down")) return "down";
+    return "";
+  }
+
+  function slide2048(grid, direction) {
+    const next = grid.map((row) => [...row]);
+    let moved = false;
+    let gained = 0;
+    let biggest = 2;
+    const process = (line) => {
+      const values = line.filter(Boolean);
+      const result = [];
+      for (let index = 0; index < values.length; index += 1) {
+        if (values[index] === values[index + 1]) {
+          const merged = values[index] * 2;
+          result.push(merged);
+          gained += merged;
+          biggest = Math.max(biggest, merged);
+          index += 1;
+        } else {
+          result.push(values[index]);
+          biggest = Math.max(biggest, values[index]);
+        }
+      }
+      while (result.length < 4) result.push(0);
+      return result;
+    };
+
+    for (let index = 0; index < 4; index += 1) {
+      const line = direction === "left" || direction === "right"
+        ? [...grid[index]]
+        : [grid[0][index], grid[1][index], grid[2][index], grid[3][index]];
+      const ordered = direction === "right" || direction === "down" ? line.reverse() : line;
+      const merged = process(ordered);
+      const finalLine = direction === "right" || direction === "down" ? merged.reverse() : merged;
+      for (let offset = 0; offset < 4; offset += 1) {
+        const y = direction === "left" || direction === "right" ? index : offset;
+        const x = direction === "left" || direction === "right" ? offset : index;
+        if (next[y][x] !== finalLine[offset]) moved = true;
+        next[y][x] = finalLine[offset];
+      }
+    }
+    return { grid: next, moved, gained, biggest };
+  }
+
+  function canMove2048(grid) {
+    for (let y = 0; y < 4; y += 1) {
+      for (let x = 0; x < 4; x += 1) {
+        if (!grid[y][x]) return true;
+        if (x < 3 && grid[y][x] === grid[y][x + 1]) return true;
+        if (y < 3 && grid[y][x] === grid[y + 1][x]) return true;
+      }
+    }
+    return false;
+  }
+
+  function roadCenterAt(points, y) {
+    for (let index = 0; index < points.length - 1; index += 1) {
+      const a = points[index];
+      const b = points[index + 1];
+      if (y >= a.y && y <= b.y) {
+        const progress = (y - a.y) / (b.y - a.y || 1);
+        return a.x + (b.x - a.x) * progress;
+      }
+    }
+    return points.reduce((closest, point) => (Math.abs(point.y - y) < Math.abs(closest.y - y) ? point : closest), points[0]).x;
+  }
+
+  function directionFromKeys(current) {
+    if (actionPressed("left")) return { x: -1, y: 0 };
+    if (actionPressed("right")) return { x: 1, y: 0 };
+    if (actionPressed("up")) return { x: 0, y: -1 };
+    if (actionPressed("down")) return { x: 0, y: 1 };
+    return current;
+  }
+
+  function makeSnakePellet(cols, rows, snake) {
+    const occupied = new Set(snake.map((part) => `${part.x},${part.y}`));
+    const open = [];
+    for (let y = 0; y < rows; y += 1) {
+      for (let x = 0; x < cols; x += 1) {
+        if (!occupied.has(`${x},${y}`)) open.push({ x, y });
+      }
+    }
+    return open[Math.floor(random(0, open.length))] || { x: 0, y: 0 };
+  }
+
+  function makeBricks(wave) {
+    const bricks = [];
+    const cols = 9;
+    const rows = Math.min(7, 4 + wave);
+    const gap = 8;
+    const width = 82;
+    const height = 26;
+    const startX = gameCanvas.width / 2 - (cols * width + (cols - 1) * gap) / 2;
+    const colors = ["#34d6ff", "#ff3d81", "#ffd166", "#58f29f", "#b78cff"];
+    for (let y = 0; y < rows; y += 1) {
+      for (let x = 0; x < cols; x += 1) {
+        bricks.push({
+          x: startX + x * (width + gap),
+          y: 72 + y * (height + gap),
+          w: width,
+          h: height,
+          color: colors[(x + y + wave) % colors.length],
+          live: true,
+        });
+      }
+    }
+    return bricks;
+  }
+
+  function drawTetrisBoard(context, game) {
+    const cell = 25;
+    const boardW = game.cols * cell;
+    const boardH = game.rows * cell;
+    const startX = gameCanvas.width / 2 - boardW / 2;
+    const startY = 54;
+    context.save();
+    context.fillStyle = "rgba(6, 7, 15, 0.72)";
+    context.strokeStyle = "rgba(52,214,255,0.45)";
+    context.lineWidth = 3;
+    roundedRect(context, startX - 10, startY - 10, boardW + 20, boardH + 20, 8);
+    context.fill();
+    context.stroke();
+    for (let y = 0; y < game.rows; y += 1) {
+      for (let x = 0; x < game.cols; x += 1) {
+        const color = game.grid[y][x];
+        drawTetrisCell(context, startX + x * cell, startY + y * cell, cell, color);
+      }
+    }
+    game.current.cells.forEach(([cx, cy]) => {
+      const x = game.current.x + cx;
+      const y = game.current.y + cy;
+      if (y >= 0) drawTetrisCell(context, startX + x * cell, startY + y * cell, cell, game.current.color);
+    });
+    context.restore();
+  }
+
+  function drawTetrisCell(context, x, y, size, color) {
+    context.fillStyle = color || "rgba(255,255,255,0.035)";
+    context.strokeStyle = color ? "rgba(255,255,255,0.68)" : "rgba(255,255,255,0.055)";
+    context.shadowColor = color || "transparent";
+    context.shadowBlur = color ? 12 : 0;
+    context.fillRect(x + 1, y + 1, size - 2, size - 2);
+    context.strokeRect(x + 1, y + 1, size - 2, size - 2);
+    context.shadowBlur = 0;
+  }
+
+  function draw2048Board(context, grid) {
+    const size = 94;
+    const gap = 12;
+    const total = size * 4 + gap * 3;
+    const startX = gameCanvas.width / 2 - total / 2;
+    const startY = 94;
+    context.save();
+    context.fillStyle = "rgba(6, 7, 15, 0.64)";
+    context.strokeStyle = "rgba(255,209,102,0.42)";
+    context.lineWidth = 3;
+    roundedRect(context, startX - 14, startY - 14, total + 28, total + 28, 8);
+    context.fill();
+    context.stroke();
+    grid.forEach((row, y) => {
+      row.forEach((value, x) => {
+        const px = startX + x * (size + gap);
+        const py = startY + y * (size + gap);
+        const hue = value ? Math.min(54, Math.log2(value) * 5) : 0;
+        context.fillStyle = value ? `hsl(${44 + hue}, 88%, ${Math.max(42, 70 - Math.log2(value) * 3)}%)` : "rgba(255,255,255,0.07)";
+        context.strokeStyle = value ? "rgba(255,255,255,0.58)" : "rgba(255,255,255,0.1)";
+        context.shadowColor = value ? "rgba(255,209,102,0.35)" : "transparent";
+        context.shadowBlur = value ? 18 : 0;
+        roundedRect(context, px, py, size, size, 8);
+        context.fill();
+        context.stroke();
+        if (value) {
+          context.shadowBlur = 0;
+          drawText(context, value.toString(), px + size / 2, py + size / 2 + 11, "#08111f", "900 30px system-ui", "center");
+        }
+      });
+    });
+    context.restore();
+  }
+
+  function drawDriftRoad(context, points, width) {
+    context.save();
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.strokeStyle = "rgba(7, 10, 20, 0.9)";
+    context.lineWidth = width;
+    context.shadowColor = "rgba(255,61,129,0.28)";
+    context.shadowBlur = 24;
+    context.beginPath();
+    points.forEach((point, index) => {
+      if (index === 0) context.moveTo(point.x, point.y);
+      else context.lineTo(point.x, point.y);
+    });
+    context.stroke();
+    context.strokeStyle = "rgba(255,255,255,0.18)";
+    context.lineWidth = 4;
+    context.setLineDash([20, 22]);
+    context.beginPath();
+    points.forEach((point, index) => {
+      if (index === 0) context.moveTo(point.x, point.y);
+      else context.lineTo(point.x, point.y);
+    });
+    context.stroke();
+    context.setLineDash([]);
+    context.restore();
+  }
+
+  function drawDriftCar(context, car) {
+    context.save();
+    context.translate(car.x, car.y);
+    context.rotate(car.angle);
+    context.fillStyle = "#ff3d81";
+    context.shadowColor = "rgba(255,61,129,0.9)";
+    context.shadowBlur = 24;
+    roundedRect(context, -20, -34, 40, 68, 8);
+    context.fill();
+    context.fillStyle = "#34d6ff";
+    context.fillRect(-12, -19, 24, 15);
+    context.fillStyle = "#ffd166";
+    context.fillRect(-13, 18, 26, 6);
+    context.restore();
+  }
+
+  function drawSnakeBoard(context, game) {
+    const cell = 27;
+    const boardW = game.cols * cell;
+    const boardH = game.rows * cell;
+    const startX = gameCanvas.width / 2 - boardW / 2;
+    const startY = 88;
+    context.save();
+    context.fillStyle = "rgba(6, 7, 15, 0.68)";
+    context.strokeStyle = "rgba(88,242,159,0.36)";
+    context.lineWidth = 3;
+    roundedRect(context, startX - 10, startY - 10, boardW + 20, boardH + 20, 8);
+    context.fill();
+    context.stroke();
+    context.fillStyle = "#ffd166";
+    context.shadowColor = "rgba(255,209,102,0.8)";
+    context.shadowBlur = 18;
+    roundedRect(context, startX + game.pellet.x * cell + 4, startY + game.pellet.y * cell + 4, cell - 8, cell - 8, 6);
+    context.fill();
+    game.snake.forEach((part, index) => {
+      context.fillStyle = index === 0 ? "#58f29f" : "#34d6ff";
+      context.shadowColor = index === 0 ? "#58f29f" : "#34d6ff";
+      context.shadowBlur = index === 0 ? 18 : 9;
+      roundedRect(context, startX + part.x * cell + 2, startY + part.y * cell + 2, cell - 4, cell - 4, 7);
+      context.fill();
+    });
+    context.restore();
+  }
+
+  function drawBreaker(context, game) {
+    context.save();
+    game.bricks.forEach((brick) => {
+      if (!brick.live) return;
+      context.fillStyle = brick.color;
+      context.strokeStyle = "rgba(255,255,255,0.62)";
+      context.shadowColor = brick.color;
+      context.shadowBlur = 12;
+      roundedRect(context, brick.x, brick.y, brick.w, brick.h, 7);
+      context.fill();
+      context.stroke();
+    });
+    context.fillStyle = "#b78cff";
+    context.shadowColor = "rgba(183,140,255,0.85)";
+    context.shadowBlur = 20;
+    roundedRect(context, game.paddle.x - game.paddle.width / 2, game.paddle.y - 12, game.paddle.width, 24, 8);
+    context.fill();
+    context.fillStyle = "#ffd166";
+    context.shadowColor = "rgba(255,209,102,0.85)";
+    context.shadowBlur = 22;
+    context.beginPath();
+    context.arc(game.ball.x, game.ball.y, game.ball.r, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
   }
 
   function drawGameBackground(context, elapsed) {
@@ -1650,8 +2376,9 @@
       return;
     }
     if (Object.values(keybinds).includes(event.code)) event.preventDefault();
-    if ((currentScreen === "games" || currentScreen === "intro") && /^Digit[1-5]$/.test(event.code)) {
-      const index = Number(event.code.replace("Digit", "")) - 1;
+    if ((currentScreen === "games" || currentScreen === "intro") && /^Digit[0-9]$/.test(event.code)) {
+      const digit = Number(event.code.replace("Digit", ""));
+      const index = digit === 0 ? 9 : digit - 1;
       const game = gameDefinitions[index];
       if (game) startGame(game.id);
       return;

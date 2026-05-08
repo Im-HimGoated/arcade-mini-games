@@ -35,11 +35,17 @@ body {
     repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 5px),
     var(--bg);
   color: var(--text);
+  overflow-x: hidden;
 }
 
 button,
 input {
   font: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
 }
 
 button {
@@ -71,6 +77,10 @@ input:focus-visible {
   padding: 18px clamp(18px, 4vw, 42px);
   position: relative;
   z-index: 5;
+}
+
+.topbar > div:not(.brand-mark) {
+  min-width: 0;
 }
 
 .brand-mark {
@@ -179,6 +189,44 @@ main {
   height: 100%;
   min-height: 360px;
   width: 100%;
+}
+
+.player-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03)),
+    rgba(6, 8, 18, 0.8);
+  border: 1px solid rgba(177, 211, 255, 0.24);
+  border-radius: 8px;
+  bottom: clamp(14px, 3vw, 28px);
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.42),
+    0 0 34px rgba(52, 214, 255, 0.16);
+  margin: 0;
+  min-width: 150px;
+  overflow: hidden;
+  padding: 8px;
+  position: absolute;
+  right: clamp(14px, 3vw, 30px);
+  width: min(34%, 238px);
+  z-index: 2;
+}
+
+.player-card img {
+  aspect-ratio: 2 / 3;
+  border-radius: 6px;
+  object-fit: cover;
+  object-position: center top;
+  width: 100%;
+}
+
+.player-card figcaption {
+  color: var(--sun);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  padding: 8px 4px 2px;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .intro-panel {
@@ -1013,9 +1061,25 @@ h2 {
     grid-template-columns: 1fr;
   }
 
+  .intro-panel {
+    max-width: none;
+    order: 1;
+  }
+
   .hero-visual,
   #attractCanvas {
-    min-height: 260px;
+    min-height: 340px;
+  }
+
+  .hero-visual {
+    order: 2;
+  }
+
+  .player-card {
+    bottom: 14px;
+    min-width: 132px;
+    right: 14px;
+    width: min(32vw, 178px);
   }
 
   .game-grid {
@@ -1029,6 +1093,10 @@ h2 {
 
   .filter-tabs {
     justify-content: flex-start;
+  }
+
+  .filter-tab {
+    min-height: 42px;
   }
 
   .about-layout {
@@ -1045,24 +1113,127 @@ h2 {
 }
 
 @media (max-width: 620px) {
+  html,
+  body {
+    min-height: 100dvh;
+  }
+
+  body,
+  .app-shell {
+    overflow: visible;
+  }
+
+  body::before {
+    top: 76px;
+  }
+
+  .app-shell {
+    min-height: 100dvh;
+  }
+
   .topbar {
-    grid-template-columns: 38px 42px 1fr 38px;
+    gap: 10px;
+    grid-template-columns: 38px 1fr 38px;
     min-height: 76px;
-    padding: 14px;
+    padding: 12px max(14px, env(safe-area-inset-right)) 12px max(14px, env(safe-area-inset-left));
   }
 
   .brand-mark {
-    height: 34px;
-    width: 42px;
+    display: none;
+  }
+
+  h1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .screen {
-    height: calc(100vh - 76px);
-    padding: 14px;
+    height: auto;
+    min-height: calc(100dvh - 76px);
+    padding: 14px max(14px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
   }
 
   h2 {
-    font-size: 2.2rem;
+    font-size: clamp(2rem, 13vw, 3.15rem);
+    line-height: 0.96;
+  }
+
+  .intro-screen {
+    gap: 16px;
+  }
+
+  .intro-panel,
+  .about-panel {
+    padding: 20px 16px;
+  }
+
+  .intro-copy {
+    font-size: 0.98rem;
+    line-height: 1.5;
+    margin-bottom: 18px;
+  }
+
+  .intro-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .intro-stats span {
+    padding: 9px 6px;
+  }
+
+  .intro-stats strong {
+    font-size: 1.05rem;
+  }
+
+  .hero-visual,
+  #attractCanvas {
+    min-height: 300px;
+  }
+
+  .player-card {
+    min-width: 116px;
+    padding: 6px;
+    width: min(40vw, 148px);
+  }
+
+  .player-card figcaption {
+    font-size: 0.62rem;
+    padding-top: 6px;
+  }
+
+  .game-toolbar {
+    gap: 10px;
+  }
+
+  .filter-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-tab {
+    border-radius: 8px;
+    padding: 9px 8px;
+    width: 100%;
+  }
+
+  .game-card {
+    gap: 12px;
+    padding-bottom: 14px;
+  }
+
+  .game-preview {
+    aspect-ratio: 16 / 9;
+  }
+
+  .game-card-body {
+    padding: 0 14px;
+  }
+
+  .card-meta span {
+    border-radius: 8px;
+    flex: 1 1 auto;
+    text-align: center;
   }
 
   .setting-row,
@@ -1082,14 +1253,33 @@ h2 {
   }
 
   .hud-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
   }
 
   .intro-stats,
   .intro-command,
+  .cabinet-readout {
+    gap: 6px;
+  }
+
+  .intro-command,
   .cabinet-readout,
-  .card-actions {
+  .card-actions,
+  .footer-actions,
+  .play-actions {
     grid-template-columns: 1fr;
+  }
+
+  .footer-actions,
+  .play-actions {
+    display: grid;
+  }
+
+  .footer-actions button,
+  .play-actions button {
+    width: 100%;
   }
 
   .spotlight-panel {
@@ -1098,8 +1288,31 @@ h2 {
   }
 
   .hud-stats span {
-    flex: 1;
     min-width: 0;
+  }
+
+  #gameCanvas {
+    max-height: 52dvh;
+  }
+}
+
+@media (max-width: 420px) {
+  .intro-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-visual,
+  #attractCanvas {
+    min-height: 270px;
+  }
+
+  .player-card {
+    min-width: 104px;
+    width: 42vw;
   }
 }
 
