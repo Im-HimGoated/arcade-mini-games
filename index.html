@@ -65,6 +65,8 @@
             <div class="spotlight-panel" id="cabinetSpotlight" aria-label="Featured cabinet"></div>
             <div class="menu-stack">
               <button class="primary-button" id="playButton" type="button">Play</button>
+              <button class="secondary-button" id="tournamentButton" type="button">Tournament</button>
+              <button class="secondary-button" id="leaderboardButton" type="button">Leaderboards</button>
               <button class="secondary-button" id="settingsButton" type="button">Settings</button>
               <button class="secondary-button" id="keybindButton" type="button">Keybinds</button>
             </div>
@@ -110,6 +112,78 @@
                 <button class="secondary-button compact" id="aboutBackButton" type="button">All Games</button>
               </div>
             </article>
+          </div>
+        </section>
+
+        <section class="screen leaderboard-screen" id="leaderboardScreen" aria-labelledby="leaderboardTitle">
+          <div class="section-heading">
+            <p class="kicker">Hall of runs</p>
+            <h2 id="leaderboardTitle">Leaderboards</h2>
+          </div>
+          <div class="leaderboard-layout">
+            <article class="scoreboard-card featured-score">
+              <span>Total Best</span>
+              <strong id="leaderboardTotal">0</strong>
+              <p>Combined best score across every cabinet.</p>
+            </article>
+            <article class="scoreboard-card">
+              <span>Longest Run</span>
+              <strong id="leaderboardBestTime">0s</strong>
+              <p>Best survival time saved locally on this device.</p>
+            </article>
+            <article class="scoreboard-card">
+              <span>Most Played</span>
+              <strong id="leaderboardFavorite">None</strong>
+              <p>Your favorite cabinet based on local play count.</p>
+            </article>
+          </div>
+          <div class="leaderboard-table" id="leaderboardRows" aria-live="polite"></div>
+        </section>
+
+        <section class="screen tournament-screen" id="tournamentScreen" aria-labelledby="tournamentTitle">
+          <div class="section-heading">
+            <p class="kicker">Versus mode</p>
+            <h2 id="tournamentTitle">Tournament</h2>
+          </div>
+          <div class="tournament-layout">
+            <form class="tournament-panel" id="tournamentForm">
+              <label>
+                <span>Cabinet</span>
+                <select id="tournamentGameSelect"></select>
+              </label>
+              <label>
+                <span>Mode</span>
+                <select id="tournamentMode">
+                  <option value="local">Two players, one computer</option>
+                  <option value="bot">Player vs bot</option>
+                </select>
+              </label>
+              <label>
+                <span>Player 1</span>
+                <input id="playerOneName" maxlength="18" type="text" value="Player 1" />
+              </label>
+              <label id="playerTwoField">
+                <span>Player 2</span>
+                <input id="playerTwoName" maxlength="18" type="text" value="Player 2" />
+              </label>
+              <label id="botDifficultyField" class="hidden-field">
+                <span>Bot difficulty</span>
+                <select id="botDifficulty">
+                  <option value="easy">Easy</option>
+                  <option value="normal" selected>Normal</option>
+                  <option value="hard">Hard</option>
+                  <option value="expert">Expert</option>
+                </select>
+              </label>
+              <button class="primary-button" id="startTournamentButton" type="submit">Start Tournament</button>
+            </form>
+            <aside class="tournament-panel tournament-status">
+              <span class="kicker">Match terminal</span>
+              <h3 id="tournamentStatusTitle">Ready</h3>
+              <p id="tournamentStatus">Pick a cabinet and start a match. Each player gets one run.</p>
+              <div class="tournament-scores" id="tournamentScores"></div>
+              <button class="secondary-button hidden-field" id="nextTournamentRunButton" type="button">Start Next Run</button>
+            </aside>
           </div>
         </section>
 

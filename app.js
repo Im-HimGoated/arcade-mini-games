@@ -3,6 +3,8 @@
     intro: document.querySelector("#introScreen"),
     games: document.querySelector("#gamesScreen"),
     about: document.querySelector("#aboutScreen"),
+    leaderboards: document.querySelector("#leaderboardScreen"),
+    tournament: document.querySelector("#tournamentScreen"),
     settings: document.querySelector("#settingsScreen"),
     keybinds: document.querySelector("#keybindScreen"),
     play: document.querySelector("#playScreen"),
@@ -27,6 +29,22 @@
   const aboutInfo = document.querySelector("#aboutInfo");
   const aboutPlayButton = document.querySelector("#aboutPlayButton");
   const aboutBackButton = document.querySelector("#aboutBackButton");
+  const leaderboardTotal = document.querySelector("#leaderboardTotal");
+  const leaderboardBestTime = document.querySelector("#leaderboardBestTime");
+  const leaderboardFavorite = document.querySelector("#leaderboardFavorite");
+  const leaderboardRows = document.querySelector("#leaderboardRows");
+  const tournamentForm = document.querySelector("#tournamentForm");
+  const tournamentGameSelect = document.querySelector("#tournamentGameSelect");
+  const tournamentMode = document.querySelector("#tournamentMode");
+  const botDifficulty = document.querySelector("#botDifficulty");
+  const playerOneName = document.querySelector("#playerOneName");
+  const playerTwoName = document.querySelector("#playerTwoName");
+  const playerTwoField = document.querySelector("#playerTwoField");
+  const botDifficultyField = document.querySelector("#botDifficultyField");
+  const tournamentStatusTitle = document.querySelector("#tournamentStatusTitle");
+  const tournamentStatus = document.querySelector("#tournamentStatus");
+  const tournamentScores = document.querySelector("#tournamentScores");
+  const nextTournamentRunButton = document.querySelector("#nextTournamentRunButton");
   const keybindGrid = document.querySelector("#keybindGrid");
   const audioToggle = document.querySelector("#audioToggle");
   const musicToggle = document.querySelector("#musicToggle");
@@ -214,6 +232,8 @@
   let listeningFor = null;
   let attractCanvasWidth = 0;
   let attractCanvasHeight = 0;
+  let activeRunContext = null;
+  let tournament = createTournamentState();
   const pressed = new Set();
 
   const audio = {
@@ -287,8 +307,21 @@
     }
   }
 
+  function loadJson(key, fallback) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key));
+      return value ?? fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
   function getBestScore(id) {
     return Number(localStorage.getItem(`arcade-best-${id}`) || 0);
+  }
+
+  function getBestTime(id) {
+    return Number(localStorage.getItem(`arcade-best-time-${id}`) || 0);
   }
 
   function getPlayCount(id) {
@@ -304,6 +337,62 @@
       localStorage.setItem(`arcade-best-${id}`, score.toString());
       updateIntroDashboard();
     }
+  }
+
+  function saveBestTime(id, seconds) {
+    const value = Math.min(60, Math.max(0, Number(seconds) || 0));
+    if (value > getBestTime(id)) {
+      localStorage.setItem(`arcade-best-time-${id}`, value.toFixed(1));
+      updateIntroDashboard();
+    }
+  }
+
+  function getLeaderboard(id) {
+    const entries = loadJson(`arcade-leaderboard-${id}`, []);
+    return Array.isArray(entries) ? entries : [];
+  }
+
+  function saveLeaderboardEntry(id, entry) {
+    const leaderboard = getLeaderboard(id);
+    leaderboard.push({
+      player: entry.player || "Solo",
+      score: Math.floor(entry.score || 0),
+      time: Math.min(60, Math.max(0, Number(entry.time) || 0)),
+      mode: entry.mode || "Solo",
+      date: new Date().toISOString(),
+    });
+    leaderboard.sort((a, b) => b.score - a.score || b.time - a.time);
+    localStorage.setItem(`arcade-leaderboard-${id}`, JSON.stringify(leaderboard.slice(0, 5)));
+  }
+
+  function saveRunResult(game, playerName = "Solo", mode = "Solo") {
+    const score = Math.floor(game.score);
+    const time = Math.min(60, game.elapsed);
+    saveBestScore(game.definition.id, score);
+    saveBestTime(game.definition.id, time);
+    saveLeaderboardEntry(game.definition.id, { player: playerName, score, time, mode });
+    renderGameCards();
+    renderLeaderboards();
+    return { gameId: game.definition.id, player: playerName, score, time, mode };
+  }
+
+  function formatRunTime(seconds) {
+    const value = Math.max(0, Number(seconds) || 0);
+    return value >= 60 ? "60s" : `${value.toFixed(value >= 10 ? 0 : 1)}s`;
+  }
+
+  function createTournamentState() {
+    return {
+      active: false,
+      mode: "local",
+      gameId: "dodger",
+      difficulty: "normal",
+      players: [],
+      results: [],
+      currentIndex: 0,
+      waitingForNext: false,
+      winnerText: "",
+    };
   }
 
   function saveSettings() {
@@ -337,14 +426,21 @@
       intro: "Mini Arcade",
       games: "Pick Game",
       about: selectedAboutGame?.title ?? "About",
+      leaderboards: "Leaderboards",
+      tournament: "Tournament",
       settings: "Settings",
       keybinds: "Keybinds",
       play: activeGame?.title ?? "Playing",
     };
     screenTitle.textContent = titleMap[name];
     backButton.classList.toggle("hidden", name === "intro");
-    if (name !== "play") stopGameLoop();
+    if (name !== "play") {
+      stopGameLoop();
+      activeRunContext = null;
+    }
     if (name === "games") renderGameCards();
+    if (name === "leaderboards") renderLeaderboards();
+    if (name === "tournament") renderTournament();
     audio.refresh();
   }
 
@@ -385,7 +481,7 @@
           </div>
           <div class="cabinet-readout" aria-label="${game.title} cabinet stats">
             <span><strong>${getBestScore(game.id)}</strong> Best</span>
-            <span><strong>${getPlayCount(game.id)}</strong> Plays</span>
+            <span><strong>${formatRunTime(getBestTime(game.id))}</strong> Time</span>
             <span><strong>${difficultyFor(game)}</strong> Heat</span>
           </div>
           <div class="card-meta">
@@ -454,6 +550,226 @@
     cabinetSpotlight.querySelector("button").addEventListener("click", () => startGame(game.id));
   }
 
+  function renderLeaderboards() {
+    const totalBest = gameDefinitions.reduce((sum, game) => sum + getBestScore(game.id), 0);
+    const bestTime = gameDefinitions.reduce((best, game) => Math.max(best, getBestTime(game.id)), 0);
+    const mostPlayed = [...gameDefinitions].sort((a, b) => getPlayCount(b.id) - getPlayCount(a.id))[0];
+    leaderboardTotal.textContent = totalBest.toString();
+    leaderboardBestTime.textContent = formatRunTime(bestTime);
+    leaderboardFavorite.textContent = getPlayCount(mostPlayed.id) ? mostPlayed.title : "None";
+    leaderboardRows.innerHTML = "";
+    gameDefinitions.forEach((game, index) => {
+      const row = document.createElement("article");
+      row.className = "leaderboard-row";
+      row.style.setProperty("--preview-accent", game.accent);
+      row.style.setProperty("--preview-glow", game.glow);
+      const entries = getLeaderboard(game.id);
+      const entryMarkup = entries.length
+        ? entries
+            .map(
+              (entry, entryIndex) => `
+                <li>
+                  <span>#${entryIndex + 1} ${entry.player}</span>
+                  <strong>${entry.score}</strong>
+                  <em>${formatRunTime(entry.time)} · ${entry.mode}</em>
+                </li>
+              `,
+            )
+            .join("")
+        : `<li><span>No runs yet</span><strong>0</strong><em>Play this cabinet to rank</em></li>`;
+      row.innerHTML = `
+        <div class="leaderboard-rank">${index + 1}</div>
+        <div>
+          <span class="kicker">${game.tag}</span>
+          <h3>${game.title}</h3>
+          <div class="leaderboard-metrics">
+            <span><strong>${getBestScore(game.id)}</strong> Best score</span>
+            <span><strong>${formatRunTime(getBestTime(game.id))}</strong> Best time</span>
+            <span><strong>${getPlayCount(game.id)}</strong> Plays</span>
+          </div>
+        </div>
+        <ol>${entryMarkup}</ol>
+      `;
+      leaderboardRows.append(row);
+    });
+  }
+
+  function populateTournamentGames() {
+    tournamentGameSelect.innerHTML = gameDefinitions
+      .map((game) => `<option value="${game.id}">${game.title}</option>`)
+      .join("");
+  }
+
+  function updateTournamentModeFields() {
+    const isBot = tournamentMode.value === "bot";
+    playerTwoField.classList.toggle("hidden-field", isBot);
+    botDifficultyField.classList.toggle("hidden-field", !isBot);
+  }
+
+  function startTournament(event) {
+    event.preventDefault();
+    const mode = tournamentMode.value;
+    const gameId = tournamentGameSelect.value;
+    const game = gameDefinitions.find((definition) => definition.id === gameId);
+    const playerOne = cleanPlayerName(playerOneName.value, "Player 1");
+    const playerTwo = mode === "bot" ? `Bot ${capitalize(botDifficulty.value)}` : cleanPlayerName(playerTwoName.value, "Player 2");
+    tournament = {
+      active: true,
+      mode,
+      gameId,
+      difficulty: botDifficulty.value,
+      players: [playerOne, playerTwo],
+      results: [],
+      currentIndex: 0,
+      waitingForNext: true,
+      winnerText: "",
+    };
+    tournamentStatusTitle.textContent = `${game.title} selected`;
+    tournamentStatus.textContent = `${playerOne} goes first. ${playerTwo} waits in the queue.`;
+    renderTournament();
+    audio.beep(620, 0.06, "square");
+  }
+
+  function renderTournament() {
+    tournamentGameSelect.value = tournament.gameId || gameDefinitions[0].id;
+    tournamentMode.value = tournament.mode || "local";
+    botDifficulty.value = tournament.difficulty || "normal";
+    updateTournamentModeFields();
+    const game = gameDefinitions.find((definition) => definition.id === tournament.gameId) || gameDefinitions[0];
+    const currentPlayer = tournament.players[tournament.currentIndex] || cleanPlayerName(playerOneName.value, "Player 1");
+
+    if (!tournament.active && !tournament.results.length) {
+      tournamentStatusTitle.textContent = "Ready";
+      tournamentStatus.textContent = "Pick a cabinet and start a match. Each player gets one run.";
+    } else if (tournament.active && tournament.waitingForNext) {
+      tournamentStatusTitle.textContent = `${currentPlayer}'s run`;
+      tournamentStatus.textContent = `${game.title} is loaded. Start the next run when the player is ready.`;
+    } else if (tournament.winnerText) {
+      tournamentStatusTitle.textContent = "Tournament complete";
+      tournamentStatus.textContent = tournament.winnerText;
+    }
+
+    nextTournamentRunButton.classList.toggle("hidden-field", !tournament.active || !tournament.waitingForNext);
+    nextTournamentRunButton.textContent = `Start ${currentPlayer}'s Run`;
+    renderTournamentScores();
+  }
+
+  function renderTournamentScores() {
+    tournamentScores.innerHTML = "";
+    if (!tournament.results.length) {
+      tournamentScores.innerHTML = `
+        <div class="score-chip">
+          <span>Format</span>
+          <strong>${tournamentMode.value === "bot" ? "Player vs Bot" : "Local Versus"}</strong>
+          <small>One run each</small>
+        </div>
+      `;
+      return;
+    }
+    tournament.results.forEach((result) => {
+      const chip = document.createElement("div");
+      chip.className = "score-chip";
+      chip.innerHTML = `
+        <span>${result.player}</span>
+        <strong>${result.score}</strong>
+        <small>${formatRunTime(result.time)} · ${result.mode}</small>
+      `;
+      tournamentScores.append(chip);
+    });
+  }
+
+  function startNextTournamentRun() {
+    if (!tournament.active || !tournament.waitingForNext) return;
+    const player = tournament.players[tournament.currentIndex];
+    tournament.waitingForNext = false;
+    renderTournament();
+    startGame(tournament.gameId, {
+      tournament: true,
+      player,
+      mode: tournament.mode === "bot" ? "Tournament Bot" : "Tournament",
+    });
+  }
+
+  function cancelTournamentRun() {
+    if (!activeRunContext?.tournament || !tournament.active || tournament.waitingForNext) return;
+    tournament.waitingForNext = true;
+    tournamentStatusTitle.textContent = `${tournament.players[tournament.currentIndex]}'s run`;
+    tournamentStatus.textContent = "Run cancelled. Start again when the player is ready.";
+  }
+
+  function completeTournamentRun(result) {
+    if (!tournament.active) return;
+    tournament.results.push(result);
+    if (tournament.mode === "bot") {
+      tournament.results.push(createBotResult(result));
+      finishTournament();
+      return;
+    }
+    if (tournament.currentIndex === 0) {
+      tournament.currentIndex = 1;
+      tournament.waitingForNext = true;
+      tournamentStatusTitle.textContent = `${tournament.players[1]}'s turn`;
+      tournamentStatus.textContent = `${result.player} scored ${result.score}. Pass the keyboard and start the next run.`;
+      renderTournament();
+      return;
+    }
+    finishTournament();
+  }
+
+  function finishTournament() {
+    tournament.active = false;
+    tournament.waitingForNext = false;
+    const [first, second] = tournament.results;
+    const winner = first.score === second.score
+      ? first.time === second.time
+        ? null
+        : first.time > second.time
+          ? first
+          : second
+      : first.score > second.score
+        ? first
+        : second;
+    tournament.winnerText = winner
+      ? `${winner.player} wins with ${winner.score} points and a ${formatRunTime(winner.time)} run.`
+      : `Tie game: ${first.player} and ${second.player} both matched the score and time.`;
+    tournamentStatusTitle.textContent = "Tournament complete";
+    tournamentStatus.textContent = tournament.winnerText;
+    renderTournament();
+  }
+
+  function createBotResult(playerResult) {
+    const difficulty = {
+      easy: { label: "Easy Bot", score: 0.62, time: 0.78 },
+      normal: { label: "Normal Bot", score: 0.9, time: 0.92 },
+      hard: { label: "Hard Bot", score: 1.14, time: 1.02 },
+      expert: { label: "Expert Bot", score: 1.38, time: 1.08 },
+    }[tournament.difficulty];
+    const game = gameDefinitions.find((definition) => definition.id === tournament.gameId);
+    const heatBonus = { Survival: 38, Precision: 45, Reflex: 50, Timing: 42, Strategy: 48 }[game.tag] || 40;
+    const score = Math.max(10, Math.round(playerResult.score * random(difficulty.score - 0.16, difficulty.score + 0.18) + heatBonus * random(1, 5)));
+    const time = clamp(playerResult.time * random(difficulty.time - 0.16, difficulty.time + 0.12), 4, 60);
+    const botResult = {
+      gameId: tournament.gameId,
+      player: difficulty.label,
+      score,
+      time,
+      mode: "Bot",
+    };
+    saveLeaderboardEntry(tournament.gameId, botResult);
+    saveBestScore(tournament.gameId, score);
+    saveBestTime(tournament.gameId, time);
+    renderLeaderboards();
+    return botResult;
+  }
+
+  function cleanPlayerName(value, fallback) {
+    return value.trim().slice(0, 18) || fallback;
+  }
+
+  function capitalize(value) {
+    return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+  }
+
   function showAbout(id) {
     const game = gameDefinitions.find((definition) => definition.id === id);
     if (!game) return;
@@ -480,6 +796,10 @@
       <section>
         <strong>Best Score</strong>
         <p>${getBestScore(game.id)}</p>
+      </section>
+      <section>
+        <strong>Best Time</strong>
+        <p>${formatRunTime(getBestTime(game.id))}</p>
       </section>
     `;
     showScreen("about");
@@ -527,15 +847,16 @@
     return pressed.has(keybinds[action]);
   }
 
-  function startGame(id) {
+  function startGame(id, runContext = null) {
     stopGameLoop();
     const definition = gameDefinitions.find((game) => game.id === id);
+    activeRunContext = runContext;
     recordPlay(definition.id);
     updateIntroDashboard();
     renderGameCards();
     activeGame = createGame(definition);
     playTitle.textContent = definition.title;
-    gameSubtitle.textContent = definition.subtitle;
+    gameSubtitle.textContent = runContext?.player ? `${definition.subtitle} · ${runContext.player}` : definition.subtitle;
     scoreValue.textContent = "0";
     levelValue.textContent = "1";
     comboValue.textContent = "x1";
@@ -565,6 +886,13 @@
     comboValue.textContent = `x${activeGame.combo}`;
     bestValue.textContent = Math.max(getBestScore(activeGame.definition.id), Math.floor(activeGame.score)).toString();
     timeValue.textContent = Math.max(0, Math.ceil(activeGame.timeLeft)).toString();
+    if (activeGame.over && activeRunContext?.tournament && !activeGame.tournamentHandled) {
+      activeGame.tournamentHandled = true;
+      completeTournamentRun(activeGame.result);
+      window.setTimeout(() => {
+        if (currentScreen === "play") showScreen("tournament");
+      }, 900);
+    }
     gameLoopId = requestAnimationFrame(gameLoop);
   }
 
@@ -652,12 +980,17 @@
         this.messages = this.messages.filter((message) => message.age < message.life);
       },
       finish() {
-        this.over = true;
-        if (!this.savedBest) {
-          saveBestScore(this.definition.id, Math.floor(this.score));
-          renderGameCards();
-          this.savedBest = true;
+        if (this.savedBest) {
+          this.over = true;
+          return;
         }
+        this.over = true;
+        this.result = saveRunResult(
+          this,
+          activeRunContext?.player || "Solo",
+          activeRunContext?.mode || "Solo",
+        );
+        this.savedBest = true;
       },
       drawBase(context) {
         drawGameBackground(context, this.elapsed);
@@ -2315,6 +2648,14 @@
     showScreen("games");
     audio.beep(520);
   });
+  document.querySelector("#tournamentButton").addEventListener("click", () => {
+    showScreen("tournament");
+    audio.beep(560, 0.06, "square");
+  });
+  document.querySelector("#leaderboardButton").addEventListener("click", () => {
+    showScreen("leaderboards");
+    audio.beep(480, 0.06, "triangle");
+  });
   document.querySelector("#settingsButton").addEventListener("click", () => {
     audio.beep(440);
     showScreen("settings");
@@ -2338,12 +2679,17 @@
     audio.beep(520);
   });
   document.querySelector("#restartButton").addEventListener("click", () => {
-    if (activeGame) startGame(activeGame.definition.id);
+    if (activeGame) startGame(activeGame.definition.id, activeRunContext ? { ...activeRunContext } : null);
   });
   document.querySelector("#quitButton").addEventListener("click", () => {
+    const destination = activeRunContext?.tournament ? "tournament" : "games";
+    cancelTournamentRun();
     audio.beep(240);
-    showScreen("games");
+    showScreen(destination);
   });
+  tournamentForm.addEventListener("submit", startTournament);
+  tournamentMode.addEventListener("change", updateTournamentModeFields);
+  nextTournamentRunButton.addEventListener("click", startNextTournamentRun);
   aboutPlayButton.addEventListener("click", () => {
     if (selectedAboutGame) startGame(selectedAboutGame.id);
   });
@@ -2354,6 +2700,11 @@
 
   backButton.addEventListener("click", () => {
     audio.beep(300);
+    if (currentScreen === "play" && activeRunContext?.tournament) {
+      cancelTournamentRun();
+      showScreen("tournament");
+      return;
+    }
     showScreen(currentScreen === "play" || currentScreen === "about" ? "games" : "intro");
   });
 
@@ -2411,9 +2762,12 @@
 
   window.addEventListener("resize", resizeAttractCanvas);
 
+  populateTournamentGames();
   renderGameCards();
   introCabinetCount.textContent = gameDefinitions.length.toString();
   updateIntroDashboard();
+  renderLeaderboards();
+  renderTournament();
   renderKeybinds();
   applySettings();
   showScreen("intro");
