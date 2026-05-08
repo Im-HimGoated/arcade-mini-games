@@ -872,7 +872,13 @@ body {
     linear-gradient(180deg, rgba(155, 124, 255, 0.12), transparent 46%),
     repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 6px),
     var(--bg);
+  isolation: isolate;
   overflow: hidden;
+}
+
+.app-shell {
+  position: relative;
+  z-index: 1;
 }
 
 body::before {
@@ -885,7 +891,24 @@ body::before {
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.78), transparent 75%);
   pointer-events: none;
   position: fixed;
-  z-index: -1;
+  z-index: 0;
+}
+
+body::after {
+  background:
+    linear-gradient(90deg, transparent, rgba(52, 214, 255, 0.18), transparent),
+    repeating-linear-gradient(90deg, transparent 0 58px, rgba(255, 255, 255, 0.04) 58px 60px);
+  bottom: 0;
+  content: "";
+  height: 34vh;
+  left: -10%;
+  opacity: 0.42;
+  pointer-events: none;
+  position: fixed;
+  right: -10%;
+  transform: perspective(480px) rotateX(62deg);
+  transform-origin: bottom;
+  z-index: 0;
 }
 
 .topbar {
@@ -897,8 +920,53 @@ body::before {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.26);
 }
 
+.topbar::after {
+  background: linear-gradient(90deg, transparent, var(--hot), var(--sun), var(--cool), transparent);
+  bottom: -1px;
+  content: "";
+  height: 2px;
+  left: 0;
+  opacity: 0.8;
+  position: absolute;
+  right: 0;
+}
+
+.brand-mark span {
+  animation: equalizerPulse 1.8s ease-in-out infinite;
+}
+
+.brand-mark span:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.brand-mark span:nth-child(3) {
+  animation-delay: 0.34s;
+}
+
+h1,
+h2 {
+  text-shadow:
+    0 0 18px rgba(52, 214, 255, 0.2),
+    0 0 38px rgba(255, 61, 129, 0.16);
+}
+
 h2 {
   font-size: clamp(2.45rem, 8vw, 6.25rem);
+}
+
+.section-heading {
+  position: relative;
+}
+
+.section-heading::after {
+  background: linear-gradient(90deg, var(--hot), var(--sun), var(--cool), transparent);
+  border-radius: 999px;
+  box-shadow: 0 0 24px rgba(52, 214, 255, 0.28);
+  content: "";
+  display: block;
+  height: 4px;
+  margin-top: 12px;
+  max-width: 260px;
 }
 
 .intro-screen {
@@ -917,7 +985,8 @@ h2 {
   box-shadow:
     var(--shadow),
     inset 0 0 0 1px rgba(255, 255, 255, 0.045),
-    0 0 70px rgba(52, 214, 255, 0.12);
+    0 0 70px rgba(52, 214, 255, 0.12),
+    0 0 120px rgba(255, 61, 129, 0.1);
   min-height: 470px;
 }
 
@@ -944,6 +1013,13 @@ h2 {
 
 #attractCanvas {
   min-height: 470px;
+}
+
+.player-card {
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.42),
+    0 0 34px rgba(52, 214, 255, 0.22),
+    0 0 64px rgba(255, 61, 129, 0.16);
 }
 
 .intro-panel,
@@ -982,6 +1058,22 @@ h2 {
   box-shadow:
     0 14px 36px rgba(255, 61, 129, 0.26),
     inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  position: relative;
+  overflow: hidden;
+}
+
+.primary-button::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38), transparent);
+  content: "";
+  inset: 0 auto 0 -70%;
+  position: absolute;
+  transform: skewX(-18deg);
+  transition: left 260ms ease;
+  width: 50%;
+}
+
+.primary-button:hover::after {
+  left: 120%;
 }
 
 .secondary-button,
@@ -1008,6 +1100,23 @@ h2 {
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
+.game-card {
+  position: relative;
+}
+
+.game-card::before {
+  background: linear-gradient(90deg, transparent, var(--preview-accent), transparent);
+  box-shadow: 0 0 22px var(--preview-glow);
+  content: "";
+  height: 3px;
+  left: 12px;
+  opacity: 0.85;
+  position: absolute;
+  right: 12px;
+  top: 0;
+  z-index: 2;
+}
+
 .game-card:hover {
   border-color: rgba(52, 214, 255, 0.38);
   box-shadow:
@@ -1016,7 +1125,69 @@ h2 {
 }
 
 .game-preview {
+  background:
+    radial-gradient(circle at 24% 26%, var(--preview-glow), transparent 23%),
+    radial-gradient(circle at 78% 68%, rgba(255, 255, 255, 0.12), transparent 18%),
+    var(--preview-bg);
   border-bottom-color: rgba(177, 211, 255, 0.13);
+}
+
+.game-preview::before {
+  opacity: 0.62;
+}
+
+.game-preview::after {
+  background: rgba(6, 7, 15, 0.28);
+}
+
+.game-card[data-game="tetris"] .game-preview::after,
+.game-card[data-game="twenty48"] .game-preview::after,
+.game-card[data-game="snake"] .game-preview::after,
+.game-card[data-game="breaker"] .game-preview::after {
+  transform: translate(-50%, -50%);
+}
+
+.game-card[data-game="tetris"] .preview-token {
+  border-radius: 5px;
+  box-shadow:
+    -28px 0 0 var(--preview-accent),
+    28px 0 0 var(--preview-accent),
+    0 28px 0 var(--preview-accent),
+    0 0 24px var(--preview-glow);
+}
+
+.game-card[data-game="twenty48"] .preview-token {
+  border-radius: 8px;
+  height: 56px;
+  width: 56px;
+}
+
+.game-card[data-game="driftboss"] .preview-line {
+  height: 7px;
+}
+
+.game-card[data-game="driftboss"] .preview-line-a {
+  top: 42%;
+  transform: rotate(18deg);
+}
+
+.game-card[data-game="driftboss"] .preview-line-b {
+  bottom: 36%;
+  transform: rotate(-18deg);
+}
+
+.game-card[data-game="snake"] .preview-token {
+  border-radius: 8px;
+  box-shadow:
+    36px 0 0 -4px var(--preview-accent),
+    72px 0 0 -7px var(--preview-accent),
+    0 0 24px var(--preview-glow);
+}
+
+.game-card[data-game="breaker"] .preview-token {
+  border-radius: 4px;
+  height: 22px;
+  width: 82px;
 }
 
 .game-card h3 {
@@ -1052,6 +1223,17 @@ h2 {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes equalizerPulse {
+  0%,
+  100% {
+    transform: scaleY(0.72);
+  }
+
+  50% {
+    transform: scaleY(1.08);
   }
 }
 

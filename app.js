@@ -365,6 +365,7 @@
     visibleGames.forEach((game, index) => {
       const card = document.createElement("article");
       card.className = "game-card";
+      card.dataset.game = game.id;
       card.style.setProperty("--preview-bg", game.background);
       card.style.setProperty("--preview-accent", game.accent);
       card.style.setProperty("--preview-glow", game.glow);
