@@ -822,7 +822,8 @@ select:disabled {
 }
 
 .leaderboard-layout,
-.tournament-layout {
+.tournament-layout,
+.achievement-summary {
   display: grid;
   gap: 16px;
   margin: 0 auto;
@@ -836,7 +837,9 @@ select:disabled {
 
 .scoreboard-card,
 .tournament-panel,
-.leaderboard-row {
+.leaderboard-row,
+.achievement-card,
+.history-card {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.075), transparent 38%),
     linear-gradient(180deg, rgba(24, 30, 48, 0.96), rgba(9, 13, 25, 0.95));
@@ -892,6 +895,94 @@ select:disabled {
   gap: 12px;
   margin: 0 auto;
   max-width: 1120px;
+}
+
+.achievement-summary {
+  grid-template-columns: minmax(260px, 360px);
+  margin-bottom: 18px;
+}
+
+.achievement-grid,
+.history-list {
+  display: grid;
+  gap: 14px;
+  margin: 0 auto;
+  max-width: 1120px;
+}
+
+.achievement-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.achievement-card {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 62px 1fr;
+  opacity: 0.56;
+  padding: 16px;
+}
+
+.achievement-card.unlocked {
+  border-color: rgba(88, 242, 159, 0.32);
+  box-shadow:
+    0 22px 70px rgba(0, 0, 0, 0.32),
+    0 0 32px rgba(88, 242, 159, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  opacity: 1;
+}
+
+.achievement-icon {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(255, 209, 102, 0.26), rgba(52, 214, 255, 0.14)),
+    rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 209, 102, 0.26);
+  border-radius: 8px;
+  color: var(--sun);
+  display: flex;
+  font-weight: 1000;
+  height: 62px;
+  justify-content: center;
+}
+
+.achievement-card span,
+.history-card p {
+  color: var(--muted);
+}
+
+.achievement-card span {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.achievement-card h3,
+.history-card h3 {
+  margin: 3px 0 7px;
+}
+
+.achievement-card p {
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.history-card {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 54px 1fr;
+  padding: 16px;
+}
+
+.history-card ol {
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding-left: 18px;
 }
 
 .leaderboard-row {
@@ -1117,6 +1208,75 @@ select:disabled {
     inset 0 0 60px rgba(52, 214, 255, 0.06);
   display: block;
   width: 100%;
+}
+
+.touch-controls {
+  align-items: center;
+  display: none;
+  gap: 18px;
+  justify-content: space-between;
+  margin: 14px auto 0;
+  max-width: 620px;
+  touch-action: none;
+  user-select: none;
+}
+
+.touch-dpad {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, 58px);
+  grid-template-rows: repeat(3, 50px);
+}
+
+.touch-dpad button,
+.touch-action {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.04)),
+    rgba(9, 13, 25, 0.92);
+  border: 1px solid rgba(177, 211, 255, 0.22);
+  border-radius: 8px;
+  color: var(--text);
+  font-weight: 1000;
+  min-height: 50px;
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.touch-dpad button[data-touch="up"] {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.touch-dpad button[data-touch="left"] {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.touch-dpad button[data-touch="down"] {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.touch-dpad button[data-touch="right"] {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.touch-action {
+  border-color: rgba(255, 61, 129, 0.34);
+  color: var(--sun);
+  min-height: 118px;
+  min-width: 118px;
+  text-transform: uppercase;
+}
+
+.touch-active {
+  border-color: var(--cool);
+  box-shadow:
+    0 0 26px rgba(52, 214, 255, 0.26),
+    inset 0 0 24px rgba(52, 214, 255, 0.12);
+  transform: scale(0.96);
 }
 
 /* Visual polish pass */
@@ -1552,11 +1712,13 @@ h2 {
   }
 
   .leaderboard-layout,
-  .tournament-layout {
+  .tournament-layout,
+  .achievement-summary {
     grid-template-columns: 1fr;
   }
 
-  .leaderboard-row {
+  .leaderboard-row,
+  .history-card {
     grid-template-columns: 1fr;
   }
 
@@ -1648,6 +1810,10 @@ h2 {
     min-height: 300px;
   }
 
+  .touch-controls {
+    display: flex;
+  }
+
   .player-card {
     min-width: 116px;
     padding: 6px;
@@ -1717,6 +1883,10 @@ h2 {
 
   .leaderboard-metrics,
   .tournament-scores {
+    grid-template-columns: 1fr;
+  }
+
+  .achievement-card {
     grid-template-columns: 1fr;
   }
 

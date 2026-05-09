@@ -67,6 +67,8 @@
               <button class="primary-button" id="playButton" type="button">Play</button>
               <button class="secondary-button" id="tournamentButton" type="button">Tournament</button>
               <button class="secondary-button" id="leaderboardButton" type="button">Leaderboards</button>
+              <button class="secondary-button" id="achievementsButton" type="button">Achievements</button>
+              <button class="secondary-button" id="historyButton" type="button">History</button>
               <button class="secondary-button" id="settingsButton" type="button">Settings</button>
               <button class="secondary-button" id="keybindButton" type="button">Keybinds</button>
             </div>
@@ -140,6 +142,21 @@
           <div class="leaderboard-table" id="leaderboardRows" aria-live="polite"></div>
         </section>
 
+        <section class="screen achievements-screen" id="achievementsScreen" aria-labelledby="achievementsTitle">
+          <div class="section-heading">
+            <p class="kicker">Prize wall</p>
+            <h2 id="achievementsTitle">Achievements</h2>
+          </div>
+          <div class="achievement-summary">
+            <article class="scoreboard-card">
+              <span>Unlocked</span>
+              <strong id="achievementCount">0/0</strong>
+              <p>Achievements are saved on this device.</p>
+            </article>
+          </div>
+          <div class="achievement-grid" id="achievementGrid" aria-live="polite"></div>
+        </section>
+
         <section class="screen tournament-screen" id="tournamentScreen" aria-labelledby="tournamentTitle">
           <div class="section-heading">
             <p class="kicker">Versus mode</p>
@@ -185,6 +202,14 @@
               <button class="secondary-button hidden-field" id="nextTournamentRunButton" type="button">Start Next Run</button>
             </aside>
           </div>
+        </section>
+
+        <section class="screen history-screen" id="historyScreen" aria-labelledby="historyTitle">
+          <div class="section-heading">
+            <p class="kicker">Past brackets</p>
+            <h2 id="historyTitle">History</h2>
+          </div>
+          <div class="history-list" id="historyList" aria-live="polite"></div>
         </section>
 
         <section class="screen settings-screen" id="settingsScreen" aria-labelledby="settingsTitle">
@@ -250,6 +275,15 @@
             </div>
           </div>
           <canvas id="gameCanvas" width="960" height="540"></canvas>
+          <div class="touch-controls" id="touchControls" aria-label="Touch controls">
+            <div class="touch-dpad">
+              <button type="button" data-touch="up" aria-label="Move up">^</button>
+              <button type="button" data-touch="left" aria-label="Move left">‹</button>
+              <button type="button" data-touch="down" aria-label="Move down">v</button>
+              <button type="button" data-touch="right" aria-label="Move right">›</button>
+            </div>
+            <button class="touch-action" type="button" data-touch="action" aria-label="Action">Action</button>
+          </div>
           <div class="play-actions">
             <button class="secondary-button compact" id="restartButton" type="button">Restart</button>
             <button class="secondary-button compact" id="quitButton" type="button">Quit</button>

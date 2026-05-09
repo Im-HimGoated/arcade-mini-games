@@ -4,7 +4,9 @@
     games: document.querySelector("#gamesScreen"),
     about: document.querySelector("#aboutScreen"),
     leaderboards: document.querySelector("#leaderboardScreen"),
+    achievements: document.querySelector("#achievementsScreen"),
     tournament: document.querySelector("#tournamentScreen"),
+    history: document.querySelector("#historyScreen"),
     settings: document.querySelector("#settingsScreen"),
     keybinds: document.querySelector("#keybindScreen"),
     play: document.querySelector("#playScreen"),
@@ -33,6 +35,9 @@
   const leaderboardBestTime = document.querySelector("#leaderboardBestTime");
   const leaderboardFavorite = document.querySelector("#leaderboardFavorite");
   const leaderboardRows = document.querySelector("#leaderboardRows");
+  const achievementCount = document.querySelector("#achievementCount");
+  const achievementGrid = document.querySelector("#achievementGrid");
+  const historyList = document.querySelector("#historyList");
   const tournamentForm = document.querySelector("#tournamentForm");
   const tournamentGameSelect = document.querySelector("#tournamentGameSelect");
   const tournamentMode = document.querySelector("#tournamentMode");
@@ -60,6 +65,7 @@
   const timeValue = document.querySelector("#timeValue");
   const gameCanvas = document.querySelector("#gameCanvas");
   const gameContext = gameCanvas.getContext("2d");
+  const touchControls = document.querySelector("#touchControls");
   const attractCanvas = document.querySelector("#attractCanvas");
   const attractContext = attractCanvas.getContext("2d");
 
@@ -87,6 +93,63 @@
     action: ["Action", "Dash, pop, drop, and confirm"],
     pause: ["Pause / Back", "Leave the active cabinet"],
   };
+
+  const achievementDefinitions = [
+    {
+      id: "first-run",
+      title: "First Coin",
+      description: "Finish any arcade run.",
+      icon: "01",
+    },
+    {
+      id: "full-minute",
+      title: "Last Bell",
+      description: "Survive all 60 seconds in any cabinet.",
+      icon: "60",
+    },
+    {
+      id: "score-500",
+      title: "Hot Hand",
+      description: "Score 500 or more in one run.",
+      icon: "500",
+    },
+    {
+      id: "score-1000",
+      title: "Neon Legend",
+      description: "Score 1000 or more in one run.",
+      icon: "1K",
+    },
+    {
+      id: "five-cabinets",
+      title: "Cabinet Hopper",
+      description: "Play five different games.",
+      icon: "05",
+    },
+    {
+      id: "all-cabinets",
+      title: "Arcade Passport",
+      description: "Play every cabinet at least once.",
+      icon: "10",
+    },
+    {
+      id: "tournament-win",
+      title: "Bracket Boss",
+      description: "Win a three-game tournament.",
+      icon: "VS",
+    },
+    {
+      id: "bot-win",
+      title: "Bot Breaker",
+      description: "Beat a bot in tournament mode.",
+      icon: "AI",
+    },
+    {
+      id: "noughts-master",
+      title: "Grid Mind",
+      description: "Post a 200+ score in Neon Noughts.",
+      icon: "XO",
+    },
+  ];
 
   const gameDefinitions = [
     {
@@ -235,6 +298,7 @@
   let activeRunContext = null;
   let tournament = createTournamentState();
   const pressed = new Set();
+  const touchActionKeys = {};
 
   const audio = {
     context: null,
@@ -371,9 +435,29 @@
     saveBestScore(game.definition.id, score);
     saveBestTime(game.definition.id, time);
     saveLeaderboardEntry(game.definition.id, { player: playerName, score, time, mode });
+    checkRunAchievements({ gameId: game.definition.id, score, time, mode });
     renderGameCards();
     renderLeaderboards();
+    renderAchievements();
     return { gameId: game.definition.id, player: playerName, score, time, mode };
+  }
+
+  function checkRunAchievements(result) {
+    unlockAchievement("first-run");
+    if (result.time >= 59.5) unlockAchievement("full-minute");
+    if (result.score >= 500) unlockAchievement("score-500");
+    if (result.score >= 1000) unlockAchievement("score-1000");
+    if (result.gameId === "tictactoe" && result.score >= 200) unlockAchievement("noughts-master");
+    const played = getPlayedGameCount();
+    if (played >= 5) unlockAchievement("five-cabinets");
+    if (played >= gameDefinitions.length) unlockAchievement("all-cabinets");
+  }
+
+  function checkTournamentAchievements(winner, mode) {
+    if (!winner) return;
+    unlockAchievement("tournament-win");
+    if (mode === "bot") unlockAchievement("bot-win");
+    renderAchievements();
   }
 
   function formatRunTime(seconds) {
@@ -397,6 +481,37 @@
       waitingForNext: false,
       winnerText: "",
     };
+  }
+
+  function getAchievements() {
+    const unlocked = loadJson("arcade-achievements", []);
+    return Array.isArray(unlocked) ? unlocked : [];
+  }
+
+  function unlockAchievement(id) {
+    const unlocked = getAchievements();
+    if (unlocked.includes(id)) return false;
+    unlocked.push(id);
+    localStorage.setItem("arcade-achievements", JSON.stringify(unlocked));
+    return true;
+  }
+
+  function getPlayedGameCount() {
+    return gameDefinitions.filter((game) => getPlayCount(game.id) > 0).length;
+  }
+
+  function getTournamentHistory() {
+    const history = loadJson("arcade-tournament-history", []);
+    return Array.isArray(history) ? history : [];
+  }
+
+  function saveTournamentHistory(entry) {
+    const history = getTournamentHistory();
+    history.unshift({
+      ...entry,
+      date: new Date().toISOString(),
+    });
+    localStorage.setItem("arcade-tournament-history", JSON.stringify(history.slice(0, 8)));
   }
 
   function saveSettings() {
@@ -431,7 +546,9 @@
       games: "Pick Game",
       about: selectedAboutGame?.title ?? "About",
       leaderboards: "Leaderboards",
+      achievements: "Achievements",
       tournament: "Tournament",
+      history: "History",
       settings: "Settings",
       keybinds: "Keybinds",
       play: activeGame?.title ?? "Playing",
@@ -444,7 +561,9 @@
     }
     if (name === "games") renderGameCards();
     if (name === "leaderboards") renderLeaderboards();
+    if (name === "achievements") renderAchievements();
     if (name === "tournament") renderTournament();
+    if (name === "history") renderHistory();
     audio.refresh();
   }
 
@@ -595,6 +714,53 @@
         <ol>${entryMarkup}</ol>
       `;
       leaderboardRows.append(row);
+    });
+  }
+
+  function renderAchievements() {
+    const unlocked = getAchievements();
+    achievementCount.textContent = `${unlocked.length}/${achievementDefinitions.length}`;
+    achievementGrid.innerHTML = "";
+    achievementDefinitions.forEach((achievement) => {
+      const isUnlocked = unlocked.includes(achievement.id);
+      const card = document.createElement("article");
+      card.className = `achievement-card${isUnlocked ? " unlocked" : ""}`;
+      card.innerHTML = `
+        <div class="achievement-icon">${achievement.icon}</div>
+        <div>
+          <span>${isUnlocked ? "Unlocked" : "Locked"}</span>
+          <h3>${achievement.title}</h3>
+          <p>${achievement.description}</p>
+        </div>
+      `;
+      achievementGrid.append(card);
+    });
+  }
+
+  function renderHistory() {
+    const history = getTournamentHistory();
+    historyList.innerHTML = "";
+    if (!history.length) {
+      historyList.innerHTML = `<article class="empty-cabinets">No tournaments finished yet.</article>`;
+      return;
+    }
+    history.forEach((entry, index) => {
+      const card = document.createElement("article");
+      card.className = "history-card";
+      const rounds = entry.rounds
+        .map((round, roundIndex) => `<li>Round ${roundIndex + 1}: ${round.gameTitle} · ${round.winner}</li>`)
+        .join("");
+      const date = new Date(entry.date).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      card.innerHTML = `
+        <div class="leaderboard-rank">${index + 1}</div>
+        <div>
+          <span class="kicker">${entry.mode === "bot" ? "Bot tournament" : "Local tournament"} · ${date}</span>
+          <h3>${entry.winner || "Tie game"}</h3>
+          <p>${entry.players.join(" vs ")} · Final ${entry.matchWins.join("-")}</p>
+          <ol>${rounds}</ol>
+        </div>
+      `;
+      historyList.append(card);
     });
   }
 
@@ -795,6 +961,24 @@
     tournament.winnerText = winner
       ? `${winner.player} wins the tournament ${first.wins}-${second.wins} across 3 random games.`
       : `Tournament tie: both players split the rounds and matched total score/time.`;
+    checkTournamentAchievements(winner, tournament.mode);
+    saveTournamentHistory({
+      mode: tournament.mode,
+      difficulty: tournament.difficulty,
+      players: tournament.players,
+      winner: winner?.player || "Tie",
+      matchWins: tournament.matchWins,
+      rounds: tournament.rounds.map((round) => {
+        const game = gameDefinitions.find((definition) => definition.id === round.gameId);
+        return {
+          gameId: round.gameId,
+          gameTitle: game?.title || round.gameId,
+          winner: round.winner || "Tie",
+          results: round.results,
+        };
+      }),
+    });
+    renderHistory();
     tournamentStatus.textContent = tournament.winnerText;
     renderTournament();
   }
@@ -918,7 +1102,20 @@
   }
 
   function actionPressed(action) {
-    return pressed.has(keybinds[action]);
+    return pressed.has(keybinds[action]) || Boolean(touchActionKeys[action]);
+  }
+
+  function setTouchAction(action, isDown, button = null) {
+    touchActionKeys[action] = isDown;
+    if (button) button.classList.toggle("touch-active", isDown);
+    if (isDown) audio.beep(action === "action" ? 520 : 340, 0.025, "triangle");
+  }
+
+  function releaseTouchControls() {
+    Object.keys(touchActionKeys).forEach((action) => {
+      touchActionKeys[action] = false;
+    });
+    touchControls.querySelectorAll(".touch-active").forEach((button) => button.classList.remove("touch-active"));
   }
 
   function startGame(id, runContext = null) {
@@ -947,6 +1144,7 @@
     gameLoopId = 0;
     lastFrameTime = 0;
     pressed.clear();
+    releaseTouchControls();
   }
 
   function gameLoop(time) {
@@ -2746,6 +2944,14 @@
     showScreen("leaderboards");
     audio.beep(480, 0.06, "triangle");
   });
+  document.querySelector("#achievementsButton").addEventListener("click", () => {
+    showScreen("achievements");
+    audio.beep(680, 0.06, "triangle");
+  });
+  document.querySelector("#historyButton").addEventListener("click", () => {
+    showScreen("history");
+    audio.beep(380, 0.06, "triangle");
+  });
   document.querySelector("#settingsButton").addEventListener("click", () => {
     audio.beep(440);
     showScreen("settings");
@@ -2780,6 +2986,22 @@
   tournamentForm.addEventListener("submit", startTournament);
   tournamentMode.addEventListener("change", updateTournamentModeFields);
   nextTournamentRunButton.addEventListener("click", startNextTournamentRun);
+  touchControls.querySelectorAll("[data-touch]").forEach((button) => {
+    const action = button.dataset.touch;
+    const press = (event) => {
+      event.preventDefault();
+      setTouchAction(action, true, button);
+      button.setPointerCapture?.(event.pointerId);
+    };
+    const release = (event) => {
+      event.preventDefault();
+      setTouchAction(action, false, button);
+    };
+    button.addEventListener("pointerdown", press);
+    button.addEventListener("pointerup", release);
+    button.addEventListener("pointercancel", release);
+    button.addEventListener("pointerleave", release);
+  });
   aboutPlayButton.addEventListener("click", () => {
     if (selectedAboutGame) startGame(selectedAboutGame.id);
   });
@@ -2857,6 +3079,8 @@
   introCabinetCount.textContent = gameDefinitions.length.toString();
   updateIntroDashboard();
   renderLeaderboards();
+  renderAchievements();
+  renderHistory();
   renderTournament();
   renderKeybinds();
   applySettings();
