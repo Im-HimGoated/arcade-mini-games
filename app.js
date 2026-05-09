@@ -385,11 +385,15 @@
     return {
       active: false,
       mode: "local",
-      gameId: "dodger",
+      gameId: "random",
+      gameIds: [],
       difficulty: "normal",
       players: [],
+      rounds: [],
       results: [],
       currentIndex: 0,
+      roundIndex: 0,
+      matchWins: [0, 0],
       waitingForNext: false,
       winnerText: "",
     };
@@ -595,9 +599,8 @@
   }
 
   function populateTournamentGames() {
-    tournamentGameSelect.innerHTML = gameDefinitions
-      .map((game) => `<option value="${game.id}">${game.title}</option>`)
-      .join("");
+    tournamentGameSelect.innerHTML = `<option value="random">3 random cabinets</option>`;
+    tournamentGameSelect.disabled = true;
   }
 
   function updateTournamentModeFields() {
@@ -609,70 +612,88 @@
   function startTournament(event) {
     event.preventDefault();
     const mode = tournamentMode.value;
-    const gameId = tournamentGameSelect.value;
-    const game = gameDefinitions.find((definition) => definition.id === gameId);
+    const gameIds = pickRandomGames(3);
+    const firstGame = gameDefinitions.find((definition) => definition.id === gameIds[0]);
     const playerOne = cleanPlayerName(playerOneName.value, "Player 1");
     const playerTwo = mode === "bot" ? `Bot ${capitalize(botDifficulty.value)}` : cleanPlayerName(playerTwoName.value, "Player 2");
     tournament = {
       active: true,
       mode,
-      gameId,
+      gameId: gameIds[0],
+      gameIds,
       difficulty: botDifficulty.value,
       players: [playerOne, playerTwo],
+      rounds: gameIds.map((id) => ({ gameId: id, results: [], winner: null })),
       results: [],
       currentIndex: 0,
+      roundIndex: 0,
+      matchWins: [0, 0],
       waitingForNext: true,
       winnerText: "",
     };
-    tournamentStatusTitle.textContent = `${game.title} selected`;
+    tournamentStatusTitle.textContent = `Round 1: ${firstGame.title}`;
     tournamentStatus.textContent = `${playerOne} goes first. ${playerTwo} waits in the queue.`;
     renderTournament();
     audio.beep(620, 0.06, "square");
   }
 
   function renderTournament() {
-    tournamentGameSelect.value = tournament.gameId || gameDefinitions[0].id;
+    tournamentGameSelect.value = "random";
     tournamentMode.value = tournament.mode || "local";
     botDifficulty.value = tournament.difficulty || "normal";
     updateTournamentModeFields();
-    const game = gameDefinitions.find((definition) => definition.id === tournament.gameId) || gameDefinitions[0];
+    const game = getTournamentGame();
     const currentPlayer = tournament.players[tournament.currentIndex] || cleanPlayerName(playerOneName.value, "Player 1");
 
-    if (!tournament.active && !tournament.results.length) {
+    if (!tournament.active && !tournament.rounds.length) {
       tournamentStatusTitle.textContent = "Ready";
-      tournamentStatus.textContent = "Pick a cabinet and start a match. Each player gets one run.";
+      tournamentStatus.textContent = "Start a tournament to get 3 random games. Each side gets one run per round.";
     } else if (tournament.active && tournament.waitingForNext) {
-      tournamentStatusTitle.textContent = `${currentPlayer}'s run`;
-      tournamentStatus.textContent = `${game.title} is loaded. Start the next run when the player is ready.`;
+      tournamentStatusTitle.textContent = `Round ${tournament.roundIndex + 1}/3: ${currentPlayer}`;
+      tournamentStatus.textContent = `${game.title} is loaded. Round score: ${tournament.matchWins[0]}-${tournament.matchWins[1]}.`;
     } else if (tournament.winnerText) {
       tournamentStatusTitle.textContent = "Tournament complete";
       tournamentStatus.textContent = tournament.winnerText;
     }
 
     nextTournamentRunButton.classList.toggle("hidden-field", !tournament.active || !tournament.waitingForNext);
-    nextTournamentRunButton.textContent = `Start ${currentPlayer}'s Run`;
+    nextTournamentRunButton.textContent = `Start Round ${tournament.roundIndex + 1}: ${currentPlayer}`;
     renderTournamentScores();
   }
 
   function renderTournamentScores() {
     tournamentScores.innerHTML = "";
-    if (!tournament.results.length) {
+    if (!tournament.rounds.length) {
       tournamentScores.innerHTML = `
         <div class="score-chip">
           <span>Format</span>
           <strong>${tournamentMode.value === "bot" ? "Player vs Bot" : "Local Versus"}</strong>
-          <small>One run each</small>
+          <small>Best of 3 random games</small>
         </div>
       `;
       return;
     }
-    tournament.results.forEach((result) => {
+    tournament.players.forEach((player, index) => {
       const chip = document.createElement("div");
       chip.className = "score-chip";
       chip.innerHTML = `
-        <span>${result.player}</span>
-        <strong>${result.score}</strong>
-        <small>${formatRunTime(result.time)} · ${result.mode}</small>
+        <span>${player}</span>
+        <strong>${tournament.matchWins[index]}</strong>
+        <small>Round wins</small>
+      `;
+      tournamentScores.append(chip);
+    });
+    tournament.rounds.forEach((round, index) => {
+      const game = gameDefinitions.find((definition) => definition.id === round.gameId);
+      const chip = document.createElement("div");
+      chip.className = "score-chip round-chip";
+      const summary = round.results.length
+        ? round.results.map((result) => `${result.player}: ${result.score}`).join(" vs ")
+        : "Waiting";
+      chip.innerHTML = `
+        <span>Round ${index + 1} · ${game.title}</span>
+        <strong>${round.winner || (index === tournament.roundIndex && tournament.active ? "Live" : "-")}</strong>
+        <small>${summary}</small>
       `;
       tournamentScores.append(chip);
     });
@@ -683,7 +704,7 @@
     const player = tournament.players[tournament.currentIndex];
     tournament.waitingForNext = false;
     renderTournament();
-    startGame(tournament.gameId, {
+    startGame(getTournamentGame().id, {
       tournament: true,
       player,
       mode: tournament.mode === "bot" ? "Tournament Bot" : "Tournament",
@@ -693,33 +714,36 @@
   function cancelTournamentRun() {
     if (!activeRunContext?.tournament || !tournament.active || tournament.waitingForNext) return;
     tournament.waitingForNext = true;
-    tournamentStatusTitle.textContent = `${tournament.players[tournament.currentIndex]}'s run`;
+    tournamentStatusTitle.textContent = `Round ${tournament.roundIndex + 1}: ${tournament.players[tournament.currentIndex]}`;
     tournamentStatus.textContent = "Run cancelled. Start again when the player is ready.";
   }
 
   function completeTournamentRun(result) {
     if (!tournament.active) return;
+    const round = tournament.rounds[tournament.roundIndex];
     tournament.results.push(result);
+    round.results.push(result);
     if (tournament.mode === "bot") {
-      tournament.results.push(createBotResult(result));
-      finishTournament();
+      const botResult = createBotResult(result, round.gameId);
+      tournament.results.push(botResult);
+      round.results.push(botResult);
+      resolveTournamentRound();
       return;
     }
     if (tournament.currentIndex === 0) {
       tournament.currentIndex = 1;
       tournament.waitingForNext = true;
-      tournamentStatusTitle.textContent = `${tournament.players[1]}'s turn`;
-      tournamentStatus.textContent = `${result.player} scored ${result.score}. Pass the keyboard and start the next run.`;
+      tournamentStatusTitle.textContent = `Round ${tournament.roundIndex + 1}: ${tournament.players[1]}`;
+      tournamentStatus.textContent = `${result.player} scored ${result.score}. Pass the keyboard for ${getTournamentGame().title}.`;
       renderTournament();
       return;
     }
-    finishTournament();
+    resolveTournamentRound();
   }
 
-  function finishTournament() {
-    tournament.active = false;
-    tournament.waitingForNext = false;
-    const [first, second] = tournament.results;
+  function resolveTournamentRound() {
+    const round = tournament.rounds[tournament.roundIndex];
+    const [first, second] = round.results;
     const winner = first.score === second.score
       ? first.time === second.time
         ? null
@@ -729,37 +753,87 @@
       : first.score > second.score
         ? first
         : second;
-    tournament.winnerText = winner
-      ? `${winner.player} wins with ${winner.score} points and a ${formatRunTime(winner.time)} run.`
-      : `Tie game: ${first.player} and ${second.player} both matched the score and time.`;
+    round.winner = winner ? winner.player : "Tie";
+    if (winner) {
+      const winnerIndex = tournament.players.indexOf(winner.player);
+      if (winnerIndex >= 0) tournament.matchWins[winnerIndex] += 1;
+    }
+    if (tournament.roundIndex < tournament.rounds.length - 1) {
+      tournament.roundIndex += 1;
+      tournament.currentIndex = 0;
+      tournament.waitingForNext = true;
+      renderTournament();
+      return;
+    }
+    finishTournament();
+  }
+
+  function finishTournament() {
+    tournament.active = false;
+    tournament.waitingForNext = false;
+    const totals = tournament.players.map((player) => ({
+      player,
+      wins: tournament.matchWins[tournament.players.indexOf(player)],
+      score: tournament.results.filter((result) => result.player === player).reduce((sum, result) => sum + result.score, 0),
+      time: tournament.results.filter((result) => result.player === player).reduce((sum, result) => sum + result.time, 0),
+    }));
+    const [first, second] = totals;
+    const winner = first.wins === second.wins
+      ? first.score === second.score
+        ? first.time === second.time
+          ? null
+          : first.time > second.time
+            ? first
+            : second
+        : first.score > second.score
+          ? first
+          : second
+      : first.wins > second.wins
+        ? first
+        : second;
     tournamentStatusTitle.textContent = "Tournament complete";
+    tournament.winnerText = winner
+      ? `${winner.player} wins the tournament ${first.wins}-${second.wins} across 3 random games.`
+      : `Tournament tie: both players split the rounds and matched total score/time.`;
     tournamentStatus.textContent = tournament.winnerText;
     renderTournament();
   }
 
-  function createBotResult(playerResult) {
+  function createBotResult(playerResult, gameId) {
     const difficulty = {
       easy: { label: "Easy Bot", score: 0.62, time: 0.78 },
       normal: { label: "Normal Bot", score: 0.9, time: 0.92 },
       hard: { label: "Hard Bot", score: 1.14, time: 1.02 },
       expert: { label: "Expert Bot", score: 1.38, time: 1.08 },
     }[tournament.difficulty];
-    const game = gameDefinitions.find((definition) => definition.id === tournament.gameId);
+    const game = gameDefinitions.find((definition) => definition.id === gameId);
     const heatBonus = { Survival: 38, Precision: 45, Reflex: 50, Timing: 42, Strategy: 48 }[game.tag] || 40;
     const score = Math.max(10, Math.round(playerResult.score * random(difficulty.score - 0.16, difficulty.score + 0.18) + heatBonus * random(1, 5)));
     const time = clamp(playerResult.time * random(difficulty.time - 0.16, difficulty.time + 0.12), 4, 60);
     const botResult = {
-      gameId: tournament.gameId,
-      player: difficulty.label,
+      gameId,
+      player: tournament.players[1],
       score,
       time,
-      mode: "Bot",
+      mode: difficulty.label,
     };
-    saveLeaderboardEntry(tournament.gameId, botResult);
-    saveBestScore(tournament.gameId, score);
-    saveBestTime(tournament.gameId, time);
+    saveLeaderboardEntry(gameId, botResult);
+    saveBestScore(gameId, score);
+    saveBestTime(gameId, time);
     renderLeaderboards();
     return botResult;
+  }
+
+  function getTournamentGame() {
+    const id = tournament.gameIds[tournament.roundIndex] || tournament.gameId || gameDefinitions[0].id;
+    return gameDefinitions.find((definition) => definition.id === id) || gameDefinitions[0];
+  }
+
+  function pickRandomGames(count) {
+    return [...gameDefinitions]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, count)
+      .map((game) => game.id);
   }
 
   function cleanPlayerName(value, fallback) {
@@ -1442,6 +1516,7 @@
       losses: 0,
       roundMessage: "Your move",
       resetTimer: 0,
+      aiDelay: 0,
       moveWasDown: false,
       actionWasDown: false,
       update(delta) {
@@ -1450,6 +1525,19 @@
         if (this.resetTimer > 0) {
           this.resetTimer -= delta;
           if (this.resetTimer <= 0) this.resetBoard();
+          return;
+        }
+
+        if (!this.playerTurn) {
+          this.aiDelay -= delta;
+          if (this.aiDelay <= 0) {
+            this.aiMove();
+            this.resolveBoard();
+            if (!this.resetTimer && !this.over) {
+              this.playerTurn = true;
+              this.roundMessage = "Your move";
+            }
+          }
           return;
         }
 
@@ -1472,9 +1560,8 @@
           this.resolveBoard();
           if (!this.resetTimer && !this.over) {
             this.playerTurn = false;
-            this.aiMove();
-            this.resolveBoard();
-            this.playerTurn = true;
+            this.aiDelay = Math.max(0.18, 0.42 - this.level * 0.015);
+            this.roundMessage = "Bot thinking";
           }
         }
         this.actionWasDown = actionDown;
@@ -1523,6 +1610,9 @@
         this.board = Array(9).fill("");
         this.cursor = 4;
         this.playerTurn = true;
+        this.aiDelay = 0;
+        this.moveWasDown = false;
+        this.actionWasDown = false;
         this.roundMessage = "Your move";
       },
       draw(context) {

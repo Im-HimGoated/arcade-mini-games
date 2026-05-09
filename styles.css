@@ -792,6 +792,11 @@ select:focus-visible {
   outline-offset: 3px;
 }
 
+select:disabled {
+  color: var(--sun);
+  opacity: 1;
+}
+
 .key-button {
   background: var(--panel-strong);
   border: 1px solid #3d4665;
@@ -1050,6 +1055,10 @@ select:focus-visible {
   display: block;
   font-weight: 800;
   margin-top: 4px;
+}
+
+.round-chip {
+  grid-column: 1 / -1;
 }
 
 .hidden-field {
