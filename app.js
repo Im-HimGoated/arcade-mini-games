@@ -3054,36 +3054,45 @@
     requestAnimationFrame(runAttractMode);
   }
 
-  document.querySelector("#playButton").addEventListener("click", () => {
+  function wireClick(selector, handler) {
+    const element = document.querySelector(selector);
+    if (!element) return;
+    element.onclick = (event) => {
+      event.preventDefault();
+      handler(event);
+    };
+  }
+
+  wireClick("#playButton", () => {
     resetGameBrowser();
     showScreen("games");
     audio.beep(520);
   });
-  document.querySelector("#dailyButton").addEventListener("click", () => {
+  wireClick("#dailyButton", () => {
     showScreen("daily");
     audio.beep(580, 0.06, "square");
   });
-  document.querySelector("#tournamentButton").addEventListener("click", () => {
+  wireClick("#tournamentButton", () => {
     showScreen("tournament");
     audio.beep(560, 0.06, "square");
   });
-  document.querySelector("#leaderboardButton").addEventListener("click", () => {
+  wireClick("#leaderboardButton", () => {
     showScreen("leaderboards");
     audio.beep(480, 0.06, "triangle");
   });
-  document.querySelector("#achievementsButton").addEventListener("click", () => {
+  wireClick("#achievementsButton", () => {
     showScreen("achievements");
     audio.beep(680, 0.06, "triangle");
   });
-  document.querySelector("#historyButton").addEventListener("click", () => {
+  wireClick("#historyButton", () => {
     showScreen("history");
     audio.beep(380, 0.06, "triangle");
   });
-  document.querySelector("#settingsButton").addEventListener("click", () => {
+  wireClick("#settingsButton", () => {
     audio.beep(440);
     showScreen("settings");
   });
-  document.querySelector("#keybindButton").addEventListener("click", () => {
+  wireClick("#keybindButton", () => {
     audio.beep(620);
     showScreen("keybinds");
   });
@@ -3096,24 +3105,24 @@
     renderGameCards();
     audio.beep(420, 0.04, "triangle");
   });
-  document.querySelector("#resetKeysButton").addEventListener("click", () => {
+  wireClick("#resetKeysButton", () => {
     keybinds = { ...defaultKeybinds };
     saveKeybinds();
     audio.beep(520);
   });
-  document.querySelector("#restartButton").addEventListener("click", () => {
+  wireClick("#restartButton", () => {
     if (activeGame) startGame(activeGame.definition.id, activeRunContext ? { ...activeRunContext } : null);
   });
-  document.querySelector("#quitButton").addEventListener("click", () => {
+  wireClick("#quitButton", () => {
     const destination = activeRunContext?.tournament ? "tournament" : "games";
     cancelTournamentRun();
     audio.beep(240);
     showScreen(destination);
   });
-  tournamentForm.addEventListener("submit", startTournament);
+  tournamentForm.onsubmit = startTournament;
   tournamentMode.addEventListener("change", updateTournamentModeFields);
-  nextTournamentRunButton.addEventListener("click", startNextTournamentRun);
-  startDailyButton.addEventListener("click", startDailyChallenge);
+  wireClick("#nextTournamentRunButton", startNextTournamentRun);
+  wireClick("#startDailyButton", startDailyChallenge);
   touchControls.querySelectorAll("[data-touch]").forEach((button) => {
     const action = button.dataset.touch;
     const press = (event) => {
@@ -3130,15 +3139,18 @@
     button.addEventListener("pointercancel", release);
     button.addEventListener("pointerleave", release);
   });
-  aboutPlayButton.addEventListener("click", () => {
+  aboutPlayButton.onclick = (event) => {
+    event.preventDefault();
     if (selectedAboutGame) startGame(selectedAboutGame.id);
-  });
-  aboutBackButton.addEventListener("click", () => {
+  };
+  aboutBackButton.onclick = (event) => {
+    event.preventDefault();
     audio.beep(300);
     showScreen("games");
-  });
+  };
 
-  backButton.addEventListener("click", () => {
+  backButton.onclick = (event) => {
+    event.preventDefault();
     audio.beep(300);
     if (currentScreen === "play" && activeRunContext?.tournament) {
       cancelTournamentRun();
@@ -3146,13 +3158,14 @@
       return;
     }
     showScreen(currentScreen === "play" || currentScreen === "about" ? "games" : "intro");
-  });
+  };
 
-  muteButton.addEventListener("click", () => {
+  muteButton.onclick = (event) => {
+    event.preventDefault();
     settings.audio = !settings.audio;
     saveSettings();
     if (settings.audio) audio.beep(520);
-  });
+  };
 
   audioToggle.addEventListener("change", () => {
     settings.audio = audioToggle.checked;
