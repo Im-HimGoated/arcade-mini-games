@@ -924,6 +924,7 @@
     tournamentStatus.textContent = `${playerOne} goes first. ${playerTwo} waits in the queue.`;
     renderTournament();
     audio.beep(620, 0.06, "square");
+    startNextTournamentRun();
   }
 
   function renderTournament() {
@@ -3059,9 +3060,54 @@
     if (!element) return;
     element.onclick = (event) => {
       event.preventDefault();
-      handler(event);
+      element.dataset.arcadeHandled = "true";
+      window.setTimeout(() => {
+        element.dataset.arcadeHandled = "false";
+      }, 0);
+      try {
+        handler(event);
+      } catch (error) {
+        console.error(`Arcade button failed: ${selector}`, error);
+        fallbackButtonRoute(selector);
+      }
     };
   }
+
+  function fallbackButtonRoute(selector) {
+    const routes = {
+      "#playButton": "games",
+      "#dailyButton": "daily",
+      "#tournamentButton": "tournament",
+      "#leaderboardButton": "leaderboards",
+      "#achievementsButton": "achievements",
+      "#historyButton": "history",
+      "#settingsButton": "settings",
+      "#keybindButton": "keybinds",
+    };
+    if (routes[selector]) showScreen(routes[selector]);
+  }
+
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("button");
+    if (!button || button.dataset.arcadeHandled === "true") return;
+    const delegated = {
+      playButton: () => {
+        resetGameBrowser();
+        showScreen("games");
+      },
+      dailyButton: () => showScreen("daily"),
+      tournamentButton: () => showScreen("tournament"),
+      leaderboardButton: () => showScreen("leaderboards"),
+      achievementsButton: () => showScreen("achievements"),
+      historyButton: () => showScreen("history"),
+      settingsButton: () => showScreen("settings"),
+      keybindButton: () => showScreen("keybinds"),
+      startDailyButton: () => startDailyChallenge(),
+      nextTournamentRunButton: () => startNextTournamentRun(),
+    }[button.id];
+    if (!delegated) return;
+    delegated();
+  });
 
   wireClick("#playButton", () => {
     resetGameBrowser();
@@ -3121,6 +3167,7 @@
   });
   tournamentForm.onsubmit = startTournament;
   tournamentMode.addEventListener("change", updateTournamentModeFields);
+  wireClick("#startTournamentButton", startTournament);
   wireClick("#nextTournamentRunButton", startNextTournamentRun);
   wireClick("#startDailyButton", startDailyChallenge);
   touchControls.querySelectorAll("[data-touch]").forEach((button) => {
