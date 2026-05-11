@@ -546,6 +546,8 @@
     Object.entries(screens).forEach(([screenName, element]) => {
       element.classList.toggle("screen-active", screenName === name);
     });
+    if (screens[name]) screens[name].scrollTop = 0;
+    window.scrollTo?.(0, 0);
     currentScreen = name;
     document.body.dataset.screen = name;
     const titleMap = {

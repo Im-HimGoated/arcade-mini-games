@@ -414,12 +414,24 @@ main {
   max-width: 1120px;
 }
 
+.games-screen {
+  padding-top: clamp(14px, 2vw, 24px);
+}
+
+.games-screen .section-heading {
+  margin-bottom: 12px;
+}
+
+.games-screen h2 {
+  font-size: clamp(2rem, 5vw, 4rem);
+}
+
 .game-toolbar {
   align-items: end;
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(260px, 380px) minmax(0, 1fr);
-  margin: 0 auto 18px;
+  margin: 0 auto 14px;
   max-width: 1120px;
 }
 
@@ -473,8 +485,8 @@ main {
 
 .game-grid {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   margin: 0 auto;
   max-width: 1120px;
 }
@@ -485,12 +497,11 @@ main {
   border-radius: 8px;
   box-shadow: var(--shadow);
   display: grid;
-  gap: 14px;
-  min-height: 360px;
+  gap: 12px;
+  min-height: 0;
   overflow: hidden;
   padding: 0 0 18px;
-  animation: cabinetIn 420ms ease both;
-  animation-delay: var(--stagger, 0ms);
+  opacity: 1;
 }
 
 .game-card:hover {
@@ -599,8 +610,8 @@ main {
 
 .game-card-body {
   display: grid;
-  gap: 12px;
-  padding: 0 18px;
+  gap: 10px;
+  padding: 0 14px;
 }
 
 .game-card h3 {
@@ -610,15 +621,15 @@ main {
 
 .game-card p {
   color: var(--muted);
-  line-height: 1.5;
+  line-height: 1.35;
   margin-bottom: 0;
 }
 
 .game-hook {
   color: #cfd6ee;
   display: block;
-  line-height: 1.45;
-  margin-top: 10px;
+  line-height: 1.35;
+  margin-top: 8px;
 }
 
 .cabinet-readout {
@@ -1733,6 +1744,50 @@ h2 {
 }
 
 @media (max-width: 860px) {
+  .games-screen {
+    padding: 12px;
+  }
+
+  .games-screen .section-heading {
+    display: none;
+    margin-bottom: 8px;
+  }
+
+  .games-screen h2 {
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+
+  .games-screen .game-toolbar {
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .games-screen .game-search {
+    gap: 5px;
+  }
+
+  .games-screen .game-search span {
+    display: none;
+  }
+
+  .games-screen .game-search input {
+    min-height: 40px;
+  }
+
+  .games-screen .filter-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .games-screen .filter-tab {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 7px 10px;
+    white-space: nowrap;
+  }
+
   .intro-screen.screen-active {
     align-content: start;
     grid-template-columns: 1fr;
