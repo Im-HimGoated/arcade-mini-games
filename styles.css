@@ -566,6 +566,37 @@ main {
   width: 42px;
 }
 
+.preview-score,
+.preview-symbol {
+  position: absolute;
+  z-index: 2;
+}
+
+.preview-score {
+  background: rgba(6, 7, 15, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: var(--sun);
+  font-size: 0.7rem;
+  font-weight: 900;
+  left: 12px;
+  padding: 6px 9px;
+  text-transform: uppercase;
+  top: 12px;
+}
+
+.preview-symbol {
+  bottom: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  font-weight: 1000;
+  letter-spacing: 0.04em;
+  right: 14px;
+  text-shadow:
+    0 0 14px var(--preview-glow),
+    0 0 30px rgba(255, 255, 255, 0.12);
+}
+
 .game-card-body {
   display: grid;
   gap: 12px;
@@ -823,7 +854,8 @@ select:disabled {
 
 .leaderboard-layout,
 .tournament-layout,
-.achievement-summary {
+.achievement-summary,
+.daily-layout {
   display: grid;
   gap: 16px;
   margin: 0 auto;
@@ -839,7 +871,8 @@ select:disabled {
 .tournament-panel,
 .leaderboard-row,
 .achievement-card,
-.history-card {
+.history-card,
+.daily-card {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.075), transparent 38%),
     linear-gradient(180deg, rgba(24, 30, 48, 0.96), rgba(9, 13, 25, 0.95));
@@ -900,6 +933,42 @@ select:disabled {
 .achievement-summary {
   grid-template-columns: minmax(260px, 360px);
   margin-bottom: 18px;
+}
+
+.daily-layout {
+  align-items: stretch;
+  grid-template-columns: minmax(320px, 1.1fr) minmax(280px, 0.9fr);
+}
+
+.daily-card {
+  overflow: hidden;
+  padding: clamp(20px, 4vw, 34px);
+  position: relative;
+}
+
+.daily-card::before {
+  background: linear-gradient(180deg, var(--preview-accent, var(--cool)), transparent);
+  box-shadow: 0 0 24px var(--preview-glow, rgba(52, 214, 255, 0.5));
+  content: "";
+  inset: 0 auto 0 0;
+  position: absolute;
+  width: 4px;
+}
+
+.daily-card h3 {
+  font-size: clamp(2rem, 6vw, 4rem);
+  margin: 8px 0 14px;
+}
+
+.daily-card p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.daily-status-card {
+  align-content: center;
+  display: grid;
+  gap: 14px;
 }
 
 .achievement-grid,
@@ -1713,7 +1782,8 @@ h2 {
 
   .leaderboard-layout,
   .tournament-layout,
-  .achievement-summary {
+  .achievement-summary,
+  .daily-layout {
     grid-template-columns: 1fr;
   }
 

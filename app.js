@@ -1,6 +1,7 @@
 (() => {
   const screens = {
     intro: document.querySelector("#introScreen"),
+    daily: document.querySelector("#dailyScreen"),
     games: document.querySelector("#gamesScreen"),
     about: document.querySelector("#aboutScreen"),
     leaderboards: document.querySelector("#leaderboardScreen"),
@@ -23,6 +24,10 @@
   const totalBestScore = document.querySelector("#totalBestScore");
   const favoriteCabinet = document.querySelector("#favoriteCabinet");
   const dailyChallenge = document.querySelector("#dailyChallenge");
+  const dailyCard = document.querySelector("#dailyCard");
+  const dailyStatusTitle = document.querySelector("#dailyStatusTitle");
+  const dailyStatus = document.querySelector("#dailyStatus");
+  const startDailyButton = document.querySelector("#startDailyButton");
   const cabinetSpotlight = document.querySelector("#cabinetSpotlight");
   const aboutMarquee = document.querySelector("#aboutMarquee");
   const aboutKicker = document.querySelector("#aboutKicker");
@@ -439,7 +444,9 @@
     renderGameCards();
     renderLeaderboards();
     renderAchievements();
-    return { gameId: game.definition.id, player: playerName, score, time, mode };
+    const result = { gameId: game.definition.id, player: playerName, score, time, mode };
+    checkDailyChallenge(result);
+    return result;
   }
 
   function checkRunAchievements(result) {
@@ -543,6 +550,7 @@
     document.body.dataset.screen = name;
     const titleMap = {
       intro: "Mini Arcade",
+      daily: "Daily Challenge",
       games: "Pick Game",
       about: selectedAboutGame?.title ?? "About",
       leaderboards: "Leaderboards",
@@ -560,6 +568,7 @@
       activeRunContext = null;
     }
     if (name === "games") renderGameCards();
+    if (name === "daily") renderDailyChallenge();
     if (name === "leaderboards") renderLeaderboards();
     if (name === "achievements") renderAchievements();
     if (name === "tournament") renderTournament();
@@ -591,9 +600,11 @@
       card.style.setProperty("--stagger", `${index * 55}ms`);
       card.innerHTML = `
         <div class="game-preview" aria-hidden="true">
+          <span class="preview-score">Best ${getBestScore(game.id)}</span>
           <span class="preview-line preview-line-a"></span>
           <span class="preview-line preview-line-b"></span>
           <span class="preview-token"></span>
+          <strong class="preview-symbol">${previewSymbolFor(game.id)}</strong>
         </div>
         <div class="game-card-body">
           <div>
@@ -633,6 +644,22 @@
     renderGameCards();
   }
 
+  function previewSymbolFor(id) {
+    const symbols = {
+      dodger: "DODGE",
+      popper: "LOCK",
+      runner: "RUN",
+      flap: "FLAP",
+      tictactoe: "X/O",
+      tetris: "STACK",
+      twenty48: "2048",
+      driftboss: "DRIFT",
+      snake: "BYTE",
+      breaker: "BREAK",
+    };
+    return symbols[id] || "PLAY";
+  }
+
   function difficultyFor(game) {
     const scale = {
       Survival: "Medium",
@@ -649,14 +676,110 @@
     return gameDefinitions[daySeed % gameDefinitions.length];
   }
 
+  function getDailyKey() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function getDailyChallenge() {
+    const daySeed = Math.floor(Date.now() / 86_400_000);
+    const game = gameDefinitions[daySeed % gameDefinitions.length];
+    const scoreBase = {
+      Survival: 520,
+      Precision: 620,
+      Reflex: 560,
+      Timing: 500,
+      Strategy: 460,
+    }[game.tag] || 500;
+    const scoreTarget = scoreBase + (daySeed % 5) * 70;
+    const timeTarget = 35 + (daySeed % 4) * 5;
+    const useTime = daySeed % 3 === 0;
+    return {
+      key: getDailyKey(),
+      game,
+      type: useTime ? "time" : "score",
+      target: useTime ? timeTarget : scoreTarget,
+      label: useTime ? `Survive ${timeTarget}s` : `Score ${scoreTarget}`,
+    };
+  }
+
+  function getDailyResult() {
+    return loadJson(`arcade-daily-${getDailyKey()}`, null);
+  }
+
+  function saveDailyResult(result, challenge, completed) {
+    const current = getDailyResult();
+    const value = {
+      gameId: challenge.game.id,
+      gameTitle: challenge.game.title,
+      type: challenge.type,
+      target: challenge.target,
+      completed,
+      score: result.score,
+      time: result.time,
+      date: challenge.key,
+    };
+    if (!current || completed || result.score > current.score || result.time > current.time) {
+      localStorage.setItem(`arcade-daily-${challenge.key}`, JSON.stringify(value));
+    }
+  }
+
+  function checkDailyChallenge(result) {
+    if (!activeRunContext?.daily) return;
+    const challenge = activeRunContext.challenge;
+    const completed = challenge.type === "score" ? result.score >= challenge.target : result.time >= challenge.target;
+    saveDailyResult(result, challenge, completed);
+    dailyStatusTitle.textContent = completed ? "Challenge complete" : "Run saved";
+    dailyStatus.textContent = completed
+      ? `${result.player} beat today's ${challenge.label} goal with ${result.score} points and ${formatRunTime(result.time)}.`
+      : `${result.player} logged ${result.score} points and ${formatRunTime(result.time)}. Try again for ${challenge.label}.`;
+    renderDailyChallenge();
+  }
+
+  function renderDailyChallenge() {
+    const challenge = getDailyChallenge();
+    const result = getDailyResult();
+    dailyCard.style.setProperty("--preview-accent", challenge.game.accent);
+    dailyCard.style.setProperty("--preview-glow", challenge.game.glow);
+    dailyCard.innerHTML = `
+      <span class="kicker">${challenge.game.tag} cabinet</span>
+      <h3>${challenge.game.title}</h3>
+      <p>${challenge.game.hook}</p>
+      <div class="leaderboard-metrics">
+        <span><strong>${challenge.label}</strong> Goal</span>
+        <span><strong>${result?.completed ? "Done" : "Open"}</strong> Status</span>
+        <span><strong>${result ? result.score : 0}</strong> Best daily</span>
+      </div>
+    `;
+    if (!result) {
+      dailyStatusTitle.textContent = "Ready";
+      dailyStatus.textContent = `Today's goal is ${challenge.label} in ${challenge.game.title}.`;
+    } else if (result.completed) {
+      dailyStatusTitle.textContent = "Complete";
+      dailyStatus.textContent = `Cleared with ${result.score} points and ${formatRunTime(result.time)}.`;
+    } else {
+      dailyStatusTitle.textContent = "Still open";
+      dailyStatus.textContent = `Best daily run: ${result.score} points, ${formatRunTime(result.time)}.`;
+    }
+  }
+
+  function startDailyChallenge() {
+    const challenge = getDailyChallenge();
+    startGame(challenge.game.id, {
+      daily: true,
+      player: "Daily Run",
+      mode: "Daily Challenge",
+      challenge,
+    });
+  }
+
   function updateIntroDashboard() {
     const totalBest = gameDefinitions.reduce((sum, game) => sum + getBestScore(game.id), 0);
     const mostPlayed = [...gameDefinitions].sort((a, b) => getPlayCount(b.id) - getPlayCount(a.id))[0];
-    const daily = getDailyGame();
+    const daily = getDailyChallenge();
     totalBestScore.textContent = totalBest.toString();
     favoriteCabinet.textContent = getPlayCount(mostPlayed.id) ? mostPlayed.title : "None";
-    dailyChallenge.textContent = daily.title;
-    renderCabinetSpotlight(daily);
+    dailyChallenge.textContent = daily.game.title;
+    renderCabinetSpotlight(daily.game);
   }
 
   function renderCabinetSpotlight(game) {
@@ -2936,6 +3059,10 @@
     showScreen("games");
     audio.beep(520);
   });
+  document.querySelector("#dailyButton").addEventListener("click", () => {
+    showScreen("daily");
+    audio.beep(580, 0.06, "square");
+  });
   document.querySelector("#tournamentButton").addEventListener("click", () => {
     showScreen("tournament");
     audio.beep(560, 0.06, "square");
@@ -2986,6 +3113,7 @@
   tournamentForm.addEventListener("submit", startTournament);
   tournamentMode.addEventListener("change", updateTournamentModeFields);
   nextTournamentRunButton.addEventListener("click", startNextTournamentRun);
+  startDailyButton.addEventListener("click", startDailyChallenge);
   touchControls.querySelectorAll("[data-touch]").forEach((button) => {
     const action = button.dataset.touch;
     const press = (event) => {
@@ -3078,6 +3206,7 @@
   renderGameCards();
   introCabinetCount.textContent = gameDefinitions.length.toString();
   updateIntroDashboard();
+  renderDailyChallenge();
   renderLeaderboards();
   renderAchievements();
   renderHistory();

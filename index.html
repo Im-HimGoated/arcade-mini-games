@@ -65,6 +65,7 @@
             <div class="spotlight-panel" id="cabinetSpotlight" aria-label="Featured cabinet"></div>
             <div class="menu-stack">
               <button class="primary-button" id="playButton" type="button">Play</button>
+              <button class="secondary-button" id="dailyButton" type="button">Daily Challenge</button>
               <button class="secondary-button" id="tournamentButton" type="button">Tournament</button>
               <button class="secondary-button" id="leaderboardButton" type="button">Leaderboards</button>
               <button class="secondary-button" id="achievementsButton" type="button">Achievements</button>
@@ -72,6 +73,22 @@
               <button class="secondary-button" id="settingsButton" type="button">Settings</button>
               <button class="secondary-button" id="keybindButton" type="button">Keybinds</button>
             </div>
+          </div>
+        </section>
+
+        <section class="screen daily-screen" id="dailyScreen" aria-labelledby="dailyTitle">
+          <div class="section-heading">
+            <p class="kicker">Today only</p>
+            <h2 id="dailyTitle">Daily Challenge</h2>
+          </div>
+          <div class="daily-layout">
+            <article class="daily-card" id="dailyCard"></article>
+            <aside class="daily-card daily-status-card">
+              <span class="kicker">Challenge terminal</span>
+              <h3 id="dailyStatusTitle">Ready</h3>
+              <p id="dailyStatus">Start today’s run and beat the goal before midnight.</p>
+              <button class="primary-button" id="startDailyButton" type="button">Start Daily Run</button>
+            </aside>
           </div>
         </section>
 
