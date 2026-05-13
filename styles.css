@@ -271,6 +271,50 @@ main {
   font-size: 1.28rem;
 }
 
+.profile-strip {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(52, 214, 255, 0.12), transparent 42%),
+    rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 46px minmax(0, 1.2fr) minmax(64px, 0.7fr) minmax(64px, 0.7fr);
+  margin: 0 0 14px;
+  padding: 10px;
+}
+
+.profile-avatar,
+.avatar-choice {
+  align-items: center;
+  aspect-ratio: 1;
+  background: linear-gradient(135deg, var(--hot), var(--cool));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  color: #ffffff;
+  display: inline-flex;
+  font-weight: 1000;
+  justify-content: center;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.36);
+}
+
+.profile-strip span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.profile-strip strong {
+  display: block;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .intro-command {
   display: grid;
   gap: 8px;
@@ -815,6 +859,97 @@ input[type="range"] {
   accent-color: var(--cool);
   max-width: 260px;
   width: 36%;
+}
+
+.profile-editor,
+.skin-editor {
+  align-items: start;
+  display: grid;
+  grid-template-columns: minmax(180px, 0.85fr) minmax(0, 1.15fr);
+}
+
+.profile-form {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.profile-form input {
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  min-height: 44px;
+  outline: 0;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.avatar-picker,
+.skin-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.avatar-picker {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.avatar-choice {
+  min-height: 38px;
+  padding: 0;
+}
+
+.avatar-choice.active {
+  box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.3);
+}
+
+.skin-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+}
+
+.skin-card {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--text);
+  display: grid;
+  gap: 6px;
+  min-height: 132px;
+  padding: 12px;
+  text-align: left;
+}
+
+.skin-card.equipped {
+  border-color: var(--sun);
+  box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.18);
+}
+
+.skin-swatch {
+  background: linear-gradient(135deg, var(--skin-hot), var(--skin-cool));
+  border-radius: 999px;
+  height: 8px;
+  width: 100%;
+}
+
+.skin-card strong,
+.skin-card small,
+.skin-card em {
+  display: block;
+}
+
+.skin-card small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.skin-card em {
+  color: var(--sun);
+  font-size: 0.74rem;
+  font-style: normal;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 select {
@@ -1854,6 +1989,15 @@ h2 {
   .game-card {
     min-height: 0;
   }
+
+  .profile-editor,
+  .skin-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .skin-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 620px) {
@@ -1884,6 +2028,10 @@ h2 {
 
   .brand-mark {
     display: none;
+  }
+
+  .profile-strip {
+    grid-template-columns: 42px minmax(0, 1fr) repeat(2, minmax(52px, 0.55fr));
   }
 
   h1 {

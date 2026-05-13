@@ -48,6 +48,21 @@
               <span><strong>60s</strong> Runs</span>
               <span><strong>8s</strong> Levels</span>
             </div>
+            <div class="profile-strip" aria-label="Player profile">
+              <div class="profile-avatar" id="profileAvatar">P1</div>
+              <div>
+                <span id="profileNameLabel">Player 01</span>
+                <strong id="profileLevelLabel">Level 1</strong>
+              </div>
+              <div>
+                <span>Coins</span>
+                <strong id="profileCoinsLabel">0</strong>
+              </div>
+              <div>
+                <span>XP</span>
+                <strong id="profileXpLabel">0</strong>
+              </div>
+            </div>
             <div class="intro-command" aria-label="Arcade command center">
               <article>
                 <span>Total Best</span>
@@ -235,6 +250,23 @@
             <h2 id="settingsTitle">Settings</h2>
           </div>
           <div class="settings-layout">
+            <article class="setting-row profile-editor">
+              <span>
+                <strong>Player profile</strong>
+                <small>Scores, coins, XP, and skins are saved on this device</small>
+              </span>
+              <div class="profile-form">
+                <input id="profileNameInput" maxlength="18" type="text" aria-label="Player name" />
+                <div class="avatar-picker" id="avatarPicker" aria-label="Choose avatar"></div>
+              </div>
+            </article>
+            <article class="setting-row skin-editor">
+              <span>
+                <strong>Arcade skins</strong>
+                <small>Spend coins to unlock new cabinet looks</small>
+              </span>
+              <div class="skin-grid" id="skinGrid"></div>
+            </article>
             <label class="setting-row">
               <span>
                 <strong>Audio</strong>

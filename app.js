@@ -24,6 +24,11 @@
   const totalBestScore = document.querySelector("#totalBestScore");
   const favoriteCabinet = document.querySelector("#favoriteCabinet");
   const dailyChallenge = document.querySelector("#dailyChallenge");
+  const profileAvatar = document.querySelector("#profileAvatar");
+  const profileNameLabel = document.querySelector("#profileNameLabel");
+  const profileLevelLabel = document.querySelector("#profileLevelLabel");
+  const profileCoinsLabel = document.querySelector("#profileCoinsLabel");
+  const profileXpLabel = document.querySelector("#profileXpLabel");
   const dailyCard = document.querySelector("#dailyCard");
   const dailyStatusTitle = document.querySelector("#dailyStatusTitle");
   const dailyStatus = document.querySelector("#dailyStatus");
@@ -56,6 +61,9 @@
   const tournamentScores = document.querySelector("#tournamentScores");
   const nextTournamentRunButton = document.querySelector("#nextTournamentRunButton");
   const keybindGrid = document.querySelector("#keybindGrid");
+  const profileNameInput = document.querySelector("#profileNameInput");
+  const avatarPicker = document.querySelector("#avatarPicker");
+  const skinGrid = document.querySelector("#skinGrid");
   const audioToggle = document.querySelector("#audioToggle");
   const musicToggle = document.querySelector("#musicToggle");
   const motionToggle = document.querySelector("#motionToggle");
@@ -89,6 +97,64 @@
     action: "Space",
     pause: "Escape",
   };
+
+  const defaultProfile = {
+    name: "Player 01",
+    avatar: "P1",
+    coins: 0,
+    xp: 0,
+    skin: "neon",
+    unlockedSkins: ["neon"],
+  };
+
+  const avatarOptions = ["P1", "VX", "KO", "AI", "GG", "XP"];
+
+  const skinDefinitions = [
+    {
+      id: "neon",
+      title: "Neon Core",
+      description: "Classic pink and cyan cabinet glow.",
+      cost: 0,
+      hot: "#ff3d81",
+      sun: "#ffd166",
+      cool: "#34d6ff",
+      mint: "#58f29f",
+      bg: "#06070f",
+    },
+    {
+      id: "volt",
+      title: "Volt Rush",
+      description: "Green signal lights with gold scoring panels.",
+      cost: 120,
+      hot: "#58f29f",
+      sun: "#f8e16c",
+      cool: "#7df9ff",
+      mint: "#b8ff6a",
+      bg: "#07100d",
+    },
+    {
+      id: "sunset",
+      title: "Sunset Drive",
+      description: "Hot magenta, amber, and late-night blue.",
+      cost: 220,
+      hot: "#ff5b9e",
+      sun: "#ffb347",
+      cool: "#53a6ff",
+      mint: "#8fffe0",
+      bg: "#100814",
+    },
+    {
+      id: "cyber",
+      title: "Cyber Ice",
+      description: "Sharper blues for a cleaner futuristic floor.",
+      cost: 360,
+      hot: "#7c8cff",
+      sun: "#dbeafe",
+      cool: "#38e8ff",
+      mint: "#6ee7b7",
+      bg: "#050914",
+    },
+  ];
 
   const keybindLabels = {
     left: ["Move Left", "Ships, cursors, and lane changes"],
@@ -291,6 +357,7 @@
 
   let settings = loadStored("arcade-settings", defaultSettings);
   let keybinds = loadStored("arcade-keybinds", defaultKeybinds);
+  let profile = normalizeProfile(loadStored("arcade-profile", defaultProfile));
   let currentScreen = "intro";
   let selectedAboutGame = null;
   let activeGame = null;
@@ -385,6 +452,116 @@
     }
   }
 
+  function normalizeProfile(value) {
+    const unlocked = Array.isArray(value.unlockedSkins) && value.unlockedSkins.length
+      ? value.unlockedSkins
+      : ["neon"];
+    return {
+      ...defaultProfile,
+      ...value,
+      name: cleanPlayerName(value.name, defaultProfile.name),
+      avatar: avatarOptions.includes(value.avatar) ? value.avatar : defaultProfile.avatar,
+      coins: Math.max(0, Math.floor(Number(value.coins) || 0)),
+      xp: Math.max(0, Math.floor(Number(value.xp) || 0)),
+      skin: skinDefinitions.some((skin) => skin.id === value.skin) ? value.skin : defaultProfile.skin,
+      unlockedSkins: [...new Set(["neon", ...unlocked])],
+    };
+  }
+
+  function saveProfile() {
+    profile = normalizeProfile(profile);
+    localStorage.setItem("arcade-profile", JSON.stringify(profile));
+    applySkin();
+    renderProfile();
+    renderSkins();
+  }
+
+  function getProfileLevel() {
+    return Math.floor(profile.xp / 250) + 1;
+  }
+
+  function addProgress({ coins = 0, xp = 0 } = {}) {
+    profile.coins += Math.max(0, Math.floor(coins));
+    profile.xp += Math.max(0, Math.floor(xp));
+    saveProfile();
+  }
+
+  function activeSkin() {
+    return skinDefinitions.find((skin) => skin.id === profile.skin) || skinDefinitions[0];
+  }
+
+  function applySkin() {
+    const skin = activeSkin();
+    document.documentElement.style.setProperty("--hot", skin.hot);
+    document.documentElement.style.setProperty("--sun", skin.sun);
+    document.documentElement.style.setProperty("--cool", skin.cool);
+    document.documentElement.style.setProperty("--mint", skin.mint);
+    document.documentElement.style.setProperty("--bg", skin.bg);
+    document.body.dataset.skin = skin.id;
+  }
+
+  function renderProfile() {
+    profileAvatar.textContent = profile.avatar;
+    profileNameLabel.textContent = profile.name;
+    profileLevelLabel.textContent = `Level ${getProfileLevel()}`;
+    profileCoinsLabel.textContent = profile.coins.toString();
+    profileXpLabel.textContent = profile.xp.toString();
+    profileNameInput.value = profile.name;
+    avatarPicker.querySelectorAll("button").forEach((button) => {
+      button.classList.toggle("active", button.dataset.avatar === profile.avatar);
+    });
+  }
+
+  function renderAvatarPicker() {
+    avatarPicker.innerHTML = "";
+    avatarOptions.forEach((avatar) => {
+      const button = document.createElement("button");
+      button.className = "avatar-choice";
+      button.type = "button";
+      button.dataset.avatar = avatar;
+      button.textContent = avatar;
+      button.addEventListener("click", () => {
+        profile.avatar = avatar;
+        saveProfile();
+        audio.beep(520, 0.05, "triangle");
+      });
+      avatarPicker.append(button);
+    });
+  }
+
+  function renderSkins() {
+    skinGrid.innerHTML = "";
+    skinDefinitions.forEach((skin) => {
+      const unlocked = profile.unlockedSkins.includes(skin.id);
+      const equipped = profile.skin === skin.id;
+      const button = document.createElement("button");
+      button.className = `skin-card${equipped ? " equipped" : ""}`;
+      button.type = "button";
+      button.style.setProperty("--skin-hot", skin.hot);
+      button.style.setProperty("--skin-cool", skin.cool);
+      button.innerHTML = `
+        <span class="skin-swatch" aria-hidden="true"></span>
+        <strong>${skin.title}</strong>
+        <small>${skin.description}</small>
+        <em>${equipped ? "Equipped" : unlocked ? "Equip" : `${skin.cost} coins`}</em>
+      `;
+      button.addEventListener("click", () => {
+        if (!unlocked) {
+          if (profile.coins < skin.cost) {
+            audio.beep(180, 0.08, "sawtooth");
+            return;
+          }
+          profile.coins -= skin.cost;
+          profile.unlockedSkins.push(skin.id);
+        }
+        profile.skin = skin.id;
+        saveProfile();
+        audio.beep(660, 0.07, "triangle");
+      });
+      skinGrid.append(button);
+    });
+  }
+
   function getBestScore(id) {
     return Number(localStorage.getItem(`arcade-best-${id}`) || 0);
   }
@@ -424,7 +601,7 @@
   function saveLeaderboardEntry(id, entry) {
     const leaderboard = getLeaderboard(id);
     leaderboard.push({
-      player: entry.player || "Solo",
+      player: entry.player || profile.name,
       score: Math.floor(entry.score || 0),
       time: Math.min(60, Math.max(0, Number(entry.time) || 0)),
       mode: entry.mode || "Solo",
@@ -434,17 +611,20 @@
     localStorage.setItem(`arcade-leaderboard-${id}`, JSON.stringify(leaderboard.slice(0, 5)));
   }
 
-  function saveRunResult(game, playerName = "Solo", mode = "Solo") {
+  function saveRunResult(game, playerName = profile.name, mode = "Solo") {
     const score = Math.floor(game.score);
     const time = Math.min(60, game.elapsed);
+    const coinReward = Math.max(5, Math.floor(score / 80) + Math.floor(time / 12) + (mode === "Daily Challenge" ? 10 : 0));
+    const xpReward = Math.max(12, Math.floor(score / 12) + Math.floor(time * 1.5));
     saveBestScore(game.definition.id, score);
     saveBestTime(game.definition.id, time);
     saveLeaderboardEntry(game.definition.id, { player: playerName, score, time, mode });
     checkRunAchievements({ gameId: game.definition.id, score, time, mode });
+    addProgress({ coins: coinReward, xp: xpReward });
     renderGameCards();
     renderLeaderboards();
     renderAchievements();
-    const result = { gameId: game.definition.id, player: playerName, score, time, mode };
+    const result = { gameId: game.definition.id, player: playerName, score, time, mode, coinReward, xpReward };
     checkDailyChallenge(result);
     return result;
   }
@@ -464,6 +644,7 @@
     if (!winner) return;
     unlockAchievement("tournament-win");
     if (mode === "bot") unlockAchievement("bot-win");
+    addProgress({ coins: mode === "bot" ? 60 : 45, xp: 120 });
     renderAchievements();
   }
 
@@ -500,6 +681,7 @@
     if (unlocked.includes(id)) return false;
     unlocked.push(id);
     localStorage.setItem("arcade-achievements", JSON.stringify(unlocked));
+    addProgress({ coins: 40, xp: 100 });
     return true;
   }
 
@@ -575,6 +757,10 @@
     if (name === "achievements") renderAchievements();
     if (name === "tournament") renderTournament();
     if (name === "history") renderHistory();
+    if (name === "settings") {
+      renderProfile();
+      renderSkins();
+    }
     audio.refresh();
   }
 
@@ -768,7 +954,7 @@
     const challenge = getDailyChallenge();
     startGame(challenge.game.id, {
       daily: true,
-      player: "Daily Run",
+      player: profile.name,
       mode: "Daily Challenge",
       challenge,
     });
@@ -782,6 +968,7 @@
     favoriteCabinet.textContent = getPlayCount(mostPlayed.id) ? mostPlayed.title : "None";
     dailyChallenge.textContent = daily.game.title;
     renderCabinetSpotlight(daily.game);
+    renderProfile();
   }
 
   function renderCabinetSpotlight(game) {
@@ -905,7 +1092,7 @@
     const mode = tournamentMode.value;
     const gameIds = pickRandomGames(3);
     const firstGame = gameDefinitions.find((definition) => definition.id === gameIds[0]);
-    const playerOne = cleanPlayerName(playerOneName.value, "Player 1");
+    const playerOne = cleanPlayerName(playerOneName.value, profile.name);
     const playerTwo = mode === "bot" ? `Bot ${capitalize(botDifficulty.value)}` : cleanPlayerName(playerTwoName.value, "Player 2");
     tournament = {
       active: true,
@@ -935,7 +1122,7 @@
     botDifficulty.value = tournament.difficulty || "normal";
     updateTournamentModeFields();
     const game = getTournamentGame();
-    const currentPlayer = tournament.players[tournament.currentIndex] || cleanPlayerName(playerOneName.value, "Player 1");
+    const currentPlayer = tournament.players[tournament.currentIndex] || cleanPlayerName(playerOneName.value, profile.name);
 
     if (!tournament.active && !tournament.rounds.length) {
       tournamentStatusTitle.textContent = "Ready";
@@ -1147,7 +1334,7 @@
   }
 
   function cleanPlayerName(value, fallback) {
-    return value.trim().slice(0, 18) || fallback;
+    return String(value || "").trim().slice(0, 18) || fallback;
   }
 
   function capitalize(value) {
@@ -1253,7 +1440,7 @@
     renderGameCards();
     activeGame = createGame(definition);
     playTitle.textContent = definition.title;
-    gameSubtitle.textContent = runContext?.player ? `${definition.subtitle} · ${runContext.player}` : definition.subtitle;
+    gameSubtitle.textContent = runContext?.player ? `${definition.subtitle} · ${runContext.player}` : `${definition.subtitle} · ${profile.name}`;
     scoreValue.textContent = "0";
     levelValue.textContent = "1";
     comboValue.textContent = "x1";
@@ -1385,7 +1572,7 @@
         this.over = true;
         this.result = saveRunResult(
           this,
-          activeRunContext?.player || "Solo",
+          activeRunContext?.player || profile.name,
           activeRunContext?.mode || "Solo",
         );
         this.savedBest = true;
@@ -1430,7 +1617,8 @@
         context.fillText(`Score ${Math.floor(this.score)} | Best ${best}`, gameCanvas.width / 2, gameCanvas.height / 2 + 30);
         context.fillStyle = "#a9b1ce";
         context.font = "700 17px system-ui";
-        context.fillText("Restart or quit from the cabinet controls", gameCanvas.width / 2, gameCanvas.height / 2 + 68);
+        const reward = this.result ? `+${this.result.coinReward} coins | +${this.result.xpReward} XP` : "Restart or quit from the cabinet controls";
+        context.fillText(reward, gameCanvas.width / 2, gameCanvas.height / 2 + 68);
       },
     };
   }
@@ -3158,6 +3346,11 @@
     saveKeybinds();
     audio.beep(520);
   });
+  profileNameInput.addEventListener("input", () => {
+    profile.name = cleanPlayerName(profileNameInput.value, defaultProfile.name);
+    playerOneName.value = profile.name;
+    saveProfile();
+  });
   wireClick("#restartButton", () => {
     if (activeGame) startGame(activeGame.definition.id, activeRunContext ? { ...activeRunContext } : null);
   });
@@ -3274,6 +3467,10 @@
   renderHistory();
   renderTournament();
   renderKeybinds();
+  renderAvatarPicker();
+  applySkin();
+  saveProfile();
+  playerOneName.value = profile.name;
   applySettings();
   showScreen("intro");
   runAttractMode();
