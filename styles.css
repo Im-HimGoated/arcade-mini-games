@@ -390,9 +390,70 @@ main {
   gap: 12px;
 }
 
+.quick-actions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-dock {
+  bottom: 18px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.85fr);
+  left: 18px;
+  max-width: min(560px, calc(100% - 36px));
+  position: absolute;
+  right: 18px;
+  z-index: 4;
+}
+
+.dashboard-panel {
+  backdrop-filter: blur(16px);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.07), transparent 42%),
+    rgba(6, 7, 15, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.dashboard-panel > span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.dashboard-panel > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.dock-button {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--text);
+  flex: 1 1 auto;
+  font-size: 0.78rem;
+  font-weight: 900;
+  min-height: 34px;
+  padding: 7px 9px;
+  text-transform: uppercase;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
 .primary-button,
 .secondary-button,
-.icon-button {
+.icon-button,
+.dock-button {
   border: 0;
   border-radius: 8px;
   color: var(--text);
@@ -444,7 +505,8 @@ main {
 
 .primary-button:hover,
 .secondary-button:hover,
-.icon-button:hover {
+.icon-button:hover,
+.dock-button:hover {
   transform: translateY(-2px);
 }
 
@@ -1718,17 +1780,25 @@ h2 {
 }
 
 .secondary-button,
-.icon-button {
+.icon-button,
+.dock-button {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035));
 }
 
 .primary-button:hover,
 .secondary-button:hover,
-.icon-button:hover {
+.icon-button:hover,
+.dock-button:hover {
   box-shadow: 0 14px 34px rgba(52, 214, 255, 0.12);
 }
 
+.dock-button:hover {
+  background: rgba(52, 214, 255, 0.12);
+  border-color: rgba(52, 214, 255, 0.3);
+}
+
 .game-card,
+.dashboard-panel,
 .setting-row,
 .keybind-row,
 .hud-stats span {
@@ -1942,8 +2012,16 @@ h2 {
     order: 2;
   }
 
+  .dashboard-dock {
+    bottom: 12px;
+    grid-template-columns: 1fr;
+    left: 12px;
+    max-width: none;
+    right: 12px;
+  }
+
   .player-card {
-    bottom: 14px;
+    bottom: 194px;
     min-width: 132px;
     right: 14px;
     width: min(32vw, 178px);
@@ -2181,6 +2259,7 @@ h2 {
   .intro-command,
   .cabinet-readout,
   .card-actions,
+  .quick-actions,
   .footer-actions,
   .play-actions {
     grid-template-columns: 1fr;

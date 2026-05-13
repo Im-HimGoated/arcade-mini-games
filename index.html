@@ -38,6 +38,23 @@
               <img src="assets/arcade-player.png" alt="Neon arcade player ready to play" />
               <figcaption>Player 01</figcaption>
             </figure>
+            <div class="dashboard-dock" aria-label="Arcade dashboard shortcuts">
+              <article class="dashboard-panel">
+                <span>Progress</span>
+                <div>
+                  <button class="dock-button" id="leaderboardButton" type="button">Leaderboards</button>
+                  <button class="dock-button" id="achievementsButton" type="button">Achievements</button>
+                  <button class="dock-button" id="historyButton" type="button">History</button>
+                </div>
+              </article>
+              <article class="dashboard-panel">
+                <span>Cabinet</span>
+                <div>
+                  <button class="dock-button" id="settingsButton" type="button">Settings</button>
+                  <button class="dock-button" id="keybindButton" type="button">Keybinds</button>
+                </div>
+              </article>
+            </div>
           </div>
           <div class="intro-panel">
             <p class="kicker">Insert coin</p>
@@ -80,13 +97,10 @@
             <div class="spotlight-panel" id="cabinetSpotlight" aria-label="Featured cabinet"></div>
             <div class="menu-stack">
               <button class="primary-button" id="playButton" type="button">Play</button>
-              <button class="secondary-button" id="dailyButton" type="button">Daily Challenge</button>
-              <button class="secondary-button" id="tournamentButton" type="button">Tournament</button>
-              <button class="secondary-button" id="leaderboardButton" type="button">Leaderboards</button>
-              <button class="secondary-button" id="achievementsButton" type="button">Achievements</button>
-              <button class="secondary-button" id="historyButton" type="button">History</button>
-              <button class="secondary-button" id="settingsButton" type="button">Settings</button>
-              <button class="secondary-button" id="keybindButton" type="button">Keybinds</button>
+              <div class="quick-actions" aria-label="Main arcade actions">
+                <button class="secondary-button" id="dailyButton" type="button">Daily Challenge</button>
+                <button class="secondary-button" id="tournamentButton" type="button">Tournament</button>
+              </div>
             </div>
           </div>
         </section>
