@@ -65,6 +65,7 @@
   const profileNameInput = document.querySelector("#profileNameInput");
   const avatarPicker = document.querySelector("#avatarPicker");
   const skinGrid = document.querySelector("#skinGrid");
+  const driftShop = document.querySelector("#driftShop");
   const audioToggle = document.querySelector("#audioToggle");
   const musicToggle = document.querySelector("#musicToggle");
   const motionToggle = document.querySelector("#motionToggle");
@@ -106,6 +107,9 @@
     xp: 0,
     skin: "neon",
     unlockedSkins: ["neon"],
+    driftCar: "starter",
+    driftCars: ["starter"],
+    driftBoosters: {},
   };
 
   const avatarOptions = ["P1", "VX", "KO", "AI", "GG", "XP"];
@@ -155,6 +159,45 @@
       mint: "#6ee7b7",
       bg: "#050914",
     },
+  ];
+
+  const driftCars = [
+    {
+      id: "starter",
+      name: "Street Hatch",
+      cost: 0,
+      handling: 1,
+      color: "#64e85d",
+      roof: "#23313b",
+      stripe: "#f8fdf0",
+      bonus: "Balanced handling",
+    },
+    {
+      id: "coupe",
+      name: "Turbo Coupe",
+      cost: 100,
+      handling: 1.14,
+      color: "#2f89ff",
+      roof: "#101d36",
+      stripe: "#f9c74f",
+      bonus: "Better corner control",
+    },
+    {
+      id: "rally",
+      name: "Rally GT",
+      cost: 250,
+      handling: 1.32,
+      color: "#f94144",
+      roof: "#1d1d24",
+      stripe: "#ffffff",
+      bonus: "Best grip and stability",
+    },
+  ];
+
+  const driftBoosters = [
+    { id: "doubleScore", name: "Double Score", cost: 20, icon: "2x", description: "Next Drift Boss run earns double score." },
+    { id: "insurance", name: "Car Insurance", cost: 40, icon: "SH", description: "Saves you once when you leave the track." },
+    { id: "coinRush", name: "Coin Rush", cost: 60, icon: "$$", description: "Track coins are worth double next run." },
   ];
 
   const keybindLabels = {
@@ -457,6 +500,12 @@
     const unlocked = Array.isArray(value.unlockedSkins) && value.unlockedSkins.length
       ? value.unlockedSkins
       : ["neon"];
+    const ownedDriftCars = Array.isArray(value.driftCars) && value.driftCars.length ? value.driftCars : ["starter"];
+    const driftBoosters = typeof value.driftBoosters === "object" && value.driftBoosters ? value.driftBoosters : {};
+    const normalizedBoosters = {};
+    Object.keys(driftBoosters).forEach((id) => {
+      normalizedBoosters[id] = Math.max(0, Math.floor(Number(driftBoosters[id]) || 0));
+    });
     return {
       ...defaultProfile,
       ...value,
@@ -466,6 +515,9 @@
       xp: Math.max(0, Math.floor(Number(value.xp) || 0)),
       skin: skinDefinitions.some((skin) => skin.id === value.skin) ? value.skin : defaultProfile.skin,
       unlockedSkins: [...new Set(["neon", ...unlocked])],
+      driftCars: [...new Set(["starter", ...ownedDriftCars])],
+      driftCar: driftCars.some((car) => car.id === value.driftCar) && ownedDriftCars.includes(value.driftCar) ? value.driftCar : "starter",
+      driftBoosters: normalizedBoosters,
     };
   }
 
@@ -475,6 +527,7 @@
     applySkin();
     renderProfile();
     renderSkins();
+    renderDriftShop();
   }
 
   function getProfileLevel() {
@@ -563,6 +616,88 @@
     });
   }
 
+  function activeDriftCar() {
+    return driftCars.find((car) => car.id === profile.driftCar) || driftCars[0];
+  }
+
+  function getBoosterCount(id) {
+    return Math.max(0, Math.floor(Number(profile.driftBoosters?.[id]) || 0));
+  }
+
+  function renderDriftShop() {
+    if (!driftShop) return;
+    const active = activeDriftCar();
+    driftShop.innerHTML = `
+      <div class="drift-shop-header">
+        <span>Coin balance</span>
+        <strong>${profile.coins}</strong>
+        <small>Equipped: ${active.name}</small>
+      </div>
+      <div class="drift-shop-grid drift-cars">
+        ${driftCars
+          .map((car) => {
+            const owned = profile.driftCars.includes(car.id);
+            const equipped = profile.driftCar === car.id;
+            return `
+              <button class="drift-card${equipped ? " equipped" : ""}" type="button" data-car="${car.id}">
+                <span class="mini-car" style="--car:${car.color}; --roof:${car.roof}; --stripe:${car.stripe}"></span>
+                <strong>${car.name}</strong>
+                <small>${car.bonus}</small>
+                <em>${equipped ? "Equipped" : owned ? "Equip" : `${car.cost} coins`}</em>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+      <div class="drift-shop-grid drift-boosters">
+        ${driftBoosters
+          .map(
+            (booster) => `
+              <button class="booster-card" type="button" data-booster="${booster.id}">
+                <b>${booster.icon}</b>
+                <strong>${booster.name}</strong>
+                <small>${booster.description}</small>
+                <em>${booster.cost} coins · Owned ${getBoosterCount(booster.id)}</em>
+              </button>
+            `,
+          )
+          .join("")}
+      </div>
+    `;
+    driftShop.querySelectorAll("[data-car]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const car = driftCars.find((item) => item.id === button.dataset.car);
+        if (!car) return;
+        const owned = profile.driftCars.includes(car.id);
+        if (!owned) {
+          if (profile.coins < car.cost) {
+            audio.beep(180, 0.08, "sawtooth");
+            return;
+          }
+          profile.coins -= car.cost;
+          profile.driftCars.push(car.id);
+        }
+        profile.driftCar = car.id;
+        saveProfile();
+        audio.beep(620, 0.06, "triangle");
+      });
+    });
+    driftShop.querySelectorAll("[data-booster]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const booster = driftBoosters.find((item) => item.id === button.dataset.booster);
+        if (!booster) return;
+        if (profile.coins < booster.cost) {
+          audio.beep(180, 0.08, "sawtooth");
+          return;
+        }
+        profile.coins -= booster.cost;
+        profile.driftBoosters[booster.id] = getBoosterCount(booster.id) + 1;
+        saveProfile();
+        audio.beep(720, 0.06, "square");
+      });
+    });
+  }
+
   function getBestScore(id) {
     return Number(localStorage.getItem(`arcade-best-${id}`) || 0);
   }
@@ -615,7 +750,8 @@
   function saveRunResult(game, playerName = profile.name, mode = "Solo") {
     const score = Math.floor(game.score);
     const time = Math.min(60, game.elapsed);
-    const coinReward = Math.max(5, Math.floor(score / 80) + Math.floor(time / 12) + (mode === "Daily Challenge" ? 10 : 0));
+    const driftCoins = game.definition.id === "driftboss" ? Math.floor(game.trackCoins || 0) : 0;
+    const coinReward = Math.max(5, Math.floor(score / 80) + Math.floor(time / 12) + (mode === "Daily Challenge" ? 10 : 0)) + driftCoins;
     const xpReward = Math.max(12, Math.floor(score / 12) + Math.floor(time * 1.5));
     saveBestScore(game.definition.id, score);
     saveBestTime(game.definition.id, time);
@@ -733,6 +869,7 @@
     window.scrollTo?.(0, 0);
     currentScreen = name;
     document.body.dataset.screen = name;
+    updateRailState(name);
     const titleMap = {
       intro: "Mini Arcade",
       daily: "Daily Challenge",
@@ -761,6 +898,7 @@
     if (name === "settings") {
       renderProfile();
       renderSkins();
+      renderDriftShop();
     }
     audio.refresh();
   }
@@ -2293,6 +2431,16 @@
   }
 
   function createDriftBoss(base) {
+    const carSpec = activeDriftCar();
+    const activeBoosters = {
+      doubleScore: getBoosterCount("doubleScore") > 0,
+      insurance: getBoosterCount("insurance") > 0,
+      coinRush: getBoosterCount("coinRush") > 0,
+    };
+    Object.entries(activeBoosters).forEach(([id, enabled]) => {
+      if (enabled) profile.driftBoosters[id] = getBoosterCount(id) - 1;
+    });
+    if (Object.values(activeBoosters).some(Boolean)) saveProfile();
     const points = [];
     for (let y = -180; y <= gameCanvas.height + 180; y += 90) {
       const previous = points[points.length - 1]?.x ?? gameCanvas.width / 2;
@@ -2301,27 +2449,37 @@
     return {
       ...base,
       car: { x: gameCanvas.width / 2, y: 420, angle: 0 },
+      carSpec,
+      activeBoosters,
       road: points,
+      coins: [],
+      trackCoins: 0,
       distance: 0,
       checkpoint: 0,
+      insured: activeBoosters.insurance,
       update(delta) {
         this.updateTimer(delta);
         if (this.over) return;
         const speed = 150 + this.level * 22;
         const width = Math.max(128, 250 - this.level * 9);
         const turningRight = actionPressed("action") || actionPressed("right");
-        this.car.x += (turningRight ? 1 : -1) * (180 + this.level * 10) * delta;
+        this.car.x += (turningRight ? 1 : -1) * (180 + this.level * 10) * this.carSpec.handling * delta;
         this.car.angle = turningRight ? 0.36 : -0.36;
         this.road.forEach((point) => {
           point.y += speed * delta;
         });
+        this.coins.forEach((coin) => {
+          coin.y += speed * delta;
+        });
         while (this.road[0].y > -130) {
           const nextX = clamp(this.road[0].x + random(-185, 185), 150, gameCanvas.width - 150);
           this.road.unshift({ x: nextX, y: this.road[0].y - 90 });
+          if (Math.random() < 0.55) this.coins.push({ x: nextX + random(-34, 34), y: this.road[0].y + 36, value: this.activeBoosters.coinRush ? 2 : 1 });
         }
         this.road = this.road.filter((point) => point.y < gameCanvas.height + 190);
+        this.coins = this.coins.filter((coin) => coin.y < gameCanvas.height + 80 && !coin.collected);
         this.distance += speed * delta;
-        this.score += delta * (24 + this.level * 7);
+        this.score += delta * (24 + this.level * 7) * (this.activeBoosters.doubleScore ? 2 : 1);
         if (this.distance - this.checkpoint > 720) {
           this.checkpoint = this.distance;
           this.pushCombo();
@@ -2329,9 +2487,26 @@
           this.burst(this.car.x, this.car.y, "#ff3d81", 12);
           audio.beep(760, 0.05, "square");
         }
+        this.coins.forEach((coin) => {
+          const hit = Math.hypot(this.car.x - coin.x, this.car.y - coin.y) < 34;
+          if (!hit) return;
+          coin.collected = true;
+          this.trackCoins += coin.value;
+          this.addScore(18 * coin.value, coin.x, coin.y, "Coin");
+          this.burst(coin.x, coin.y, "#ffd166", 8);
+          audio.beep(900, 0.035, "triangle");
+        });
 
         const center = roadCenterAt(this.road, this.car.y);
         if (Math.abs(this.car.x - center) > width / 2 - 18) {
+          if (this.insured) {
+            this.insured = false;
+            this.car.x = center;
+            this.flash = 0.18;
+            this.addScore(30, this.car.x, this.car.y - 48, "Insurance");
+            audio.beep(520, 0.08, "square");
+            return;
+          }
           this.flash = 0.22;
           this.burst(this.car.x, this.car.y, "#ff5b5b", 24);
           audio.beep(90, 0.18, "sawtooth");
@@ -2339,10 +2514,12 @@
         }
       },
       draw(context) {
-        this.drawBase(context);
+        drawDriftScene(context, this);
         drawBadge(context, `${Math.floor(this.distance / 10)}m`, 24, 34, "#ff3d81");
-        drawDriftRoad(context, this.road, Math.max(128, 250 - this.level * 9));
-        drawDriftCar(context, this.car);
+        drawBadge(context, `${this.trackCoins} coins`, 150, 34, "#ffd166");
+        drawDriftRoad(context, this.road, Math.max(128, 250 - this.level * 9), this.distance);
+        drawDriftCoins(context, this.coins);
+        drawDriftCar(context, this.car, this.carSpec);
         this.drawEffects(context);
         if (this.flash) {
           context.fillStyle = `rgba(255, 91, 91, ${this.flash * 2})`;
@@ -2781,23 +2958,62 @@
     context.restore();
   }
 
-  function drawDriftRoad(context, points, width) {
+  function drawDriftScene(context, game) {
+    const width = gameCanvas.width;
+    const height = gameCanvas.height;
+    const zone = Math.floor(game.distance / 1400) % 4;
+    const palettes = [
+      ["#ef9a3c", "#f4b454", "#a9ef8f", "#d6ffbd"],
+      ["#d8744d", "#f1a060", "#8ee6d4", "#d9fff3"],
+      ["#42506f", "#22283e", "#d9d5ff", "#8d93ff"],
+      ["#f5c25c", "#f0934d", "#b7f7a3", "#ecffd8"],
+    ][zone];
+    context.clearRect(0, 0, width, height);
+    const sky = context.createLinearGradient(0, 0, 0, height);
+    sky.addColorStop(0, palettes[0]);
+    sky.addColorStop(1, palettes[1]);
+    context.fillStyle = sky;
+    context.fillRect(0, 0, width, height);
+    context.save();
+    context.globalAlpha = 0.18;
+    context.strokeStyle = "#ffffff";
+    context.lineWidth = 2;
+    for (let x = -width; x < width * 2; x += 60) {
+      context.beginPath();
+      context.moveTo(x + (game.distance % 60), 0);
+      context.lineTo(x - width * 0.36 + (game.distance % 60), height);
+      context.stroke();
+    }
+    context.restore();
+  }
+
+  function drawDriftRoad(context, points, width, distance = 0) {
     context.save();
     context.lineCap = "round";
     context.lineJoin = "round";
-    context.strokeStyle = "rgba(7, 10, 20, 0.9)";
-    context.lineWidth = width;
-    context.shadowColor = "rgba(255,61,129,0.28)";
-    context.shadowBlur = 24;
+    context.strokeStyle = "rgba(8, 34, 18, 0.86)";
+    context.lineWidth = width + 18;
+    context.shadowColor = "rgba(0,0,0,0.38)";
+    context.shadowBlur = 18;
     context.beginPath();
     points.forEach((point, index) => {
       if (index === 0) context.moveTo(point.x, point.y);
       else context.lineTo(point.x, point.y);
     });
     context.stroke();
-    context.strokeStyle = "rgba(255,255,255,0.18)";
-    context.lineWidth = 4;
-    context.setLineDash([20, 22]);
+    context.shadowBlur = 0;
+    context.strokeStyle = "#d9ffc1";
+    context.lineWidth = width;
+    context.beginPath();
+    points.forEach((point, index) => {
+      if (index === 0) context.moveTo(point.x, point.y);
+      else context.lineTo(point.x, point.y);
+    });
+    context.stroke();
+    context.strokeStyle = "rgba(122, 216, 100, 0.62)";
+    context.lineWidth = 8;
+    context.setLineDash([8, 18]);
+    context.lineDashOffset = -distance * 0.12;
     context.beginPath();
     points.forEach((point, index) => {
       if (index === 0) context.moveTo(point.x, point.y);
@@ -2808,19 +3024,43 @@
     context.restore();
   }
 
-  function drawDriftCar(context, car) {
+  function drawDriftCoins(context, coins) {
+    context.save();
+    coins.forEach((coin) => {
+      context.fillStyle = "#ffd166";
+      context.strokeStyle = "#7a4a00";
+      context.shadowColor = "rgba(255, 209, 102, 0.8)";
+      context.shadowBlur = 16;
+      context.beginPath();
+      context.arc(coin.x, coin.y, 13, 0, Math.PI * 2);
+      context.fill();
+      context.stroke();
+      context.shadowBlur = 0;
+      drawText(context, "$", coin.x, coin.y + 6, "#5d3b00", "900 18px system-ui", "center");
+    });
+    context.restore();
+  }
+
+  function drawDriftCar(context, car, spec = driftCars[0]) {
     context.save();
     context.translate(car.x, car.y);
     context.rotate(car.angle);
-    context.fillStyle = "#ff3d81";
-    context.shadowColor = "rgba(255,61,129,0.9)";
-    context.shadowBlur = 24;
-    roundedRect(context, -20, -34, 40, 68, 8);
+    context.shadowColor = "rgba(0,0,0,0.42)";
+    context.shadowBlur = 18;
+    context.fillStyle = spec.color;
+    roundedRect(context, -28, -38, 56, 76, 10);
     context.fill();
-    context.fillStyle = "#34d6ff";
-    context.fillRect(-12, -19, 24, 15);
-    context.fillStyle = "#ffd166";
-    context.fillRect(-13, 18, 26, 6);
+    context.fillStyle = spec.roof;
+    roundedRect(context, -17, -20, 34, 28, 5);
+    context.fill();
+    context.fillStyle = spec.stripe;
+    context.fillRect(-18, -34, 8, 64);
+    context.fillRect(10, -34, 8, 64);
+    context.fillStyle = "#10131a";
+    context.fillRect(-35, -24, 8, 18);
+    context.fillRect(27, -24, 8, 18);
+    context.fillRect(-35, 18, 8, 18);
+    context.fillRect(27, 18, 8, 18);
     context.restore();
   }
 
@@ -3324,9 +3564,22 @@
       startDailyButton: () => startDailyChallenge(),
       nextTournamentRunButton: () => startNextTournamentRun(),
     }[button.id];
+    if (!delegated && button.dataset.route) {
+      if (button.dataset.route === "games") resetGameBrowser();
+      showScreen(button.dataset.route);
+      updateRailState(button.dataset.route);
+      audio.beep(520, 0.04, "triangle");
+      return;
+    }
     if (!delegated) return;
     delegated();
   });
+
+  function updateRailState(route = currentScreen) {
+    document.querySelectorAll("[data-route]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.route === route);
+    });
+  }
 
   wireClick("#playButton", () => {
     resetGameBrowser();

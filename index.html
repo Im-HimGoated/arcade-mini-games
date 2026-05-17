@@ -13,14 +13,14 @@
   <body>
     <div id="app" class="app-shell">
       <aside class="side-rail" aria-label="Arcade shortcuts">
-        <span class="rail-light active"></span>
-        <span class="rail-light"></span>
-        <span class="rail-light"></span>
-        <span class="rail-light"></span>
+        <button class="rail-light active" type="button" data-route="intro" aria-label="Home"></button>
+        <button class="rail-light" type="button" data-route="games" aria-label="Games"></button>
+        <button class="rail-light" type="button" data-route="daily" aria-label="Daily Challenge"></button>
+        <button class="rail-light" type="button" data-route="tournament" aria-label="Tournament"></button>
         <span class="rail-divider"></span>
-        <span class="rail-light"></span>
-        <span class="rail-light"></span>
-        <span class="rail-light"></span>
+        <button class="rail-light" type="button" data-route="leaderboards" aria-label="Leaderboards"></button>
+        <button class="rail-light" type="button" data-route="achievements" aria-label="Achievements"></button>
+        <button class="rail-light" type="button" data-route="settings" aria-label="Settings"></button>
       </aside>
       <header class="topbar">
         <button class="icon-button hidden" id="backButton" type="button" aria-label="Back">
@@ -294,6 +294,13 @@
                 <small>Spend coins to unlock new cabinet looks</small>
               </span>
               <div class="skin-grid" id="skinGrid"></div>
+            </article>
+            <article class="setting-row drift-garage">
+              <span>
+                <strong>Drift Boss garage</strong>
+                <small>Buy realistic cars and boosters with arcade coins</small>
+              </span>
+              <div class="drift-shop" id="driftShop"></div>
             </article>
             <label class="setting-row">
               <span>
