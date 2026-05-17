@@ -805,7 +805,7 @@ main {
   color: rgba(255, 255, 255, 0.9);
   font-size: clamp(1.2rem, 4vw, 2rem);
   font-weight: 1000;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   right: 14px;
   text-shadow:
     0 0 14px var(--preview-glow),
@@ -887,9 +887,9 @@ main {
 .card-actions {
   display: flex;
   gap: 8px;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(6px);
+  opacity: 0.92;
+  pointer-events: auto;
+  transform: translateY(0);
   transition:
     opacity 160ms ease,
     transform 160ms ease;
@@ -899,7 +899,7 @@ main {
 .game-card:focus-within .card-actions {
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(0);
+  transform: translateY(-1px);
 }
 
 .card-actions button {
@@ -2279,6 +2279,158 @@ h2 {
   background:
     repeating-linear-gradient(90deg, rgba(183, 140, 255, 0.38) 0 46px, transparent 46px 56px),
     linear-gradient(180deg, #1b1640, #09233a);
+}
+
+.game-card[data-game="pinball"] .game-preview {
+  background:
+    radial-gradient(circle at 52% 18%, rgba(255, 255, 255, 0.9) 0 10px, rgba(255, 255, 255, 0.2) 11px 18px, transparent 19px),
+    radial-gradient(circle at 30% 36%, rgba(255, 138, 61, 0.92) 0 20px, rgba(255, 138, 61, 0.18) 21px 44px, transparent 45px),
+    radial-gradient(circle at 70% 36%, rgba(52, 214, 255, 0.74) 0 18px, rgba(52, 214, 255, 0.16) 19px 42px, transparent 43px),
+    linear-gradient(118deg, transparent 0 18%, rgba(255, 255, 255, 0.22) 19% 21%, transparent 22% 100%),
+    linear-gradient(180deg, #211630, #071529 64%, #05070e);
+}
+
+.game-card[data-game="pinball"] .game-preview::after {
+  border-radius: 999px 999px 20px 20px;
+  height: 62%;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  width: 44%;
+}
+
+.game-card[data-game="pinball"] .preview-token {
+  background: #e8eef8;
+  height: 28px;
+  left: 50%;
+  top: 22%;
+  width: 28px;
+}
+
+.game-card[data-game="river"] .game-preview {
+  background:
+    linear-gradient(100deg, transparent 0 18%, rgba(255, 209, 102, 0.72) 19% 20%, transparent 21% 100%),
+    linear-gradient(78deg, #6f4a2c 0 20%, #22b8cf 21% 73%, #7c5230 74% 100%);
+}
+
+.game-card[data-game="river"] .game-preview::after {
+  background:
+    linear-gradient(90deg, #a56634, #f1c27d 32%, #7c3f1f);
+  border-radius: 8px 8px 18px 18px;
+  height: 24%;
+  transform: translate(-50%, -50%) rotate(5deg);
+  width: 38%;
+}
+
+.game-card[data-game="river"] .preview-line {
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.game-card[data-game="river"] .preview-token {
+  background: #facc15;
+  height: 24px;
+  left: 70%;
+  top: 38%;
+  width: 24px;
+}
+
+.game-card[data-game="keeper"] .game-preview {
+  background:
+    linear-gradient(90deg, transparent 16%, rgba(255, 255, 255, 0.55) 17% 18%, transparent 19% 81%, rgba(255, 255, 255, 0.55) 82% 83%, transparent 84%),
+    linear-gradient(0deg, transparent 22%, rgba(255, 255, 255, 0.36) 23% 24%, transparent 25%),
+    repeating-linear-gradient(90deg, #1d7f45 0 56px, #238f50 56px 112px);
+}
+
+.game-card[data-game="keeper"] .game-preview::after {
+  background:
+    linear-gradient(180deg, #d9f4ff, #ffffff 42%, #1f2937 43% 100%);
+  border-radius: 18px 18px 10px 10px;
+  height: 36%;
+  left: 50%;
+  top: 58%;
+  transform: translate(-50%, -50%);
+  width: 30%;
+}
+
+.game-card[data-game="keeper"] .preview-token {
+  background:
+    radial-gradient(circle, #ffffff 0 35%, #111827 36% 42%, #ffffff 43% 100%);
+  height: 34px;
+  left: 68%;
+  top: 34%;
+  width: 34px;
+}
+
+.game-card[data-game="memory"] .game-preview {
+  background:
+    linear-gradient(135deg, rgba(192, 132, 252, 0.22), transparent 44%),
+    linear-gradient(180deg, #1b1737, #101827);
+}
+
+.game-card[data-game="memory"] .game-preview::after {
+  background:
+    linear-gradient(135deg, #f8fafc, #dbeafe);
+  border-radius: 10px;
+  box-shadow:
+    -52px -24px 0 #233a5d,
+    0 -24px 0 #233a5d,
+    52px -24px 0 #233a5d,
+    -52px 28px 0 #233a5d,
+    0 28px 0 #f8fafc,
+    52px 28px 0 #233a5d,
+    0 0 28px var(--preview-glow);
+  height: 42px;
+  transform: translate(-50%, -50%);
+  width: 42px;
+}
+
+.game-card[data-game="memory"] .preview-token {
+  background: #c084fc;
+  height: 16px;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+}
+
+.game-card[data-game="asteroids"] .game-preview {
+  background:
+    radial-gradient(circle at 20% 24%, rgba(255, 255, 255, 0.72) 0 1px, transparent 2px),
+    radial-gradient(circle at 76% 20%, rgba(255, 255, 255, 0.58) 0 1px, transparent 2px),
+    radial-gradient(circle at 64% 72%, rgba(255, 255, 255, 0.42) 0 1px, transparent 2px),
+    radial-gradient(circle at 34% 78%, rgba(147, 197, 253, 0.72), transparent 16%),
+    linear-gradient(180deg, #050817, #111b35 64%, #060914);
+}
+
+.game-card[data-game="asteroids"] .game-preview::after {
+  background:
+    linear-gradient(135deg, #9ca3af, #4b5563);
+  clip-path: polygon(46% 0, 84% 16%, 100% 55%, 72% 92%, 28% 100%, 0 60%, 12% 22%);
+  height: 42%;
+  left: 66%;
+  top: 38%;
+  transform: translate(-50%, -50%) rotate(14deg);
+  width: 38%;
+}
+
+.game-card[data-game="asteroids"] .preview-token {
+  background:
+    linear-gradient(135deg, #dbeafe, #60a5fa);
+  clip-path: polygon(0 52%, 100% 0, 72% 54%, 100% 100%);
+  height: 34px;
+  left: 36%;
+  top: 56%;
+  width: 62px;
+}
+
+.game-card[data-game="pinball"] .preview-symbol,
+.game-card[data-game="river"] .preview-symbol,
+.game-card[data-game="keeper"] .preview-symbol,
+.game-card[data-game="memory"] .preview-symbol,
+.game-card[data-game="asteroids"] .preview-symbol {
+  background: rgba(4, 7, 16, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  padding: 4px 8px;
 }
 
 .game-card h3 {

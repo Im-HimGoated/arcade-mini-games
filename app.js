@@ -250,7 +250,7 @@
       id: "all-cabinets",
       title: "Arcade Passport",
       description: "Play every cabinet at least once.",
-      icon: "10",
+      icon: "15",
     },
     {
       id: "tournament-win",
@@ -402,6 +402,71 @@
       accent: "#b78cff",
       glow: "rgba(183, 140, 255, 0.72)",
       background: "linear-gradient(135deg, #17133d, #0e2538 58%, #321725)",
+    },
+    {
+      id: "pinball",
+      title: "Midnight Pinball",
+      subtitle: "Keep the chrome ball alive",
+      hook: "Work both flippers, hit bumpers, and bank the ball through ramps before it drains.",
+      rules: "Bounce the ball with the left and right flippers. Missing the ball costs a life.",
+      controls: "Use Left and Right for flippers. Action fires both at once.",
+      strategy: "Trap the ball on a flipper before aiming for the top bumpers.",
+      tag: "Precision",
+      accent: "#ff8a3d",
+      glow: "rgba(255, 138, 61, 0.72)",
+      background: "linear-gradient(135deg, #2a150b, #1b2440 58%, #321725)",
+    },
+    {
+      id: "river",
+      title: "River Rush",
+      subtitle: "Raft through canyon rapids",
+      hook: "Thread a fast raft between rocks, collect flags, and survive rougher water each level.",
+      rules: "Steer through the river for 60 seconds. Rocks end the run; flags score points.",
+      controls: "Move with the directional keys. Hold Action for a short speed burst.",
+      strategy: "Stay near the center until flags are safe. Boost only when the lane ahead is clear.",
+      tag: "Reflex",
+      accent: "#2dd4bf",
+      glow: "rgba(45, 212, 191, 0.72)",
+      background: "linear-gradient(135deg, #0b2a30, #143a5c 58%, #10261f)",
+    },
+    {
+      id: "keeper",
+      title: "Goal Keeper",
+      subtitle: "Defend the penalty wall",
+      hook: "Slide across the goal, read the shooter, and save faster penalty shots.",
+      rules: "Block as many shots as possible. Letting five goals through ends the match.",
+      controls: "Move left and right. Hold Action for a wider dive.",
+      strategy: "Return to the center after each save so both corners stay reachable.",
+      tag: "Reflex",
+      accent: "#facc15",
+      glow: "rgba(250, 204, 21, 0.72)",
+      background: "linear-gradient(135deg, #1b3d1d, #17304d 58%, #3a2a11)",
+    },
+    {
+      id: "memory",
+      title: "Memory Match",
+      subtitle: "Flip pairs under pressure",
+      hook: "Reveal tiles, remember symbols, and clear matching pairs before the timer burns down.",
+      rules: "Flip two cards at a time. Matched pairs stay open; missed pairs flip back.",
+      controls: "Move the cursor with the directional keys. Press Action to flip.",
+      strategy: "Clear corners first, then work inward so positions are easier to remember.",
+      tag: "Strategy",
+      accent: "#c084fc",
+      glow: "rgba(192, 132, 252, 0.72)",
+      background: "linear-gradient(135deg, #24133b, #15334a 58%, #291c37)",
+    },
+    {
+      id: "asteroids",
+      title: "Asteroid Sweep",
+      subtitle: "Mine a crowded orbit",
+      hook: "Pilot a mining ship through drifting rocks, blast debris, and collect bright ore.",
+      rules: "Avoid asteroids and collect ore. Blasting rocks is safer, but ore gives better score.",
+      controls: "Move with the directional keys. Press Action to fire.",
+      strategy: "Use short bursts of fire to open lanes, then cut across for ore clusters.",
+      tag: "Survival",
+      accent: "#93c5fd",
+      glow: "rgba(147, 197, 253, 0.72)",
+      background: "linear-gradient(135deg, #0c1228, #1f1d3f 58%, #102b3a)",
     },
   ];
 
@@ -961,7 +1026,7 @@
         </div>
         <div class="game-card-body">
           <div>
-            <p class="kicker">Arcade cabinet</p>
+            <p class="kicker">${game.tag} cabinet</p>
             <h3>${game.title}</h3>
             <p>${game.subtitle}</p>
             <small class="game-hook">${game.hook}</small>
@@ -1010,6 +1075,11 @@
       driftboss: "DRIFT",
       snake: "BYTE",
       breaker: "BREAK",
+      pinball: "PIN",
+      river: "RAFT",
+      keeper: "SAVE",
+      memory: "PAIR",
+      asteroids: "ORE",
     };
     return symbols[id] || "PLAY";
   }
@@ -1661,6 +1731,11 @@
     if (definition.id === "driftboss") return createDriftBoss(base);
     if (definition.id === "snake") return createSnake(base);
     if (definition.id === "breaker") return createBreaker(base);
+    if (definition.id === "pinball") return createPinball(base);
+    if (definition.id === "river") return createRiverRush(base);
+    if (definition.id === "keeper") return createKeeper(base);
+    if (definition.id === "memory") return createMemoryMatch(base);
+    if (definition.id === "asteroids") return createAsteroids(base);
     return createRunner(base);
   }
 
@@ -2694,6 +2769,494 @@
         this.drawEnd(context, this.timeLeft <= 0 ? "Wall Cleared" : "Signal Lost");
       },
     };
+  }
+
+  function createPinball(base) {
+    return {
+      ...base,
+      ball: { x: 480, y: 240, vx: 170, vy: -220, r: 11 },
+      lives: 3,
+      bumpers: [
+        { x: 360, y: 190, r: 30, color: "#ff8a3d" },
+        { x: 500, y: 150, r: 28, color: "#34d6ff" },
+        { x: 610, y: 230, r: 32, color: "#ffd166" },
+      ],
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const left = actionPressed("left") || actionPressed("action");
+        const right = actionPressed("right") || actionPressed("action");
+        this.ball.vy += (410 + this.level * 12) * delta;
+        this.ball.x += this.ball.vx * delta;
+        this.ball.y += this.ball.vy * delta;
+        if (this.ball.x < 90 || this.ball.x > gameCanvas.width - 90) this.ball.vx *= -0.92;
+        if (this.ball.y < 70) this.ball.vy = Math.abs(this.ball.vy);
+        const leftHit = left && this.ball.x < 480 && this.ball.y > 430 && this.ball.y < 500;
+        const rightHit = right && this.ball.x >= 480 && this.ball.y > 430 && this.ball.y < 500;
+        if (leftHit || rightHit) {
+          this.ball.vy = -Math.abs(this.ball.vy) - 160;
+          this.ball.vx += (leftHit ? 220 : -220) + random(-40, 40);
+          this.addScore(18 + this.level, this.ball.x, this.ball.y, "Flip");
+          audio.beep(560, 0.035, "square");
+        }
+        this.bumpers.forEach((bumper) => {
+          const gap = distance(this.ball.x, this.ball.y, bumper.x, bumper.y);
+          if (gap < this.ball.r + bumper.r) {
+            const angle = Math.atan2(this.ball.y - bumper.y, this.ball.x - bumper.x);
+            this.ball.vx = Math.cos(angle) * (310 + this.level * 16);
+            this.ball.vy = Math.sin(angle) * (310 + this.level * 16);
+            this.pushCombo();
+            this.addScore(55 + this.level * 6, bumper.x, bumper.y, "Bumper");
+            this.burst(bumper.x, bumper.y, bumper.color, 14);
+            audio.beep(760, 0.04, "triangle");
+          }
+        });
+        if (this.ball.y > gameCanvas.height + 30) {
+          this.lives -= 1;
+          this.breakCombo();
+          if (this.lives <= 0) this.finish();
+          this.ball = { x: 480, y: 260, vx: random(-160, 160), vy: -260, r: 11 };
+        }
+        this.score += delta * (8 + this.level);
+      },
+      draw(context) {
+        this.drawBase(context);
+        drawBadge(context, `Lives ${this.lives}`, 24, 34, "#ffd166");
+        drawPinballTable(context, this);
+        this.drawEffects(context);
+        this.drawEnd(context, this.timeLeft <= 0 ? "Table Mastered" : "Ball Drained");
+      },
+    };
+  }
+
+  function createRiverRush(base) {
+    return {
+      ...base,
+      raft: { x: 480, y: 445, w: 54, h: 32 },
+      rocks: [],
+      flags: [],
+      spawn: 0,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const boost = actionPressed("action") ? 1.35 : 1;
+        this.raft.x += (Number(actionPressed("right")) - Number(actionPressed("left"))) * 330 * delta;
+        this.raft.y += (Number(actionPressed("down")) - Number(actionPressed("up"))) * 250 * delta;
+        this.raft.x = clamp(this.raft.x, 120, gameCanvas.width - 120);
+        this.raft.y = clamp(this.raft.y, 190, gameCanvas.height - 45);
+        const flow = (180 + this.level * 28) * boost;
+        this.spawn -= delta;
+        if (this.spawn <= 0) {
+          this.spawn = Math.max(0.22, 0.8 - this.level * 0.045);
+          const x = random(155, gameCanvas.width - 155);
+          if (Math.random() < 0.28) this.flags.push({ x, y: -30, r: 14 });
+          else this.rocks.push({ x, y: -40, r: random(18, 34), spin: random(-1, 1) });
+        }
+        this.rocks.forEach((rock) => { rock.y += flow * delta; });
+        this.flags.forEach((flag) => { flag.y += flow * delta; });
+        this.rocks = this.rocks.filter((rock) => rock.y < gameCanvas.height + 60);
+        this.flags = this.flags.filter((flag) => flag.y < gameCanvas.height + 60 && !flag.collected);
+        for (const rock of this.rocks) {
+          if (distance(rock.x, rock.y, this.raft.x, this.raft.y) < rock.r + 24) {
+            this.flash = 0.2;
+            this.burst(this.raft.x, this.raft.y, "#ff5b5b", 22);
+            audio.beep(100, 0.14, "sawtooth");
+            this.finish();
+          }
+        }
+        this.flags.forEach((flag) => {
+          if (distance(flag.x, flag.y, this.raft.x, this.raft.y) < flag.r + 26) {
+            flag.collected = true;
+            this.pushCombo();
+            this.addScore(48 + this.level * 5, flag.x, flag.y, "Flag");
+            this.burst(flag.x, flag.y, "#ffd166", 12);
+          }
+        });
+        this.score += delta * (15 + this.level * 3);
+      },
+      draw(context) {
+        drawRiverScene(context, this.elapsed);
+        drawBadge(context, "Rapids", 24, 34, "#2dd4bf");
+        drawRiverObjects(context, this);
+        this.drawEffects(context);
+        this.drawEnd(context, this.timeLeft <= 0 ? "River Cleared" : "Raft Wrecked");
+      },
+    };
+  }
+
+  function createKeeper(base) {
+    return {
+      ...base,
+      keeper: { x: 480, y: 474, w: 94 },
+      balls: [],
+      spawn: 0.8,
+      goals: 0,
+      saves: 0,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const dive = actionPressed("action") ? 1.45 : 1;
+        this.keeper.x += (Number(actionPressed("right")) - Number(actionPressed("left"))) * 430 * delta;
+        this.keeper.x = clamp(this.keeper.x, 120, gameCanvas.width - 120);
+        this.keeper.w = actionPressed("action") ? 142 : 96;
+        this.spawn -= delta;
+        if (this.spawn <= 0) {
+          this.spawn = Math.max(0.42, 1.45 - this.level * 0.08);
+          this.balls.push({ x: random(130, gameCanvas.width - 130), y: 90, vx: random(-40, 40), vy: 220 + this.level * 24, r: 13 });
+        }
+        this.balls.forEach((ball) => {
+          ball.x += ball.vx * delta * dive;
+          ball.y += ball.vy * delta;
+        });
+        for (const ball of this.balls) {
+          if (ball.saved) continue;
+          const saved = ball.y > this.keeper.y - 22 && Math.abs(ball.x - this.keeper.x) < this.keeper.w / 2 + ball.r;
+          if (saved) {
+            ball.saved = true;
+            this.saves += 1;
+            this.pushCombo();
+            this.addScore(62 + this.level * 8, ball.x, ball.y, "Save");
+            this.burst(ball.x, ball.y, "#facc15", 12);
+            audio.beep(720, 0.04, "square");
+          } else if (ball.y > gameCanvas.height + 20) {
+            ball.saved = true;
+            this.goals += 1;
+            this.breakCombo();
+            if (this.goals >= 5) this.finish();
+          }
+        }
+        this.balls = this.balls.filter((ball) => ball.y < gameCanvas.height + 70 && !ball.saved);
+        this.score += delta * (9 + this.level);
+      },
+      draw(context) {
+        drawSoccerField(context);
+        drawBadge(context, `Saves ${this.saves}`, 24, 34, "#facc15");
+        drawBadge(context, `Goals ${this.goals}/5`, 150, 34, "#ff5b5b");
+        drawKeeper(context, this);
+        this.drawEffects(context);
+        this.drawEnd(context, this.goals >= 5 ? "Net Broken" : "Clean Sheet");
+      },
+    };
+  }
+
+  function createMemoryMatch(base) {
+    const symbols = ["A", "B", "C", "D", "E", "F"];
+    const deck = [...symbols, ...symbols].sort(() => Math.random() - 0.5).map((symbol) => ({ symbol, open: false, matched: false }));
+    return {
+      ...base,
+      deck,
+      cursor: 0,
+      opened: [],
+      lock: 0,
+      matches: 0,
+      input: {},
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        if (this.lock > 0) {
+          this.lock -= delta;
+          if (this.lock <= 0) {
+            this.opened.forEach((index) => { if (!this.deck[index].matched) this.deck[index].open = false; });
+            this.opened = [];
+          }
+          return;
+        }
+        const horizontal = Number(actionPressed("right")) - Number(actionPressed("left"));
+        const vertical = Number(actionPressed("down")) - Number(actionPressed("up"));
+        const moving = horizontal || vertical;
+        if (moving && !this.input.move) {
+          const col = this.cursor % 4;
+          const row = Math.floor(this.cursor / 4);
+          this.cursor = clamp(row + vertical, 0, 2) * 4 + clamp(col + horizontal, 0, 3);
+        }
+        const action = actionPressed("action");
+        if (action && !this.input.action && !this.deck[this.cursor].open && !this.deck[this.cursor].matched) {
+          this.deck[this.cursor].open = true;
+          this.opened.push(this.cursor);
+          if (this.opened.length === 2) {
+            const [a, b] = this.opened;
+            if (this.deck[a].symbol === this.deck[b].symbol) {
+              this.deck[a].matched = true;
+              this.deck[b].matched = true;
+              this.matches += 1;
+              this.opened = [];
+              this.pushCombo();
+              this.addScore(90 + this.level * 10, gameCanvas.width / 2, 92, "Match");
+              if (this.matches === symbols.length) {
+                this.addScore(240, gameCanvas.width / 2, 130, "Clear");
+                this.deck = [...symbols, ...symbols].sort(() => Math.random() - 0.5).map((symbol) => ({ symbol, open: false, matched: false }));
+                this.matches = 0;
+              }
+            } else {
+              this.lock = 0.7;
+              this.breakCombo();
+            }
+          }
+        }
+        this.input = { move: Boolean(moving), action };
+        this.score += delta * (5 + this.level);
+      },
+      draw(context) {
+        this.drawBase(context);
+        drawBadge(context, `Pairs ${this.matches}/6`, 24, 34, "#c084fc");
+        drawMemoryBoard(context, this);
+        this.drawEffects(context);
+        this.drawEnd(context, "Memory Closed");
+      },
+    };
+  }
+
+  function createAsteroids(base) {
+    return {
+      ...base,
+      ship: { x: 480, y: 430, cooldown: 0 },
+      shots: [],
+      rocks: [],
+      ore: [],
+      spawn: 0,
+      lives: 3,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        this.ship.x += (Number(actionPressed("right")) - Number(actionPressed("left"))) * 360 * delta;
+        this.ship.y += (Number(actionPressed("down")) - Number(actionPressed("up"))) * 260 * delta;
+        this.ship.x = clamp(this.ship.x, 30, gameCanvas.width - 30);
+        this.ship.y = clamp(this.ship.y, 95, gameCanvas.height - 35);
+        this.ship.cooldown = Math.max(0, this.ship.cooldown - delta);
+        if (actionPressed("action") && this.ship.cooldown <= 0) {
+          this.ship.cooldown = 0.22;
+          this.shots.push({ x: this.ship.x, y: this.ship.y - 24, vy: -560 });
+          audio.beep(620, 0.025, "square");
+        }
+        this.spawn -= delta;
+        if (this.spawn <= 0) {
+          this.spawn = Math.max(0.18, 0.62 - this.level * 0.035);
+          this.rocks.push({ x: random(30, gameCanvas.width - 30), y: -30, r: random(16, 36), vy: random(135, 210) + this.level * 20, vx: random(-35, 35) });
+          if (Math.random() < 0.22) this.ore.push({ x: random(36, gameCanvas.width - 36), y: -24, r: 11, vy: 160 + this.level * 18 });
+        }
+        this.shots.forEach((shot) => { shot.y += shot.vy * delta; });
+        this.rocks.forEach((rock) => { rock.x += rock.vx * delta; rock.y += rock.vy * delta; });
+        this.ore.forEach((ore) => { ore.y += ore.vy * delta; });
+        this.shots = this.shots.filter((shot) => shot.y > -30);
+        this.rocks = this.rocks.filter((rock) => rock.y < gameCanvas.height + 60 && !rock.dead);
+        this.ore = this.ore.filter((item) => item.y < gameCanvas.height + 60 && !item.collected);
+        for (const rock of this.rocks) {
+          for (const shot of this.shots) {
+            if (distance(rock.x, rock.y, shot.x, shot.y) < rock.r + 6) {
+              rock.dead = true;
+              shot.y = -99;
+              this.addScore(35 + this.level * 4, rock.x, rock.y, "Blast");
+              this.burst(rock.x, rock.y, "#93c5fd", 10);
+            }
+          }
+          if (distance(rock.x, rock.y, this.ship.x, this.ship.y) < rock.r + 22) {
+            rock.dead = true;
+            this.lives -= 1;
+            this.flash = 0.18;
+            this.breakCombo();
+            if (this.lives <= 0) this.finish();
+          }
+        }
+        this.ore.forEach((item) => {
+          if (distance(item.x, item.y, this.ship.x, this.ship.y) < item.r + 24) {
+            item.collected = true;
+            this.pushCombo();
+            this.addScore(70 + this.level * 6, item.x, item.y, "Ore");
+            this.burst(item.x, item.y, "#ffd166", 12);
+          }
+        });
+        this.score += delta * (12 + this.level * 2);
+      },
+      draw(context) {
+        drawSpaceScene(context, this.elapsed);
+        drawBadge(context, `Lives ${this.lives}`, 24, 34, "#93c5fd");
+        drawAsteroids(context, this);
+        this.drawEffects(context);
+        if (this.flash) {
+          context.fillStyle = `rgba(255, 91, 91, ${this.flash * 2})`;
+          context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+        }
+        this.drawEnd(context, this.lives <= 0 ? "Ship Lost" : "Orbit Cleared");
+      },
+    };
+  }
+
+  function drawPinballTable(context, game) {
+    context.save();
+    context.fillStyle = "rgba(10, 12, 20, 0.78)";
+    roundedRect(context, 150, 62, 660, 454, 18);
+    context.fill();
+    context.strokeStyle = "#ff8a3d";
+    context.lineWidth = 4;
+    context.stroke();
+    game.bumpers.forEach((bumper) => {
+      context.fillStyle = bumper.color;
+      context.shadowColor = bumper.color;
+      context.shadowBlur = 22;
+      context.beginPath();
+      context.arc(bumper.x, bumper.y, bumper.r, 0, Math.PI * 2);
+      context.fill();
+      context.shadowBlur = 0;
+    });
+    context.fillStyle = "#34d6ff";
+    roundedRect(context, 300, 452, 150, 18, 9);
+    context.fill();
+    roundedRect(context, 510, 452, 150, 18, 9);
+    context.fill();
+    context.fillStyle = "#f5f7ff";
+    context.shadowColor = "rgba(255,255,255,0.65)";
+    context.shadowBlur = 18;
+    context.beginPath();
+    context.arc(game.ball.x, game.ball.y, game.ball.r, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
+  }
+
+  function drawRiverScene(context, elapsed) {
+    const gradient = context.createLinearGradient(0, 0, 0, gameCanvas.height);
+    gradient.addColorStop(0, "#6fd3ff");
+    gradient.addColorStop(0.45, "#137fa0");
+    gradient.addColorStop(1, "#0b3e56");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+    context.fillStyle = "#7c5f3d";
+    context.beginPath();
+    context.moveTo(0, 0);
+    context.lineTo(125, 0);
+    context.lineTo(65, gameCanvas.height);
+    context.lineTo(0, gameCanvas.height);
+    context.closePath();
+    context.fill();
+    context.beginPath();
+    context.moveTo(gameCanvas.width, 0);
+    context.lineTo(gameCanvas.width - 125, 0);
+    context.lineTo(gameCanvas.width - 65, gameCanvas.height);
+    context.lineTo(gameCanvas.width, gameCanvas.height);
+    context.closePath();
+    context.fill();
+    context.strokeStyle = "rgba(255,255,255,0.24)";
+    context.lineWidth = 3;
+    for (let y = -40; y < gameCanvas.height; y += 48) {
+      context.beginPath();
+      context.moveTo(170, y + (elapsed * 80) % 48);
+      context.lineTo(790, y + 20 + (elapsed * 80) % 48);
+      context.stroke();
+    }
+  }
+
+  function drawRiverObjects(context, game) {
+    context.save();
+    game.rocks.forEach((rock) => {
+      context.fillStyle = "#5b6170";
+      context.beginPath();
+      context.arc(rock.x, rock.y, rock.r, 0, Math.PI * 2);
+      context.fill();
+    });
+    game.flags.forEach((flag) => {
+      context.fillStyle = "#ffd166";
+      context.beginPath();
+      context.arc(flag.x, flag.y, flag.r, 0, Math.PI * 2);
+      context.fill();
+    });
+    context.translate(game.raft.x, game.raft.y);
+    context.fillStyle = "#f59e0b";
+    roundedRect(context, -27, -16, 54, 32, 8);
+    context.fill();
+    context.fillStyle = "#7c2d12";
+    context.fillRect(-22, -6, 44, 12);
+    context.restore();
+  }
+
+  function drawSoccerField(context) {
+    context.fillStyle = "#1f7a3b";
+    context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+    context.strokeStyle = "rgba(255,255,255,0.42)";
+    context.lineWidth = 4;
+    context.strokeRect(120, 80, gameCanvas.width - 240, gameCanvas.height - 130);
+    context.beginPath();
+    context.arc(gameCanvas.width / 2, 300, 84, 0, Math.PI * 2);
+    context.stroke();
+    context.fillStyle = "rgba(255,255,255,0.08)";
+    context.fillRect(120, 430, gameCanvas.width - 240, 74);
+  }
+
+  function drawKeeper(context, game) {
+    context.save();
+    context.fillStyle = "#f5f7ff";
+    context.fillRect(180, 492, 600, 8);
+    context.strokeStyle = "#f5f7ff";
+    context.strokeRect(180, 395, 600, 105);
+    game.balls.forEach((ball) => {
+      context.fillStyle = "#ffffff";
+      context.beginPath();
+      context.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+      context.fill();
+      context.strokeStyle = "#111827";
+      context.stroke();
+    });
+    context.fillStyle = "#facc15";
+    roundedRect(context, game.keeper.x - game.keeper.w / 2, game.keeper.y - 16, game.keeper.w, 32, 10);
+    context.fill();
+    context.restore();
+  }
+
+  function drawMemoryBoard(context, game) {
+    const size = 90;
+    const gap = 14;
+    const startX = gameCanvas.width / 2 - (size * 4 + gap * 3) / 2;
+    const startY = 126;
+    game.deck.forEach((card, index) => {
+      const x = startX + (index % 4) * (size + gap);
+      const y = startY + Math.floor(index / 4) * (size + gap);
+      context.fillStyle = card.matched ? "rgba(88,242,159,0.32)" : card.open ? "#f5f7ff" : "rgba(192,132,252,0.58)";
+      context.strokeStyle = index === game.cursor ? "#ffd166" : "rgba(255,255,255,0.2)";
+      context.lineWidth = index === game.cursor ? 4 : 2;
+      roundedRect(context, x, y, size, size, 10);
+      context.fill();
+      context.stroke();
+      if (card.open || card.matched) drawText(context, card.symbol, x + size / 2, y + 58, "#111827", "900 42px system-ui", "center");
+    });
+  }
+
+  function drawSpaceScene(context, elapsed) {
+    context.fillStyle = "#060816";
+    context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+    context.fillStyle = "#ffffff";
+    for (let i = 0; i < 70; i += 1) {
+      const x = (i * 151) % gameCanvas.width;
+      const y = (i * 83 + elapsed * (18 + (i % 4) * 8)) % gameCanvas.height;
+      context.globalAlpha = 0.25 + (i % 4) * 0.16;
+      context.fillRect(x, y, 2, 2);
+    }
+    context.globalAlpha = 1;
+  }
+
+  function drawAsteroids(context, game) {
+    context.save();
+    game.rocks.forEach((rock) => {
+      context.fillStyle = "#6b7280";
+      context.beginPath();
+      context.arc(rock.x, rock.y, rock.r, 0, Math.PI * 2);
+      context.fill();
+    });
+    game.ore.forEach((ore) => {
+      context.fillStyle = "#ffd166";
+      context.beginPath();
+      context.arc(ore.x, ore.y, ore.r, 0, Math.PI * 2);
+      context.fill();
+    });
+    context.fillStyle = "#93c5fd";
+    game.shots.forEach((shot) => context.fillRect(shot.x - 3, shot.y - 12, 6, 18));
+    context.translate(game.ship.x, game.ship.y);
+    context.fillStyle = "#34d6ff";
+    context.beginPath();
+    context.moveTo(0, -26);
+    context.lineTo(24, 24);
+    context.lineTo(0, 12);
+    context.lineTo(-24, 24);
+    context.closePath();
+    context.fill();
+    context.restore();
   }
 
   function makeTarget(level) {
