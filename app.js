@@ -78,6 +78,11 @@
   const comboValue = document.querySelector("#comboValue");
   const bestValue = document.querySelector("#bestValue");
   const timeValue = document.querySelector("#timeValue");
+  const driftStartOverlay = document.querySelector("#driftStartOverlay");
+  const driftStartShop = document.querySelector("#driftStartShop");
+  const driftSensitivitySlider = document.querySelector("#driftSensitivitySlider");
+  const driftSensitivityValue = document.querySelector("#driftSensitivityValue");
+  const startDriftRunButton = document.querySelector("#startDriftRunButton");
   const gameCanvas = document.querySelector("#gameCanvas");
   const gameContext = gameCanvas.getContext("2d");
   const touchControls = document.querySelector("#touchControls");
@@ -110,6 +115,7 @@
     driftCar: "starter",
     driftCars: ["starter"],
     driftBoosters: {},
+    driftSensitivity: 100,
   };
 
   const avatarOptions = ["P1", "VX", "KO", "AI", "GG", "XP"];
@@ -518,6 +524,7 @@
       driftCars: [...new Set(["starter", ...ownedDriftCars])],
       driftCar: driftCars.some((car) => car.id === value.driftCar) && ownedDriftCars.includes(value.driftCar) ? value.driftCar : "starter",
       driftBoosters: normalizedBoosters,
+      driftSensitivity: clamp(Number(value.driftSensitivity) || defaultProfile.driftSensitivity, 70, 140),
     };
   }
 
@@ -561,6 +568,8 @@
     profileCoinsLabel.textContent = profile.coins.toString();
     profileXpLabel.textContent = profile.xp.toString();
     profileNameInput.value = profile.name;
+    driftSensitivitySlider.value = profile.driftSensitivity;
+    driftSensitivityValue.textContent = `${profile.driftSensitivity}%`;
     avatarPicker.querySelectorAll("button").forEach((button) => {
       button.classList.toggle("active", button.dataset.avatar === profile.avatar);
     });
@@ -624,10 +633,27 @@
     return Math.max(0, Math.floor(Number(profile.driftBoosters?.[id]) || 0));
   }
 
+  function consumeDriftBoosters() {
+    const activeBoosters = {
+      doubleScore: getBoosterCount("doubleScore") > 0,
+      insurance: getBoosterCount("insurance") > 0,
+      coinRush: getBoosterCount("coinRush") > 0,
+    };
+    Object.entries(activeBoosters).forEach(([id, enabled]) => {
+      if (enabled) profile.driftBoosters[id] = getBoosterCount(id) - 1;
+    });
+    if (Object.values(activeBoosters).some(Boolean)) saveProfile();
+    return activeBoosters;
+  }
+
   function renderDriftShop() {
-    if (!driftShop) return;
+    [driftShop, driftStartShop].forEach((container) => renderDriftShopInto(container));
+  }
+
+  function renderDriftShopInto(container) {
+    if (!container) return;
     const active = activeDriftCar();
-    driftShop.innerHTML = `
+    container.innerHTML = `
       <div class="drift-shop-header">
         <span>Coin balance</span>
         <strong>${profile.coins}</strong>
@@ -664,7 +690,7 @@
           .join("")}
       </div>
     `;
-    driftShop.querySelectorAll("[data-car]").forEach((button) => {
+    container.querySelectorAll("[data-car]").forEach((button) => {
       button.addEventListener("click", () => {
         const car = driftCars.find((item) => item.id === button.dataset.car);
         if (!car) return;
@@ -682,7 +708,7 @@
         audio.beep(620, 0.06, "triangle");
       });
     });
-    driftShop.querySelectorAll("[data-booster]").forEach((button) => {
+    container.querySelectorAll("[data-booster]").forEach((button) => {
       button.addEventListener("click", () => {
         const booster = driftBoosters.find((item) => item.id === button.dataset.booster);
         if (!booster) return;
@@ -1574,11 +1600,13 @@
   function startGame(id, runContext = null) {
     stopGameLoop();
     const definition = gameDefinitions.find((game) => game.id === id);
+    driftStartOverlay.classList.toggle("hidden-field", definition.id !== "driftboss");
     activeRunContext = runContext;
     recordPlay(definition.id);
     updateIntroDashboard();
     renderGameCards();
     activeGame = createGame(definition);
+    if (definition.id === "driftboss") renderDriftShop();
     playTitle.textContent = definition.title;
     gameSubtitle.textContent = runContext?.player ? `${definition.subtitle} · ${runContext.player}` : `${definition.subtitle} · ${profile.name}`;
     scoreValue.textContent = "0";
@@ -1598,6 +1626,7 @@
     lastFrameTime = 0;
     pressed.clear();
     releaseTouchControls();
+    driftStartOverlay.classList.add("hidden-field");
   }
 
   function gameLoop(time) {
@@ -2432,15 +2461,7 @@
 
   function createDriftBoss(base) {
     const carSpec = activeDriftCar();
-    const activeBoosters = {
-      doubleScore: getBoosterCount("doubleScore") > 0,
-      insurance: getBoosterCount("insurance") > 0,
-      coinRush: getBoosterCount("coinRush") > 0,
-    };
-    Object.entries(activeBoosters).forEach(([id, enabled]) => {
-      if (enabled) profile.driftBoosters[id] = getBoosterCount(id) - 1;
-    });
-    if (Object.values(activeBoosters).some(Boolean)) saveProfile();
+    const activeBoosters = { doubleScore: false, insurance: false, coinRush: false };
     const points = [];
     for (let y = -180; y <= gameCanvas.height + 180; y += 90) {
       const previous = points[points.length - 1]?.x ?? gameCanvas.width / 2;
@@ -2457,13 +2478,22 @@
       distance: 0,
       checkpoint: 0,
       insured: activeBoosters.insurance,
+      started: false,
+      readyCountdown: 3,
       update(delta) {
+        if (this.over) return;
+        if (!this.started) return;
+        if (this.readyCountdown > 0) {
+          this.readyCountdown = Math.max(0, this.readyCountdown - delta);
+          return;
+        }
         this.updateTimer(delta);
         if (this.over) return;
         const speed = 150 + this.level * 22;
         const width = Math.max(128, 250 - this.level * 9);
         const turningRight = actionPressed("action") || actionPressed("right");
-        this.car.x += (turningRight ? 1 : -1) * (180 + this.level * 10) * this.carSpec.handling * delta;
+        const sensitivity = profile.driftSensitivity / 100;
+        this.car.x += (turningRight ? 1 : -1) * (180 + this.level * 10) * this.carSpec.handling * sensitivity * delta;
         this.car.angle = turningRight ? 0.36 : -0.36;
         this.road.forEach((point) => {
           point.y += speed * delta;
@@ -2520,6 +2550,8 @@
         drawDriftRoad(context, this.road, Math.max(128, 250 - this.level * 9), this.distance);
         drawDriftCoins(context, this.coins);
         drawDriftCar(context, this.car, this.carSpec);
+        if (!this.started) drawDriftTutorial(context);
+        if (this.started && this.readyCountdown > 0) drawCountdown(context, Math.ceil(this.readyCountdown));
         this.drawEffects(context);
         if (this.flash) {
           context.fillStyle = `rgba(255, 91, 91, ${this.flash * 2})`;
@@ -3038,6 +3070,29 @@
       context.shadowBlur = 0;
       drawText(context, "$", coin.x, coin.y + 6, "#5d3b00", "900 18px system-ui", "center");
     });
+    context.restore();
+  }
+
+  function drawDriftTutorial(context) {
+    context.save();
+    context.fillStyle = "rgba(6, 12, 18, 0.72)";
+    context.strokeStyle = "#11bdf4";
+    context.lineWidth = 4;
+    roundedRect(context, 300, 74, 360, 120, 8);
+    context.fill();
+    context.stroke();
+    drawText(context, "TUTORIAL", 480, 115, "#ffffff", "900 32px system-ui", "center");
+    drawText(context, "Hold Action / Space / Right", 480, 150, "#dff6ff", "900 18px system-ui", "center");
+    drawText(context, "Release to drift left", 480, 176, "#dff6ff", "800 17px system-ui", "center");
+    context.restore();
+  }
+
+  function drawCountdown(context, value) {
+    context.save();
+    context.fillStyle = "rgba(6, 12, 18, 0.55)";
+    context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+    drawText(context, value.toString(), gameCanvas.width / 2, gameCanvas.height / 2 + 34, "#ffffff", "1000 120px system-ui", "center");
+    drawText(context, "Get ready", gameCanvas.width / 2, gameCanvas.height / 2 - 68, "#ffd166", "900 28px system-ui", "center");
     context.restore();
   }
 
@@ -3637,6 +3692,21 @@
     profile.name = cleanPlayerName(profileNameInput.value, defaultProfile.name);
     playerOneName.value = profile.name;
     saveProfile();
+  });
+  driftSensitivitySlider.addEventListener("input", () => {
+    profile.driftSensitivity = Number(driftSensitivitySlider.value);
+    driftSensitivityValue.textContent = `${profile.driftSensitivity}%`;
+    saveProfile();
+  });
+  wireClick("#startDriftRunButton", () => {
+    if (!activeGame || activeGame.definition.id !== "driftboss") return;
+    activeGame.carSpec = activeDriftCar();
+    activeGame.activeBoosters = consumeDriftBoosters();
+    activeGame.insured = activeGame.activeBoosters.insurance;
+    activeGame.started = true;
+    activeGame.readyCountdown = 3;
+    driftStartOverlay.classList.add("hidden-field");
+    audio.beep(680, 0.08, "square");
   });
   wireClick("#restartButton", () => {
     if (activeGame) startGame(activeGame.definition.id, activeRunContext ? { ...activeRunContext } : null);

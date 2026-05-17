@@ -1685,6 +1685,7 @@ select:disabled {
 .play-screen {
   margin: 0 auto;
   max-width: 1160px;
+  position: relative;
 }
 
 .game-hud {
@@ -1734,6 +1735,77 @@ select:disabled {
     inset 0 0 60px rgba(52, 214, 255, 0.06);
   display: block;
   width: 100%;
+}
+
+.drift-start-overlay {
+  align-items: center;
+  background: rgba(3, 5, 10, 0.72);
+  backdrop-filter: blur(10px);
+  display: flex;
+  inset: 116px 0 126px;
+  justify-content: center;
+  position: absolute;
+  z-index: 6;
+}
+
+.drift-start-card {
+  background:
+    linear-gradient(135deg, rgba(17, 189, 244, 0.18), transparent 42%),
+    rgba(7, 13, 20, 0.94);
+  border: 3px solid #11bdf4;
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.52),
+    inset 0 0 34px rgba(17, 189, 244, 0.1);
+  display: grid;
+  gap: 14px;
+  max-height: 100%;
+  max-width: 880px;
+  overflow: auto;
+  padding: clamp(18px, 3vw, 28px);
+  width: min(100%, 880px);
+}
+
+.drift-start-card h3 {
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: 0.95;
+  margin: 0;
+}
+
+.drift-start-card p {
+  color: #dceeff;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.tutorial-steps {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.tutorial-steps span,
+.drift-sensitivity {
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 10px;
+  text-transform: uppercase;
+}
+
+.drift-sensitivity {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(150px, 0.5fr) minmax(180px, 1fr);
+}
+
+.drift-sensitivity small {
+  color: var(--sun);
+  display: block;
+  margin-top: 3px;
 }
 
 .touch-controls {
@@ -2407,7 +2479,9 @@ h2 {
 
   .skin-grid,
   .drift-cars,
-  .drift-boosters {
+  .drift-boosters,
+  .tutorial-steps,
+  .drift-sensitivity {
     grid-template-columns: 1fr;
   }
 }
