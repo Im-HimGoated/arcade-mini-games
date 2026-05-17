@@ -17,6 +17,7 @@
   const backButton = document.querySelector("#backButton");
   const muteButton = document.querySelector("#muteButton");
   const muteIcon = document.querySelector("#muteIcon");
+  const globalSearch = document.querySelector("#globalSearch");
   const gameGrid = document.querySelector("#gameGrid");
   const gameSearch = document.querySelector("#gameSearch");
   const filterTabs = document.querySelector("#filterTabs");
@@ -826,6 +827,7 @@
   function resetGameBrowser() {
     activeFilter = "all";
     gameSearch.value = "";
+    globalSearch.value = "";
     filterTabs.querySelectorAll(".filter-tab").forEach((tab) => {
       tab.classList.toggle("active", tab.dataset.filter === "all");
     });
@@ -1523,7 +1525,10 @@
       addScore(points, x = gameCanvas.width / 2, y = 90, label = "") {
         const value = Math.ceil(points * this.combo);
         this.score += value;
-        if (label) this.messages.push({ x, y, text: `${label} +${value}`, age: 0, life: 0.85 });
+        if (label) {
+          const text = label === "Graze bonus" ? `Graze bonus +${value}` : `${label} +${value}`;
+          this.messages.push({ x, y, text, age: 0, life: 0.85 });
+        }
       },
       pushCombo(amount = 1) {
         this.combo = Math.min(9, this.combo + amount);
@@ -1688,7 +1693,7 @@
           if (!hazard.grazed && gap < hazard.r + this.player.size * 1.1 && gap > hazard.r + this.player.size * 0.56) {
             hazard.grazed = true;
             this.pushCombo();
-            this.addScore(8 + this.level, hazard.x, hazard.y, "Graze");
+            this.addScore(8 + this.level, hazard.x, hazard.y, "Graze bonus");
             this.burst(hazard.x, hazard.y, "#ffd166", 7);
           }
           if (gap < hazard.r + this.player.size * 0.52) {
@@ -2877,15 +2882,37 @@
     const width = gameCanvas.width;
     const height = gameCanvas.height;
     context.clearRect(0, 0, width, height);
-    const gradient = context.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, "#050712");
-    gradient.addColorStop(0.5, "#111827");
-    gradient.addColorStop(1, "#211331");
-    context.fillStyle = gradient;
+    const sky = context.createLinearGradient(0, 0, 0, height);
+    sky.addColorStop(0, "#76d7ff");
+    sky.addColorStop(0.36, "#17324f");
+    sky.addColorStop(0.37, "#111421");
+    sky.addColorStop(1, "#07080e");
+    context.fillStyle = sky;
+    context.fillRect(0, 0, width, height);
+
+    const sun = context.createRadialGradient(width * 0.78, height * 0.18, 10, width * 0.78, height * 0.18, width * 0.28);
+    sun.addColorStop(0, "rgba(255,255,255,0.62)");
+    sun.addColorStop(0.24, "rgba(255,209,102,0.22)");
+    sun.addColorStop(1, "rgba(255,209,102,0)");
+    context.fillStyle = sun;
     context.fillRect(0, 0, width, height);
 
     context.save();
-    context.globalAlpha = 0.35;
+    context.globalAlpha = 0.42;
+    context.fillStyle = "#1c2d35";
+    context.beginPath();
+    context.moveTo(0, height * 0.37);
+    for (let x = 0; x <= width; x += 90) {
+      context.lineTo(x, height * (0.31 + Math.sin(x * 0.018 + elapsed * 0.08) * 0.035));
+    }
+    context.lineTo(width, height * 0.45);
+    context.lineTo(0, height * 0.45);
+    context.closePath();
+    context.fill();
+    context.restore();
+
+    context.save();
+    context.globalAlpha = 0.26;
     for (let i = 0; i < 42; i += 1) {
       const x = (i * 137 + elapsed * 16) % width;
       const y = (i * 71) % height;
@@ -2894,19 +2921,21 @@
     }
     context.restore();
 
-    context.strokeStyle = "rgba(255,255,255,0.07)";
-    context.lineWidth = 1;
+    context.strokeStyle = "rgba(255,255,255,0.1)";
+    context.lineWidth = 2;
     const offset = settings.reducedMotion ? 0 : (elapsed * 38) % 48;
-    for (let x = -48; x <= width + 48; x += 48) {
+    const horizon = height * 0.47;
+    for (let x = -width; x <= width * 2; x += 72) {
       context.beginPath();
-      context.moveTo(x + offset * 0.35, 0);
+      context.moveTo(width / 2 + (x - width / 2) * 0.12, horizon);
       context.lineTo(x - offset, height);
       context.stroke();
     }
-    for (let y = -48; y <= height + 48; y += 48) {
+    for (let y = horizon; y <= height + 60; y += 42) {
+      const depth = (y - horizon) / (height - horizon);
       context.beginPath();
-      context.moveTo(0, y + offset);
-      context.lineTo(width, y + offset);
+      context.moveTo(0, y + offset * depth);
+      context.lineTo(width, y + offset * depth);
       context.stroke();
     }
   }
@@ -3333,6 +3362,11 @@
     showScreen("keybinds");
   });
   gameSearch.addEventListener("input", renderGameCards);
+  globalSearch.addEventListener("input", () => {
+    gameSearch.value = globalSearch.value;
+    showScreen("games");
+    renderGameCards();
+  });
   filterTabs.addEventListener("click", (event) => {
     const button = event.target.closest(".filter-tab");
     if (!button) return;
