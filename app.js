@@ -435,11 +435,11 @@
     {
       id: "river",
       title: "River Rush",
-      subtitle: "Raft through canyon rapids",
-      hook: "Thread a fast raft between rocks, collect flags, and survive rougher water each level.",
-      rules: "Steer through the river for 60 seconds. Rocks end the run; flags score points.",
+      subtitle: "Checkpoint sprint through rapids",
+      hook: "Race between buoy gates, grab rescue flags for extra seconds, and keep the raft moving before the river timer runs dry.",
+      rules: "Clear as many checkpoint gates as possible before the countdown expires. Rocks cost time instead of ending the run instantly.",
       controls: "Move with the directional keys. Hold Action for a short speed burst.",
-      strategy: "Stay near the center until flags are safe. Boost only when the lane ahead is clear.",
+      strategy: "Aim for gates first and flags second. Boosting is worth it only when the next lane is already lined up.",
       tag: "Reflex",
       accent: "#2dd4bf",
       glow: "rgba(45, 212, 191, 0.72)",
@@ -3007,54 +3007,92 @@
   function createRiverRush(base) {
     return {
       ...base,
+      timeLeft: 35,
       raft: { x: 480, y: 445, w: 54, h: 32 },
       rocks: [],
       flags: [],
+      gates: [],
       spawn: 0,
+      gateSpawn: 0.6,
+      checkpoints: 0,
+      hits: 0,
       update(delta) {
-        this.updateTimer(delta);
+        if (this.over) return;
+        this.elapsed += delta;
+        this.timeLeft = Math.max(0, 35 - this.elapsed);
+        this.level = Math.min(12, Math.floor(this.checkpoints / 3) + 1);
+        this.comboTimer = Math.max(0, this.comboTimer - delta);
+        if (this.comboTimer <= 0) this.combo = 1;
+        this.flash = Math.max(0, this.flash - delta);
+        this.updateEffects(delta);
+        if (this.timeLeft <= 0) this.finish();
         if (this.over) return;
         const boost = actionPressed("action") ? 1.35 : 1;
         this.raft.x += (Number(actionPressed("right")) - Number(actionPressed("left"))) * 330 * delta;
         this.raft.y += (Number(actionPressed("down")) - Number(actionPressed("up"))) * 250 * delta;
         this.raft.x = clamp(this.raft.x, 120, gameCanvas.width - 120);
         this.raft.y = clamp(this.raft.y, 190, gameCanvas.height - 45);
-        const flow = (180 + this.level * 28) * boost;
+        const flow = (210 + this.level * 24) * boost;
+        this.gateSpawn -= delta * boost;
+        if (this.gateSpawn <= 0) {
+          this.gateSpawn = Math.max(0.8, 1.75 - this.level * 0.06);
+          const gap = Math.max(118, 172 - this.level * 5);
+          const center = random(210, gameCanvas.width - 210);
+          this.gates.push({ x: center, y: -42, gap, passed: false });
+          if (Math.random() < 0.5) this.flags.push({ x: center + random(-gap * 0.35, gap * 0.35), y: -104, r: 14, time: 2 });
+        }
         this.spawn -= delta;
         if (this.spawn <= 0) {
-          this.spawn = Math.max(0.22, 0.8 - this.level * 0.045);
+          this.spawn = Math.max(0.3, 0.95 - this.level * 0.04);
           const x = random(155, gameCanvas.width - 155);
-          if (Math.random() < 0.28) this.flags.push({ x, y: -30, r: 14 });
-          else this.rocks.push({ x, y: -40, r: random(18, 34), spin: random(-1, 1) });
+          this.rocks.push({ x, y: -40, r: random(18, 32), spin: random(-1, 1), hit: false });
         }
         this.rocks.forEach((rock) => { rock.y += flow * delta; });
         this.flags.forEach((flag) => { flag.y += flow * delta; });
+        this.gates.forEach((gate) => { gate.y += flow * delta; });
         this.rocks = this.rocks.filter((rock) => rock.y < gameCanvas.height + 60);
         this.flags = this.flags.filter((flag) => flag.y < gameCanvas.height + 60 && !flag.collected);
+        this.gates = this.gates.filter((gate) => gate.y < gameCanvas.height + 60 && !gate.passed);
+        this.gates.forEach((gate) => {
+          if (gate.y > this.raft.y && Math.abs(gate.x - this.raft.x) < gate.gap / 2) {
+            gate.passed = true;
+            this.checkpoints += 1;
+            this.pushCombo();
+            this.elapsed = Math.max(0, this.elapsed - 2.4);
+            this.addScore(95 + this.level * 9, gate.x, this.raft.y - 42, "Gate");
+            this.burst(this.raft.x, this.raft.y, "#2dd4bf", 16);
+            audio.beep(820, 0.05, "triangle");
+          }
+        });
         for (const rock of this.rocks) {
-          if (distance(rock.x, rock.y, this.raft.x, this.raft.y) < rock.r + 24) {
+          if (!rock.hit && distance(rock.x, rock.y, this.raft.x, this.raft.y) < rock.r + 24) {
+            rock.hit = true;
+            this.hits += 1;
+            this.elapsed += 3.2;
             this.flash = 0.2;
             this.burst(this.raft.x, this.raft.y, "#ff5b5b", 22);
             audio.beep(100, 0.14, "sawtooth");
-            this.finish();
+            this.breakCombo();
           }
         }
         this.flags.forEach((flag) => {
           if (distance(flag.x, flag.y, this.raft.x, this.raft.y) < flag.r + 26) {
             flag.collected = true;
             this.pushCombo();
-            this.addScore(48 + this.level * 5, flag.x, flag.y, "Flag");
+            this.elapsed = Math.max(0, this.elapsed - flag.time);
+            this.addScore(48 + this.level * 5, flag.x, flag.y, "+Time");
             this.burst(flag.x, flag.y, "#ffd166", 12);
           }
         });
-        this.score += delta * (15 + this.level * 3);
+        this.score += delta * (18 + this.level * 4) * boost;
       },
       draw(context) {
         drawRiverScene(context, this.elapsed);
-        drawBadge(context, "Rapids", 24, 34, "#2dd4bf");
+        drawBadge(context, `${this.checkpoints} gates`, 24, 34, "#2dd4bf");
+        drawBadge(context, `${this.hits} hits`, 150, 34, "#ff5b5b");
         drawRiverObjects(context, this);
         this.drawEffects(context);
-        this.drawEnd(context, this.timeLeft <= 0 ? "River Cleared" : "Raft Wrecked");
+        this.drawEnd(context, "Time Washed Out");
       },
     };
   }
@@ -3080,20 +3118,24 @@
         this.spawn -= delta;
         if (this.spawn <= 0) {
           this.spawn = Math.max(0.34, 1.22 - this.level * 0.075);
-          const targetX = random(goalLeft + 22, goalRight - 22);
+          const targetX = random(goalLeft + 26, goalRight - 26);
           const startX = random(250, gameCanvas.width - 250);
           const typeRoll = Math.random();
           const type = typeRoll > 0.78 ? "power" : typeRoll > 0.48 ? "curve" : "normal";
           const speed = (type === "power" ? 345 : 285) + this.level * 34;
           const curve = type === "curve" ? random(-185, 185) : type === "power" ? random(-55, 55) : random(-25, 25);
+          const goalY = this.keeper.y + 24;
+          const flightTime = (goalY - 86) / speed;
+          const vx = (targetX - startX - 0.5 * curve * flightTime * flightTime) / flightTime;
           this.balls.push({
             x: startX,
             y: 86,
-            vx: (targetX - startX) * 0.55,
+            vx,
             vy: speed,
             r: type === "power" ? 16 : 13,
             type,
             curve,
+            targetX,
             trail: [],
           });
         }
@@ -3101,7 +3143,7 @@
           ball.trail.push({ x: ball.x, y: ball.y });
           if (ball.trail.length > 8) ball.trail.shift();
           ball.vx += ball.curve * delta;
-          ball.x += ball.vx * delta * dive;
+          ball.x += ball.vx * delta;
           ball.y += ball.vy * delta;
         });
         for (const ball of this.balls) {
@@ -3115,16 +3157,12 @@
             this.addScore(68 + this.level * 9 + (ball.type === "power" ? 24 : 0), ball.x, ball.y, label);
             this.burst(ball.x, ball.y, ball.type === "power" ? "#ff5b5b" : "#facc15", 14);
             audio.beep(ball.type === "power" ? 840 : 720, 0.04, "square");
-          } else if (ball.y > gameCanvas.height + 20) {
+          } else if (ball.y > this.keeper.y + 24) {
             ball.saved = true;
-            const insideGoal = ball.x > goalLeft && ball.x < goalRight;
-            if (insideGoal) {
-              this.goals += 1;
-              this.breakCombo();
-              if (this.goals >= 5) this.finish();
-            } else {
-              this.addScore(20 + this.level * 2, ball.x, gameCanvas.height - 44, "Wide");
-            }
+            ball.x = clamp(ball.x, goalLeft + ball.r, goalRight - ball.r);
+            this.goals += 1;
+            this.breakCombo();
+            if (this.goals >= 5) this.finish();
           }
         }
         this.balls = this.balls.filter((ball) => ball.y < gameCanvas.height + 70 && !ball.saved);
@@ -3348,8 +3386,25 @@
 
   function drawRiverObjects(context, game) {
     context.save();
+    game.gates.forEach((gate) => {
+      const left = gate.x - gate.gap / 2;
+      const right = gate.x + gate.gap / 2;
+      context.strokeStyle = "rgba(255,255,255,0.48)";
+      context.lineWidth = 5;
+      context.setLineDash([12, 10]);
+      context.beginPath();
+      context.moveTo(left, gate.y);
+      context.lineTo(right, gate.y);
+      context.stroke();
+      context.setLineDash([]);
+      context.fillStyle = "#2dd4bf";
+      context.beginPath();
+      context.arc(left, gate.y, 12, 0, Math.PI * 2);
+      context.arc(right, gate.y, 12, 0, Math.PI * 2);
+      context.fill();
+    });
     game.rocks.forEach((rock) => {
-      context.fillStyle = "#5b6170";
+      context.fillStyle = rock.hit ? "rgba(91, 97, 112, 0.35)" : "#5b6170";
       context.beginPath();
       context.arc(rock.x, rock.y, rock.r, 0, Math.PI * 2);
       context.fill();
@@ -3359,6 +3414,7 @@
       context.beginPath();
       context.arc(flag.x, flag.y, flag.r, 0, Math.PI * 2);
       context.fill();
+      drawText(context, "+", flag.x, flag.y + 6, "#5d3b00", "900 18px system-ui", "center");
     });
     context.translate(game.raft.x, game.raft.y);
     context.fillStyle = "#f59e0b";
