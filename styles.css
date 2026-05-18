@@ -2304,6 +2304,22 @@ h2 {
   transform: rotate(-18deg);
 }
 
+.game-card[data-game="beatfoundry"] .preview-line {
+  height: 4px;
+}
+
+.game-card[data-game="beatfoundry"] .preview-line-a {
+  left: 18%;
+  right: 18%;
+  top: 50%;
+}
+
+.game-card[data-game="beatfoundry"] .preview-line-b {
+  background: rgba(251, 113, 133, 0.52);
+  bottom: 42%;
+  transform: rotate(90deg);
+}
+
 .game-card[data-game="snake"] .preview-token {
   border-radius: 8px;
   box-shadow:
@@ -2366,6 +2382,31 @@ h2 {
   background:
     linear-gradient(130deg, transparent 0 36%, #ffd166 37% 43%, #25273a 44% 100%),
     linear-gradient(180deg, #83d5ff, #293b4c);
+}
+
+.game-card[data-game="beatfoundry"] .game-preview {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(251, 113, 133, 0.64) 0 14%, transparent 15%),
+    radial-gradient(circle at 50% 48%, transparent 0 26%, rgba(255, 255, 255, 0.28) 27% 29%, transparent 30%),
+    radial-gradient(circle at 32% 34%, rgba(255, 209, 102, 0.54), transparent 13%),
+    linear-gradient(180deg, #2b1118, #102737 65%, #3a2410);
+}
+
+.game-card[data-game="beatfoundry"] .game-preview::after {
+  border-radius: 999px;
+  height: 44%;
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%, -50%);
+  width: 44%;
+}
+
+.game-card[data-game="beatfoundry"] .preview-token {
+  background: #ffffff;
+  height: 18px;
+  left: 64%;
+  top: 36%;
+  width: 18px;
 }
 
 .game-card[data-game="snake"] .game-preview {

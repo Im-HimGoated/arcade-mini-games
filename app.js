@@ -381,6 +381,19 @@
       background: "linear-gradient(135deg, #2a1028, #101f34 58%, #332012)",
     },
     {
+      id: "beatfoundry",
+      title: "Beat Foundry",
+      subtitle: "Strike rotating cores on rhythm",
+      hook: "Time your strike as the pulse crosses molten target arcs, then swap lanes before the next core charges.",
+      rules: "Press Action inside the glowing timing arc. Clean hits build heat; five missed strikes crack the foundry.",
+      controls: "Use Up/Down to choose a core lane. Press Action to strike the active pulse.",
+      strategy: "Watch the pulse arm, not the numbers. Perfect strikes are safer than rushing every arc.",
+      tag: "Timing",
+      accent: "#fb7185",
+      glow: "rgba(251, 113, 133, 0.72)",
+      background: "linear-gradient(135deg, #2b1118, #102737 58%, #3a2410)",
+    },
+    {
       id: "snake",
       title: "Byte Snake",
       subtitle: "Classic snake with neon speed",
@@ -1143,6 +1156,7 @@
       tetris: "STACK",
       twenty48: "2048",
       driftboss: "DRIFT",
+      beatfoundry: "BEAT",
       snake: "BYTE",
       breaker: "BREAK",
       pinball: "PIN",
@@ -1826,6 +1840,7 @@
     if (definition.id === "tetris") return createTetris(base);
     if (definition.id === "twenty48") return createTwenty48(base);
     if (definition.id === "driftboss") return createDriftBoss(base);
+    if (definition.id === "beatfoundry") return createBeatFoundry(base);
     if (definition.id === "snake") return createSnake(base);
     if (definition.id === "breaker") return createBreaker(base);
     if (definition.id === "pinball") return createPinball(base);
@@ -2735,6 +2750,68 @@
     };
   }
 
+  function createBeatFoundry(base) {
+    return {
+      ...base,
+      lane: 1,
+      pulse: random(0, Math.PI * 2),
+      target: random(0, Math.PI * 2),
+      input: { action: false, move: false },
+      misses: 0,
+      heat: 0,
+      laneColors: ["#34d6ff", "#fb7185", "#ffd166"],
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const vertical = Number(actionPressed("down")) - Number(actionPressed("up"));
+        if (vertical && !this.input.move) {
+          this.lane = clamp(this.lane + vertical, 0, 2);
+          this.target = random(0, Math.PI * 2);
+          audio.beep(420 + this.lane * 80, 0.035, "triangle");
+        }
+        const speed = 2.15 + this.level * 0.22 + this.heat * 0.006;
+        this.pulse = (this.pulse + speed * delta) % (Math.PI * 2);
+        const action = actionPressed("action");
+        if (action && !this.input.action) {
+          const window = Math.max(0.16, 0.48 - this.level * 0.022);
+          const gap = angularDistance(this.pulse, this.target);
+          if (gap <= window) {
+            const perfect = gap <= window * 0.42;
+            const points = perfect ? 120 + this.level * 12 : 65 + this.level * 8;
+            this.heat = Math.min(100, this.heat + (perfect ? 12 : 7));
+            this.pushCombo(perfect ? 2 : 1);
+            this.addScore(points, 480, 170 + this.lane * 92, perfect ? "Perfect" : "Strike");
+            this.burst(480, 170 + this.lane * 92, this.laneColors[this.lane], perfect ? 22 : 14);
+            this.target = random(0, Math.PI * 2);
+            if (perfect && Math.random() < 0.45) this.lane = Math.floor(random(0, 3));
+            audio.beep(perfect ? 920 : 700, 0.045, "square");
+          } else {
+            this.misses += 1;
+            this.heat = Math.max(0, this.heat - 16);
+            this.breakCombo();
+            this.flash = 0.16;
+            this.addScore(8, 480, 170 + this.lane * 92, "Early");
+            audio.beep(130, 0.1, "sawtooth");
+            if (this.misses >= 5) this.finish();
+          }
+        }
+        this.input = { action, move: Boolean(vertical) };
+        this.score += delta * (8 + this.level * 2 + this.heat * 0.08);
+      },
+      draw(context) {
+        drawBeatFoundry(context, this);
+        drawBadge(context, `Heat ${Math.floor(this.heat)}%`, 24, 34, "#fb7185");
+        drawBadge(context, `Miss ${this.misses}/5`, 160, 34, "#ffd166");
+        this.drawEffects(context);
+        if (this.flash) {
+          context.fillStyle = `rgba(255, 91, 91, ${this.flash * 2})`;
+          context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+        }
+        this.drawEnd(context, this.misses >= 5 ? "Forge Cracked" : "Shift Complete");
+      },
+    };
+  }
+
   function createSnake(base) {
     return {
       ...base,
@@ -3459,6 +3536,10 @@
     return Math.hypot(ax - bx, ay - by);
   }
 
+  function angularDistance(a, b) {
+    return Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+  }
+
   function getWinner(board) {
     const lines = [
       [0, 1, 2],
@@ -3851,6 +3932,68 @@
       drawText(context, next > center ? "First turn: hold right" : "First turn: release left", gameCanvas.width / 2, 225, "#dff6ff", "800 16px system-ui", "center");
     }
     context.restore();
+  }
+
+  function drawBeatFoundry(context, game) {
+    const gradient = context.createLinearGradient(0, 0, 0, gameCanvas.height);
+    gradient.addColorStop(0, "#150b13");
+    gradient.addColorStop(0.5, "#172337");
+    gradient.addColorStop(1, "#2a160c");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+    context.strokeStyle = "rgba(255,255,255,0.08)";
+    context.lineWidth = 2;
+    for (let x = 0; x < gameCanvas.width; x += 48) {
+      context.beginPath();
+      context.moveTo(x, 0);
+      context.lineTo(x - 120, gameCanvas.height);
+      context.stroke();
+    }
+
+    const centerX = gameCanvas.width / 2;
+    const radius = 54;
+    game.laneColors.forEach((color, index) => {
+      const y = 170 + index * 92;
+      context.save();
+      context.globalAlpha = index === game.lane ? 1 : 0.42;
+      context.fillStyle = "rgba(6, 7, 15, 0.72)";
+      context.strokeStyle = color;
+      context.lineWidth = index === game.lane ? 5 : 2;
+      roundedRect(context, 240, y - 46, 480, 92, 12);
+      context.fill();
+      context.stroke();
+      context.strokeStyle = "rgba(255,255,255,0.18)";
+      context.lineWidth = 16;
+      context.beginPath();
+      context.arc(centerX, y, radius, 0, Math.PI * 2);
+      context.stroke();
+      if (index === game.lane) {
+        const window = Math.max(0.16, 0.48 - game.level * 0.022);
+        context.strokeStyle = color;
+        context.lineWidth = 18;
+        context.shadowColor = color;
+        context.shadowBlur = 22;
+        context.beginPath();
+        context.arc(centerX, y, radius, game.target - window, game.target + window);
+        context.stroke();
+        context.shadowBlur = 0;
+        const handX = centerX + Math.cos(game.pulse) * radius;
+        const handY = y + Math.sin(game.pulse) * radius;
+        context.strokeStyle = "#ffffff";
+        context.lineWidth = 4;
+        context.beginPath();
+        context.moveTo(centerX, y);
+        context.lineTo(handX, handY);
+        context.stroke();
+        context.fillStyle = "#ffffff";
+        context.beginPath();
+        context.arc(handX, handY, 8, 0, Math.PI * 2);
+        context.fill();
+      }
+      drawText(context, index === game.lane ? "ACTIVE CORE" : "STANDBY CORE", 320, y + 6, color, "900 16px system-ui", "left");
+      context.restore();
+    });
+    drawText(context, "Up/Down changes core lane. Action strikes the lit arc.", centerX, 486, "#d6deff", "800 18px system-ui", "center");
   }
 
   function drawDriftCar(context, car, spec = driftCars[0]) {
