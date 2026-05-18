@@ -8,7 +8,7 @@
       content="A neon arcade hub with multiple mini-games, settings, keybinds, cabinet details, best scores, and fast arcade-style gameplay."
     />
     <title>Arcade Mini Games</title>
-    <link rel="stylesheet" href="styles.css?v=2026-05-17-2" />
+    <link rel="stylesheet" href="styles.css?v=2026-05-17-3" />
   </head>
   <body>
     <div id="app" class="app-shell">
@@ -108,13 +108,22 @@
                 <strong id="dailyChallenge">Loading</strong>
               </article>
             </div>
+            <div class="recent-panel" aria-label="Recently played games">
+              <div>
+                <span>Recently Played</span>
+                <strong id="recentStatus">No runs yet</strong>
+              </div>
+              <div class="recent-list" id="recentList"></div>
+            </div>
             <div class="spotlight-panel" id="cabinetSpotlight" aria-label="Featured cabinet"></div>
             <div class="menu-stack">
               <button class="primary-button" id="playButton" type="button">Play</button>
               <div class="quick-actions" aria-label="Main arcade actions">
                 <button class="secondary-button" id="dailyButton" type="button">Daily Challenge</button>
                 <button class="secondary-button" id="tournamentButton" type="button">Tournament</button>
+                <button class="secondary-button" id="saveProgressButton" type="button">Save Progress</button>
               </div>
+              <p class="save-feedback" id="saveFeedback" aria-live="polite"></p>
             </div>
           </div>
         </section>
@@ -397,6 +406,6 @@
         </section>
       </main>
     </div>
-    <script src="app.js?v=2026-05-17-2"></script>
+    <script src="app.js?v=2026-05-17-3"></script>
   </body>
 </html>

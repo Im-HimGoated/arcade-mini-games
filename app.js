@@ -25,6 +25,9 @@
   const totalBestScore = document.querySelector("#totalBestScore");
   const favoriteCabinet = document.querySelector("#favoriteCabinet");
   const dailyChallenge = document.querySelector("#dailyChallenge");
+  const recentStatus = document.querySelector("#recentStatus");
+  const recentList = document.querySelector("#recentList");
+  const saveFeedback = document.querySelector("#saveFeedback");
   const profileAvatar = document.querySelector("#profileAvatar");
   const profileNameLabel = document.querySelector("#profileNameLabel");
   const profileLevelLabel = document.querySelector("#profileLevelLabel");
@@ -602,6 +605,20 @@
     renderDriftShop();
   }
 
+  function saveAllProgress(showMessage = false) {
+    saveProfile();
+    saveSettings();
+    saveKeybinds();
+    localStorage.setItem("arcade-last-save", new Date().toISOString());
+    if (showMessage && saveFeedback) {
+      saveFeedback.textContent = `Progress saved at ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`;
+      window.clearTimeout(saveAllProgress.feedbackTimer);
+      saveAllProgress.feedbackTimer = window.setTimeout(() => {
+        saveFeedback.textContent = "";
+      }, 2600);
+    }
+  }
+
   function getProfileLevel() {
     return Math.floor(profile.xp / 250) + 1;
   }
@@ -838,6 +855,32 @@
     localStorage.setItem(`arcade-leaderboard-${id}`, JSON.stringify(leaderboard.slice(0, 5)));
   }
 
+  function getRecentPlays() {
+    const recent = loadJson("arcade-recent-plays", []);
+    return Array.isArray(recent) ? recent : [];
+  }
+
+  function saveRecentPlay(result) {
+    const game = gameDefinitions.find((definition) => definition.id === result.gameId);
+    const recent = getRecentPlays().filter((entry) => entry.gameId !== result.gameId);
+    recent.unshift({
+      gameId: result.gameId,
+      title: game?.title || "Unknown Cabinet",
+      score: Math.floor(result.score || 0),
+      time: Math.min(60, Math.max(0, Number(result.time) || 0)),
+      mode: result.mode || "Solo",
+      date: new Date().toISOString(),
+    });
+    localStorage.setItem("arcade-recent-plays", JSON.stringify(recent.slice(0, 5)));
+  }
+
+  function markRecentlyPlayed(gameId, mode = "Solo") {
+    const bestScore = getBestScore(gameId);
+    const bestTime = getBestTime(gameId);
+    saveRecentPlay({ gameId, score: bestScore, time: bestTime, mode });
+    renderRecentPlays();
+  }
+
   function saveRunResult(game, playerName = profile.name, mode = "Solo") {
     const score = Math.floor(game.score);
     const time = Math.min(60, game.elapsed);
@@ -853,6 +896,8 @@
     renderLeaderboards();
     renderAchievements();
     const result = { gameId: game.definition.id, player: playerName, score, time, mode, coinReward, xpReward };
+    saveRecentPlay(result);
+    renderRecentPlays();
     checkDailyChallenge(result);
     return result;
   }
@@ -1205,6 +1250,32 @@
     dailyChallenge.textContent = daily.game.title;
     renderCabinetSpotlight(daily.game);
     renderProfile();
+    renderRecentPlays();
+  }
+
+  function renderRecentPlays() {
+    const recent = getRecentPlays();
+    if (!recentStatus || !recentList) return;
+    recentStatus.textContent = recent.length ? `${recent[0].title} · ${recent[0].score}` : "No runs yet";
+    recentList.innerHTML = "";
+    if (!recent.length) {
+      recentList.innerHTML = `<button class="recent-chip empty" type="button">Play a cabinet</button>`;
+      return;
+    }
+    recent.forEach((entry) => {
+      const game = gameDefinitions.find((definition) => definition.id === entry.gameId);
+      const chip = document.createElement("button");
+      chip.className = "recent-chip";
+      chip.type = "button";
+      chip.style.setProperty("--preview-accent", game?.accent || "var(--cool)");
+      chip.innerHTML = `
+        <span>${entry.title}</span>
+        <strong>${entry.score}</strong>
+        <em>${formatRunTime(entry.time)}</em>
+      `;
+      chip.addEventListener("click", () => startGame(entry.gameId));
+      recentList.append(chip);
+    });
   }
 
   function renderCabinetSpotlight(game) {
@@ -1673,6 +1744,7 @@
     driftStartOverlay.classList.toggle("hidden-field", definition.id !== "driftboss");
     activeRunContext = runContext;
     recordPlay(definition.id);
+    markRecentlyPlayed(definition.id, runContext?.mode || "Solo");
     updateIntroDashboard();
     renderGameCards();
     activeGame = createGame(definition);
@@ -2887,42 +2959,69 @@
   function createKeeper(base) {
     return {
       ...base,
-      keeper: { x: 480, y: 474, w: 94 },
+      keeper: { x: 480, y: 474, w: 76 },
       balls: [],
       spawn: 0.8,
       goals: 0,
       saves: 0,
+      goal: { x: 480, y: 402, w: 360, h: 98 },
       update(delta) {
         this.updateTimer(delta);
         if (this.over) return;
         const dive = actionPressed("action") ? 1.45 : 1;
-        this.keeper.x += (Number(actionPressed("right")) - Number(actionPressed("left"))) * 430 * delta;
-        this.keeper.x = clamp(this.keeper.x, 120, gameCanvas.width - 120);
-        this.keeper.w = actionPressed("action") ? 142 : 96;
+        const goalLeft = this.goal.x - this.goal.w / 2;
+        const goalRight = this.goal.x + this.goal.w / 2;
+        this.keeper.x += (Number(actionPressed("right")) - Number(actionPressed("left"))) * 465 * delta;
+        this.keeper.x = clamp(this.keeper.x, goalLeft + 24, goalRight - 24);
+        this.keeper.w = actionPressed("action") ? 116 : 76;
         this.spawn -= delta;
         if (this.spawn <= 0) {
-          this.spawn = Math.max(0.42, 1.45 - this.level * 0.08);
-          this.balls.push({ x: random(130, gameCanvas.width - 130), y: 90, vx: random(-40, 40), vy: 220 + this.level * 24, r: 13 });
+          this.spawn = Math.max(0.34, 1.22 - this.level * 0.075);
+          const targetX = random(goalLeft + 22, goalRight - 22);
+          const startX = random(250, gameCanvas.width - 250);
+          const typeRoll = Math.random();
+          const type = typeRoll > 0.78 ? "power" : typeRoll > 0.48 ? "curve" : "normal";
+          const speed = (type === "power" ? 345 : 285) + this.level * 34;
+          const curve = type === "curve" ? random(-185, 185) : type === "power" ? random(-55, 55) : random(-25, 25);
+          this.balls.push({
+            x: startX,
+            y: 86,
+            vx: (targetX - startX) * 0.55,
+            vy: speed,
+            r: type === "power" ? 16 : 13,
+            type,
+            curve,
+            trail: [],
+          });
         }
         this.balls.forEach((ball) => {
+          ball.trail.push({ x: ball.x, y: ball.y });
+          if (ball.trail.length > 8) ball.trail.shift();
+          ball.vx += ball.curve * delta;
           ball.x += ball.vx * delta * dive;
           ball.y += ball.vy * delta;
         });
         for (const ball of this.balls) {
           if (ball.saved) continue;
-          const saved = ball.y > this.keeper.y - 22 && Math.abs(ball.x - this.keeper.x) < this.keeper.w / 2 + ball.r;
+          const saved = ball.y > this.keeper.y - 24 && Math.abs(ball.x - this.keeper.x) < this.keeper.w / 2 + ball.r;
           if (saved) {
             ball.saved = true;
             this.saves += 1;
             this.pushCombo();
-            this.addScore(62 + this.level * 8, ball.x, ball.y, "Save");
-            this.burst(ball.x, ball.y, "#facc15", 12);
-            audio.beep(720, 0.04, "square");
+            const label = ball.type === "power" ? "Power save" : ball.type === "curve" ? "Curve save" : "Save";
+            this.addScore(68 + this.level * 9 + (ball.type === "power" ? 24 : 0), ball.x, ball.y, label);
+            this.burst(ball.x, ball.y, ball.type === "power" ? "#ff5b5b" : "#facc15", 14);
+            audio.beep(ball.type === "power" ? 840 : 720, 0.04, "square");
           } else if (ball.y > gameCanvas.height + 20) {
             ball.saved = true;
-            this.goals += 1;
-            this.breakCombo();
-            if (this.goals >= 5) this.finish();
+            const insideGoal = ball.x > goalLeft && ball.x < goalRight;
+            if (insideGoal) {
+              this.goals += 1;
+              this.breakCombo();
+              if (this.goals >= 5) this.finish();
+            } else {
+              this.addScore(20 + this.level * 2, ball.x, gameCanvas.height - 44, "Wide");
+            }
           }
         }
         this.balls = this.balls.filter((ball) => ball.y < gameCanvas.height + 70 && !ball.saved);
@@ -3182,21 +3281,55 @@
 
   function drawKeeper(context, game) {
     context.save();
+    const goalLeft = game.goal.x - game.goal.w / 2;
+    const goalTop = game.goal.y;
     context.fillStyle = "#f5f7ff";
-    context.fillRect(180, 492, 600, 8);
+    context.fillRect(goalLeft, goalTop + game.goal.h, game.goal.w, 8);
     context.strokeStyle = "#f5f7ff";
-    context.strokeRect(180, 395, 600, 105);
+    context.lineWidth = 5;
+    context.strokeRect(goalLeft, goalTop, game.goal.w, game.goal.h + 8);
+    context.strokeStyle = "rgba(255,255,255,0.22)";
+    context.lineWidth = 1;
+    for (let x = goalLeft + 30; x < goalLeft + game.goal.w; x += 30) {
+      context.beginPath();
+      context.moveTo(x, goalTop + 5);
+      context.lineTo(x, goalTop + game.goal.h + 8);
+      context.stroke();
+    }
+    for (let y = goalTop + 24; y < goalTop + game.goal.h; y += 24) {
+      context.beginPath();
+      context.moveTo(goalLeft, y);
+      context.lineTo(goalLeft + game.goal.w, y);
+      context.stroke();
+    }
     game.balls.forEach((ball) => {
-      context.fillStyle = "#ffffff";
+      ball.trail.forEach((point, index) => {
+        context.globalAlpha = (index + 1) / ball.trail.length * 0.28;
+        context.fillStyle = ball.type === "power" ? "#ff5b5b" : ball.type === "curve" ? "#34d6ff" : "#ffffff";
+        context.beginPath();
+        context.arc(point.x, point.y, Math.max(3, ball.r * index / ball.trail.length), 0, Math.PI * 2);
+        context.fill();
+      });
+      context.globalAlpha = 1;
+      context.fillStyle = ball.type === "power" ? "#ff5b5b" : "#ffffff";
       context.beginPath();
       context.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
       context.fill();
-      context.strokeStyle = "#111827";
+      context.strokeStyle = ball.type === "curve" ? "#34d6ff" : "#111827";
+      context.lineWidth = ball.type === "power" ? 4 : 2;
       context.stroke();
+      if (ball.type === "curve") {
+        context.strokeStyle = "#34d6ff";
+        context.beginPath();
+        context.arc(ball.x, ball.y, ball.r * 0.52, 0, Math.PI * 1.4);
+        context.stroke();
+      }
     });
     context.fillStyle = "#facc15";
     roundedRect(context, game.keeper.x - game.keeper.w / 2, game.keeper.y - 16, game.keeper.w, 32, 10);
     context.fill();
+    context.fillStyle = "#111827";
+    context.fillRect(game.keeper.x - 10, game.keeper.y - 8, 20, 16);
     context.restore();
   }
 
@@ -4179,6 +4312,7 @@
       historyButton: () => showScreen("history"),
       settingsButton: () => showScreen("settings"),
       keybindButton: () => showScreen("keybinds"),
+      saveProgressButton: () => saveAllProgress(true),
       startDailyButton: () => startDailyChallenge(),
       nextTournamentRunButton: () => startNextTournamentRun(),
     }[button.id];
@@ -4231,6 +4365,10 @@
   wireClick("#keybindButton", () => {
     audio.beep(620);
     showScreen("keybinds");
+  });
+  wireClick("#saveProgressButton", () => {
+    saveAllProgress(true);
+    audio.beep(760, 0.06, "triangle");
   });
   gameSearch.addEventListener("input", renderGameCards);
   globalSearch.addEventListener("input", () => {
