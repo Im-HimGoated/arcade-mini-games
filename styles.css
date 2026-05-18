@@ -1280,6 +1280,22 @@ input[type="range"] {
   box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.18);
 }
 
+.booster-card.selected {
+  background:
+    linear-gradient(180deg, rgba(255, 209, 102, 0.16), rgba(5, 12, 18, 0.94)),
+    linear-gradient(180deg, rgba(15, 26, 35, 0.94), rgba(5, 12, 18, 0.94));
+  border-color: var(--sun);
+  box-shadow:
+    0 0 0 2px rgba(255, 209, 102, 0.18),
+    0 0 28px rgba(255, 209, 102, 0.12);
+}
+
+.booster-card.selected b {
+  background: var(--sun);
+  border-color: #7a4a00;
+  color: #1d1200;
+}
+
 .mini-car {
   background: var(--car);
   border-radius: 7px;

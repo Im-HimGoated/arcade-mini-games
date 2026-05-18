@@ -483,6 +483,7 @@
   let gameLoopId = 0;
   let lastFrameTime = 0;
   let listeningFor = null;
+  let selectedDriftBoosters = {};
   let attractCanvasWidth = 0;
   let attractCanvasHeight = 0;
   let activeRunContext = null;
@@ -715,14 +716,28 @@
     return Math.max(0, Math.floor(Number(profile.driftBoosters?.[id]) || 0));
   }
 
+  function selectedBoosterCount() {
+    return Object.values(selectedDriftBoosters).filter(Boolean).length;
+  }
+
+  function normalizeSelectedDriftBoosters() {
+    driftBoosters.forEach((booster) => {
+      if (getBoosterCount(booster.id) <= 0) selectedDriftBoosters[booster.id] = false;
+    });
+  }
+
   function consumeDriftBoosters() {
+    normalizeSelectedDriftBoosters();
     const activeBoosters = {
-      doubleScore: getBoosterCount("doubleScore") > 0,
-      insurance: getBoosterCount("insurance") > 0,
-      coinRush: getBoosterCount("coinRush") > 0,
+      doubleScore: Boolean(selectedDriftBoosters.doubleScore && getBoosterCount("doubleScore") > 0),
+      insurance: Boolean(selectedDriftBoosters.insurance && getBoosterCount("insurance") > 0),
+      coinRush: Boolean(selectedDriftBoosters.coinRush && getBoosterCount("coinRush") > 0),
     };
     Object.entries(activeBoosters).forEach(([id, enabled]) => {
-      if (enabled) profile.driftBoosters[id] = getBoosterCount(id) - 1;
+      if (enabled) {
+        profile.driftBoosters[id] = getBoosterCount(id) - 1;
+        selectedDriftBoosters[id] = false;
+      }
     });
     if (Object.values(activeBoosters).some(Boolean)) saveProfile();
     return activeBoosters;
@@ -734,12 +749,14 @@
 
   function renderDriftShopInto(container) {
     if (!container) return;
+    normalizeSelectedDriftBoosters();
+    const isStartShop = container === driftStartShop;
     const active = activeDriftCar();
     container.innerHTML = `
       <div class="drift-shop-header">
         <span>Coin balance</span>
         <strong>${profile.coins}</strong>
-        <small>Equipped: ${active.name}</small>
+        <small>${isStartShop ? `${selectedBoosterCount()} boosters selected` : `Equipped: ${active.name}`}</small>
       </div>
       <div class="drift-shop-grid drift-cars">
         ${driftCars
@@ -759,16 +776,18 @@
       </div>
       <div class="drift-shop-grid drift-boosters">
         ${driftBoosters
-          .map(
-            (booster) => `
-              <button class="booster-card" type="button" data-booster="${booster.id}">
+          .map((booster) => {
+            const owned = getBoosterCount(booster.id);
+            const selected = Boolean(selectedDriftBoosters[booster.id] && owned > 0);
+            return `
+              <button class="booster-card${selected ? " selected" : ""}" type="button" data-booster="${booster.id}">
                 <b>${booster.icon}</b>
                 <strong>${booster.name}</strong>
                 <small>${booster.description}</small>
-                <em>${booster.cost} coins · Owned ${getBoosterCount(booster.id)}</em>
+                <em>${isStartShop && owned ? selected ? "Selected for next run" : `Tap to select · Owned ${owned}` : `${booster.cost} coins · Owned ${owned}`}</em>
               </button>
-            `,
-          )
+            `;
+          })
           .join("")}
       </div>
     `;
@@ -794,6 +813,12 @@
       button.addEventListener("click", () => {
         const booster = driftBoosters.find((item) => item.id === button.dataset.booster);
         if (!booster) return;
+        if (isStartShop && getBoosterCount(booster.id) > 0) {
+          selectedDriftBoosters[booster.id] = !selectedDriftBoosters[booster.id];
+          renderDriftShop();
+          audio.beep(selectedDriftBoosters[booster.id] ? 820 : 360, 0.05, "triangle");
+          return;
+        }
         if (profile.coins < booster.cost) {
           audio.beep(180, 0.08, "sawtooth");
           return;
@@ -2695,10 +2720,11 @@
         drawBadge(context, `${Math.floor(this.distance / 10)}m`, 24, 34, "#ff3d81");
         drawBadge(context, `${this.trackCoins} coins`, 150, 34, "#ffd166");
         drawDriftRoad(context, this.road, Math.max(128, 250 - this.level * 9), this.distance);
+        if (this.started && this.readyCountdown > 0) drawDriftStartGuide(context, this);
         drawDriftCoins(context, this.coins);
         drawDriftCar(context, this.car, this.carSpec);
         if (!this.started) drawDriftTutorial(context);
-        if (this.started && this.readyCountdown > 0) drawCountdown(context, Math.ceil(this.readyCountdown));
+        if (this.started && this.readyCountdown > 0) drawCountdown(context, Math.ceil(this.readyCountdown), this);
         this.drawEffects(context);
         if (this.flash) {
           context.fillStyle = `rgba(255, 91, 91, ${this.flash * 2})`;
@@ -3783,12 +3809,47 @@
     context.restore();
   }
 
-  function drawCountdown(context, value) {
+  function drawDriftStartGuide(context, game) {
+    const center = roadCenterAt(game.road, game.car.y);
+    const next = roadCenterAt(game.road, game.car.y - 150);
+    const direction = next > center ? "Right turn first" : "Left turn first";
     context.save();
-    context.fillStyle = "rgba(6, 12, 18, 0.55)";
+    context.strokeStyle = "#ffffff";
+    context.lineWidth = 5;
+    context.setLineDash([18, 12]);
+    context.beginPath();
+    context.moveTo(center - 92, game.car.y + 40);
+    context.lineTo(center + 92, game.car.y + 40);
+    context.stroke();
+    context.setLineDash([]);
+    context.fillStyle = "rgba(6, 12, 18, 0.72)";
+    context.strokeStyle = "#ffd166";
+    context.lineWidth = 3;
+    roundedRect(context, center - 136, game.car.y + 56, 272, 58, 8);
+    context.fill();
+    context.stroke();
+    drawText(context, "STARTING LINE", center, game.car.y + 80, "#ffffff", "900 18px system-ui", "center");
+    drawText(context, direction, center, game.car.y + 103, "#ffd166", "800 15px system-ui", "center");
+    context.restore();
+  }
+
+  function drawCountdown(context, value, game = null) {
+    context.save();
+    context.fillStyle = "rgba(6, 12, 18, 0.36)";
     context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
-    drawText(context, value.toString(), gameCanvas.width / 2, gameCanvas.height / 2 + 34, "#ffffff", "1000 120px system-ui", "center");
-    drawText(context, "Get ready", gameCanvas.width / 2, gameCanvas.height / 2 - 68, "#ffd166", "900 28px system-ui", "center");
+    context.fillStyle = "rgba(6, 12, 18, 0.72)";
+    context.strokeStyle = "#11bdf4";
+    context.lineWidth = 4;
+    roundedRect(context, gameCanvas.width / 2 - 150, 82, 300, 164, 10);
+    context.fill();
+    context.stroke();
+    drawText(context, value.toString(), gameCanvas.width / 2, 186, "#ffffff", "1000 94px system-ui", "center");
+    drawText(context, "Get ready", gameCanvas.width / 2, 120, "#ffd166", "900 25px system-ui", "center");
+    if (game) {
+      const center = roadCenterAt(game.road, game.car.y);
+      const next = roadCenterAt(game.road, game.car.y - 150);
+      drawText(context, next > center ? "First turn: hold right" : "First turn: release left", gameCanvas.width / 2, 225, "#dff6ff", "800 16px system-ui", "center");
+    }
     context.restore();
   }
 
