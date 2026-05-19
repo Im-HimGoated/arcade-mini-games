@@ -396,11 +396,11 @@
     {
       id: "snake",
       title: "Byte Snake",
-      subtitle: "Classic snake with neon speed",
-      hook: "Eat data pellets, grow longer, and survive as the grid gets tighter every level.",
-      rules: "Collect pellets to score and grow. Hitting walls or your own trail ends the run.",
-      controls: "Use the directional keys to steer.",
-      strategy: "Leave escape lanes around the edges. A perfect pellet is not worth boxing yourself in.",
+      subtitle: "Data-heist snake with banking",
+      hook: "Steal packets, carry a growing cache, and deliver it to uplink zones before firewall nodes box you in.",
+      rules: "Packets add cache and length. Banking at an uplink scores the cache and trims your trail. Walls, firewalls, or your own trail end the run.",
+      controls: "Use the directional keys to steer. Action drops a decoy packet if your cache is loaded.",
+      strategy: "Bank after two or three packets when the board is tight. Greedy caches score more, but they make every turn dangerous.",
       tag: "Survival",
       accent: "#58f29f",
       glow: "rgba(88, 242, 159, 0.7)",
@@ -2820,14 +2820,29 @@
       snake: [{ x: 7, y: 7 }, { x: 6, y: 7 }, { x: 5, y: 7 }],
       dir: { x: 1, y: 0 },
       nextDir: { x: 1, y: 0 },
-      pellet: { x: 16, y: 7 },
+      pellet: { x: 16, y: 7, type: "packet" },
+      uplink: { x: 20, y: 11 },
+      firewalls: [],
       stepTimer: 0,
-      eaten: 0,
+      input: { action: false },
+      cache: 0,
+      delivered: 0,
+      decoys: 2,
       update(delta) {
         this.updateTimer(delta);
         if (this.over) return;
         const next = directionFromKeys(this.nextDir);
         if (next && !(next.x === -this.dir.x && next.y === -this.dir.y)) this.nextDir = next;
+        const action = actionPressed("action");
+        if (action && !this.input.action && this.cache >= 2 && this.decoys > 0) {
+          const tail = this.snake[this.snake.length - 1];
+          this.firewalls = this.firewalls.filter((wall) => distance(wall.x, wall.y, tail.x, tail.y) > 2.1);
+          this.cache -= 1;
+          this.decoys -= 1;
+          this.addScore(18, gameCanvas.width / 2, 96, "Decoy");
+          audio.beep(540, 0.04, "triangle");
+        }
+        this.input.action = action;
         this.stepTimer += delta;
         const interval = Math.max(0.07, 0.22 - this.level * 0.012);
         while (this.stepTimer >= interval && !this.over) {
@@ -2837,32 +2852,55 @@
           const nextHead = { x: head.x + this.dir.x, y: head.y + this.dir.y };
           const hitWall = nextHead.x < 0 || nextHead.x >= this.cols || nextHead.y < 0 || nextHead.y >= this.rows;
           const hitSelf = this.snake.some((part) => part.x === nextHead.x && part.y === nextHead.y);
-          if (hitWall || hitSelf) {
+          const hitFirewall = this.firewalls.some((wall) => wall.x === nextHead.x && wall.y === nextHead.y);
+          if (hitWall || hitSelf || hitFirewall) {
             this.flash = 0.2;
             this.finish();
             audio.beep(100, 0.16, "sawtooth");
             return;
           }
           this.snake.unshift(nextHead);
+          let grow = false;
           if (nextHead.x === this.pellet.x && nextHead.y === this.pellet.y) {
-            this.eaten += 1;
+            this.cache += this.pellet.type === "key" ? 2 : 1;
             this.pushCombo();
-            this.addScore(42 + this.level * 5, gameCanvas.width / 2, 94, "Byte");
-            this.pellet = makeSnakePellet(this.cols, this.rows, this.snake);
-            this.burst(480, 270, "#58f29f", 10);
+            this.addScore(this.pellet.type === "key" ? 68 : 36, gameCanvas.width / 2, 94, this.pellet.type === "key" ? "Key" : "Packet");
+            this.pellet = makeSnakePellet(this.cols, this.rows, this.snake, [...this.firewalls, this.uplink]);
+            this.pellet.type = Math.random() < 0.18 ? "key" : "packet";
+            grow = true;
+            if (this.cache >= 3 && Math.random() < 0.55) {
+              const firewall = makeSnakePellet(this.cols, this.rows, this.snake, [this.pellet, this.uplink, ...this.firewalls]);
+              this.firewalls.push(firewall);
+              this.firewalls = this.firewalls.slice(-Math.min(10, 3 + this.level));
+            }
+            this.burst(480, 270, this.pellet.type === "key" ? "#ffd166" : "#58f29f", 10);
             audio.beep(720, 0.045, "triangle");
-          } else {
+          }
+          if (nextHead.x === this.uplink.x && nextHead.y === this.uplink.y && this.cache > 0) {
+            const banked = this.cache;
+            this.delivered += banked;
+            this.addScore(85 * banked + this.level * 12, gameCanvas.width / 2, 126, "Upload");
+            this.cache = 0;
+            this.decoys = Math.min(3, this.decoys + 1);
+            this.snake = this.snake.slice(0, Math.max(3, this.snake.length - Math.max(1, banked)));
+            this.uplink = makeSnakePellet(this.cols, this.rows, this.snake, [this.pellet, ...this.firewalls]);
+            this.burst(480, 270, "#34d6ff", 18);
+            audio.beep(940, 0.06, "square");
+          }
+          if (!grow) {
             this.snake.pop();
           }
         }
-        this.score += delta * (8 + this.level);
+        this.score += delta * (6 + this.level + this.cache * 0.8);
       },
       draw(context) {
         this.drawBase(context);
-        drawBadge(context, `Bytes ${this.eaten}`, 24, 34, "#58f29f");
+        drawBadge(context, `Cache ${this.cache}`, 24, 34, "#58f29f");
+        drawBadge(context, `Uploaded ${this.delivered}`, 142, 34, "#34d6ff");
+        drawBadge(context, `Decoys ${this.decoys}`, 306, 34, "#ffd166");
         drawSnakeBoard(context, this);
         this.drawEffects(context);
-        this.drawEnd(context, this.timeLeft <= 0 ? "Trail Complete" : "Snake Crash");
+        this.drawEnd(context, this.timeLeft <= 0 ? "Data Escaped" : "Trace Caught");
       },
     };
   }
@@ -3743,8 +3781,9 @@
     return current;
   }
 
-  function makeSnakePellet(cols, rows, snake) {
+  function makeSnakePellet(cols, rows, snake, blocked = []) {
     const occupied = new Set(snake.map((part) => `${part.x},${part.y}`));
+    blocked.forEach((part) => occupied.add(`${part.x},${part.y}`));
     const open = [];
     for (let y = 0; y < rows; y += 1) {
       for (let x = 0; x < cols; x += 1) {
@@ -4088,8 +4127,23 @@
     roundedRect(context, startX - 10, startY - 10, boardW + 20, boardH + 20, 8);
     context.fill();
     context.stroke();
-    context.fillStyle = "#ffd166";
-    context.shadowColor = "rgba(255,209,102,0.8)";
+    context.fillStyle = "rgba(52, 214, 255, 0.22)";
+    context.strokeStyle = "#34d6ff";
+    context.shadowColor = "rgba(52,214,255,0.75)";
+    context.shadowBlur = 20;
+    roundedRect(context, startX + game.uplink.x * cell + 2, startY + game.uplink.y * cell + 2, cell - 4, cell - 4, 7);
+    context.fill();
+    context.stroke();
+    drawText(context, "UP", startX + game.uplink.x * cell + cell / 2, startY + game.uplink.y * cell + 18, "#dff6ff", "900 10px system-ui", "center");
+    game.firewalls.forEach((wall) => {
+      context.fillStyle = "rgba(255, 91, 91, 0.78)";
+      context.shadowColor = "rgba(255,91,91,0.75)";
+      context.shadowBlur = 14;
+      roundedRect(context, startX + wall.x * cell + 5, startY + wall.y * cell + 5, cell - 10, cell - 10, 5);
+      context.fill();
+    });
+    context.fillStyle = game.pellet.type === "key" ? "#ffd166" : "#58f29f";
+    context.shadowColor = game.pellet.type === "key" ? "rgba(255,209,102,0.8)" : "rgba(88,242,159,0.8)";
     context.shadowBlur = 18;
     roundedRect(context, startX + game.pellet.x * cell + 4, startY + game.pellet.y * cell + 4, cell - 8, cell - 8, 6);
     context.fill();
