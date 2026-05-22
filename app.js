@@ -94,7 +94,7 @@
 
   const defaultSettings = {
     audio: true,
-    music: false,
+    music: true,
     volume: 70,
     reducedMotion: false,
   };
@@ -474,11 +474,11 @@
     {
       id: "asteroids",
       title: "Asteroid Sweep",
-      subtitle: "Mine a crowded orbit",
-      hook: "Pilot a mining ship through drifting rocks, blast debris, and collect bright ore.",
-      rules: "Avoid asteroids and collect ore. Blasting rocks is safer, but ore gives better score.",
-      controls: "Move with the directional keys. Press Action to fire.",
-      strategy: "Use short bursts of fire to open lanes, then cut across for ore clusters.",
+      subtitle: "Survey, mine, and bank ore",
+      hook: "Scan drifting asteroids, mine their cores with a short-range beam, then haul ore back to the refinery before your cargo gets too risky.",
+      rules: "Hold Action near an asteroid to mine it. Ore fills cargo; docking at the refinery banks it for points.",
+      controls: "Move with the directional keys. Hold Action to fire the mining beam at the nearest asteroid.",
+      strategy: "Bank often when cargo is high. Bigger asteroids pay better, but staying close to mine them is dangerous.",
       tag: "Survival",
       accent: "#93c5fd",
       glow: "rgba(147, 197, 253, 0.72)",
@@ -507,7 +507,9 @@
   const audio = {
     context: null,
     musicOscillator: null,
+    musicBass: null,
     musicGain: null,
+    melodyTimer: 0,
     ensure() {
       if (!settings.audio) return null;
       const AudioEngine = window.AudioContext || window.webkitAudioContext;
@@ -534,36 +536,72 @@
       gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration);
       oscillator.stop(context.currentTime + duration);
     },
+    chord(notes = [420, 530, 640], duration = 0.12, type = "triangle") {
+      notes.forEach((note, index) => {
+        window.setTimeout(() => this.beep(note, duration, type), index * 28);
+      });
+    },
+    sfx(name) {
+      const map = {
+        bank: () => this.chord([520, 680, 880], 0.07, "triangle"),
+        hit: () => this.chord([760, 920], 0.045, "square"),
+        danger: () => this.chord([140, 90], 0.08, "sawtooth"),
+        coin: () => this.chord([720, 900, 1080], 0.035, "triangle"),
+        launch: () => this.chord([260, 440, 700], 0.05, "square"),
+      };
+      (map[name] || map.hit)();
+    },
     startMusic() {
       if (!settings.audio || !settings.music || this.musicOscillator) return;
       const context = this.ensure();
       if (!context) return;
       const oscillator = context.createOscillator();
+      const bass = context.createOscillator();
       const gain = context.createGain();
       oscillator.type = "triangle";
       oscillator.frequency.value = 96;
-      gain.gain.value = Math.max(0.01, settings.volume / 100) * 0.018;
+      bass.type = "sine";
+      bass.frequency.value = 48;
+      gain.gain.value = Math.max(0.01, settings.volume / 100) * 0.012;
       oscillator.connect(gain);
+      bass.connect(gain);
       gain.connect(context.destination);
       oscillator.start();
+      bass.start();
       this.musicOscillator = oscillator;
+      this.musicBass = bass;
       this.musicGain = gain;
+      const notes = [96, 128, 144, 171, 144, 128, 192, 171];
+      let step = 0;
+      this.melodyTimer = window.setInterval(() => {
+        if (!settings.audio || !settings.music) return;
+        oscillator.frequency.setTargetAtTime(notes[step % notes.length], context.currentTime, 0.035);
+        bass.frequency.setTargetAtTime(notes[(step + 4) % notes.length] / 2, context.currentTime, 0.05);
+        step += 1;
+      }, 420);
     },
     stopMusic() {
       if (this.musicOscillator) {
         this.musicOscillator.stop();
         this.musicOscillator.disconnect();
       }
+      if (this.musicBass) {
+        this.musicBass.stop();
+        this.musicBass.disconnect();
+      }
+      if (this.melodyTimer) window.clearInterval(this.melodyTimer);
       this.musicOscillator = null;
+      this.musicBass = null;
       this.musicGain = null;
+      this.melodyTimer = 0;
     },
     refresh() {
-      if (!settings.audio || !settings.music || currentScreen === "play") {
+      if (!settings.audio || !settings.music) {
         this.stopMusic();
         return;
       }
       this.startMusic();
-      if (this.musicGain) this.musicGain.gain.value = Math.max(0.01, settings.volume / 100) * 0.018;
+      if (this.musicGain) this.musicGain.gain.value = Math.max(0.01, settings.volume / 100) * (currentScreen === "play" ? 0.007 : 0.012);
     },
   };
 
@@ -2990,38 +3028,56 @@
       ball: { x: 480, y: 240, vx: 170, vy: -220, r: 11 },
       lives: 3,
       bumpers: [
-        { x: 360, y: 190, r: 30, color: "#ff8a3d" },
-        { x: 500, y: 150, r: 28, color: "#34d6ff" },
-        { x: 610, y: 230, r: 32, color: "#ffd166" },
+        { x: 360, y: 190, r: 30, color: "#ff8a3d", label: "HOT", pulse: 0 },
+        { x: 500, y: 150, r: 28, color: "#34d6ff", label: "RAMP", pulse: 0 },
+        { x: 610, y: 230, r: 32, color: "#ffd166", label: "BANK", pulse: 0 },
       ],
+      flipCooldown: 0,
+      lastFlip: 0,
+      targetBumper: 1,
       update(delta) {
         this.updateTimer(delta);
         if (this.over) return;
         const left = actionPressed("left") || actionPressed("action");
         const right = actionPressed("right") || actionPressed("action");
+        this.flipCooldown = Math.max(0, this.flipCooldown - delta);
+        this.lastFlip = Math.max(0, this.lastFlip - delta);
+        this.bumpers.forEach((bumper) => { bumper.pulse = Math.max(0, bumper.pulse - delta * 2.8); });
         this.ball.vy += (410 + this.level * 12) * delta;
         this.ball.x += this.ball.vx * delta;
         this.ball.y += this.ball.vy * delta;
-        if (this.ball.x < 90 || this.ball.x > gameCanvas.width - 90) this.ball.vx *= -0.92;
-        if (this.ball.y < 70) this.ball.vy = Math.abs(this.ball.vy);
+        if (this.ball.x < 90 || this.ball.x > gameCanvas.width - 90) {
+          this.ball.vx *= -0.92;
+          this.ball.x = clamp(this.ball.x, 90, gameCanvas.width - 90);
+          audio.beep(260, 0.025, "triangle");
+        }
+        if (this.ball.y < 70) {
+          this.ball.vy = Math.abs(this.ball.vy);
+          audio.beep(320, 0.025, "triangle");
+        }
         const leftHit = left && this.ball.x < 480 && this.ball.y > 430 && this.ball.y < 500;
         const rightHit = right && this.ball.x >= 480 && this.ball.y > 430 && this.ball.y < 500;
-        if (leftHit || rightHit) {
+        if ((leftHit || rightHit) && this.flipCooldown <= 0) {
+          this.flipCooldown = 0.12;
+          this.lastFlip = leftHit ? -1 : 1;
           this.ball.vy = -Math.abs(this.ball.vy) - 160;
           this.ball.vx += (leftHit ? 220 : -220) + random(-40, 40);
           this.addScore(18 + this.level, this.ball.x, this.ball.y, "Flip");
-          audio.beep(560, 0.035, "square");
+          audio.sfx("launch");
         }
-        this.bumpers.forEach((bumper) => {
+        this.bumpers.forEach((bumper, index) => {
           const gap = distance(this.ball.x, this.ball.y, bumper.x, bumper.y);
           if (gap < this.ball.r + bumper.r) {
+            const wasTarget = index === this.targetBumper;
             const angle = Math.atan2(this.ball.y - bumper.y, this.ball.x - bumper.x);
             this.ball.vx = Math.cos(angle) * (310 + this.level * 16);
             this.ball.vy = Math.sin(angle) * (310 + this.level * 16);
+            bumper.pulse = 1;
             this.pushCombo();
-            this.addScore(55 + this.level * 6, bumper.x, bumper.y, "Bumper");
+            this.addScore(wasTarget ? 95 + this.level * 8 : 55 + this.level * 6, bumper.x, bumper.y, wasTarget ? "Lit target" : "Bumper");
+            if (wasTarget) this.targetBumper = (this.targetBumper + 1) % this.bumpers.length;
             this.burst(bumper.x, bumper.y, bumper.color, 14);
-            audio.beep(760, 0.04, "triangle");
+            audio.sfx(wasTarget ? "coin" : "hit");
           }
         });
         if (this.ball.y > gameCanvas.height + 30) {
@@ -3029,6 +3085,7 @@
           this.breakCombo();
           if (this.lives <= 0) this.finish();
           this.ball = { x: 480, y: 260, vx: random(-160, 160), vy: -260, r: 11 };
+          audio.sfx("danger");
         }
         this.score += delta * (8 + this.level);
       },
@@ -3287,12 +3344,19 @@
   function createAsteroids(base) {
     return {
       ...base,
-      ship: { x: 480, y: 430, cooldown: 0 },
-      shots: [],
-      rocks: [],
+      ship: { x: 480, y: 430, beam: 0 },
+      refinery: { x: 480, y: 494, r: 44 },
+      rocks: [
+        { x: 260, y: 190, r: 38, hp: 100, maxHp: 100, vx: 18, vy: 12, ore: 3, spin: 0 },
+        { x: 620, y: 230, r: 46, hp: 140, maxHp: 140, vx: -14, vy: 10, ore: 4, spin: 1 },
+        { x: 470, y: 120, r: 32, hp: 80, maxHp: 80, vx: 12, vy: 16, ore: 2, spin: 2 },
+      ],
       ore: [],
-      spawn: 0,
+      spawn: 3,
       lives: 3,
+      cargo: 0,
+      banked: 0,
+      beamTarget: null,
       update(delta) {
         this.updateTimer(delta);
         if (this.over) return;
@@ -3300,54 +3364,101 @@
         this.ship.y += (Number(actionPressed("down")) - Number(actionPressed("up"))) * 260 * delta;
         this.ship.x = clamp(this.ship.x, 30, gameCanvas.width - 30);
         this.ship.y = clamp(this.ship.y, 95, gameCanvas.height - 35);
-        this.ship.cooldown = Math.max(0, this.ship.cooldown - delta);
-        if (actionPressed("action") && this.ship.cooldown <= 0) {
-          this.ship.cooldown = 0.22;
-          this.shots.push({ x: this.ship.x, y: this.ship.y - 24, vy: -560 });
-          audio.beep(620, 0.025, "square");
-        }
         this.spawn -= delta;
         if (this.spawn <= 0) {
-          this.spawn = Math.max(0.18, 0.62 - this.level * 0.035);
-          this.rocks.push({ x: random(30, gameCanvas.width - 30), y: -30, r: random(16, 36), vy: random(135, 210) + this.level * 20, vx: random(-35, 35) });
-          if (Math.random() < 0.22) this.ore.push({ x: random(36, gameCanvas.width - 36), y: -24, r: 11, vy: 160 + this.level * 18 });
+          this.spawn = Math.max(1.8, 4.6 - this.level * 0.18);
+          const radius = random(28, 50);
+          this.rocks.push({
+            x: random(120, gameCanvas.width - 120),
+            y: random(95, 310),
+            r: radius,
+            hp: radius * 2.8,
+            maxHp: radius * 2.8,
+            vx: random(-28, 28),
+            vy: random(-18, 22),
+            ore: Math.max(2, Math.floor(radius / 12)),
+            spin: random(0, Math.PI * 2),
+          });
+          this.rocks = this.rocks.slice(-7);
         }
-        this.shots.forEach((shot) => { shot.y += shot.vy * delta; });
-        this.rocks.forEach((rock) => { rock.x += rock.vx * delta; rock.y += rock.vy * delta; });
-        this.ore.forEach((ore) => { ore.y += ore.vy * delta; });
-        this.shots = this.shots.filter((shot) => shot.y > -30);
-        this.rocks = this.rocks.filter((rock) => rock.y < gameCanvas.height + 60 && !rock.dead);
-        this.ore = this.ore.filter((item) => item.y < gameCanvas.height + 60 && !item.collected);
-        for (const rock of this.rocks) {
-          for (const shot of this.shots) {
-            if (distance(rock.x, rock.y, shot.x, shot.y) < rock.r + 6) {
-              rock.dead = true;
-              shot.y = -99;
-              this.addScore(35 + this.level * 4, rock.x, rock.y, "Blast");
-              this.burst(rock.x, rock.y, "#93c5fd", 10);
+        this.rocks.forEach((rock) => {
+          rock.x += rock.vx * delta;
+          rock.y += rock.vy * delta;
+          rock.spin += delta;
+          if (rock.x < rock.r + 18 || rock.x > gameCanvas.width - rock.r - 18) rock.vx *= -1;
+          if (rock.y < rock.r + 78 || rock.y > gameCanvas.height - rock.r - 88) rock.vy *= -1;
+        });
+        this.ore.forEach((ore) => {
+          ore.x += ore.vx * delta;
+          ore.y += ore.vy * delta;
+          ore.vx *= 0.985;
+          ore.vy *= 0.985;
+        });
+        this.beamTarget = null;
+        if (actionPressed("action")) {
+          const target = this.rocks
+            .filter((rock) => !rock.dead)
+            .sort((a, b) => distance(this.ship.x, this.ship.y, a.x, a.y) - distance(this.ship.x, this.ship.y, b.x, b.y))[0];
+          if (target && distance(this.ship.x, this.ship.y, target.x, target.y) < 170) {
+            this.beamTarget = target;
+            this.ship.beam = 0.1;
+            target.hp -= (42 + this.level * 4) * delta;
+            this.score += delta * (8 + this.level);
+            if (Math.random() < 0.18) this.burst(target.x, target.y, "#93c5fd", 1);
+            if (target.hp <= 0) {
+              target.dead = true;
+              for (let i = 0; i < target.ore; i += 1) {
+                this.ore.push({ x: target.x, y: target.y, vx: random(-90, 90), vy: random(-80, 80), r: 10, value: 1 });
+              }
+              this.pushCombo();
+              this.addScore(80 + this.level * 8, target.x, target.y, "Core mined");
+              this.burst(target.x, target.y, "#ffd166", 20);
+              audio.sfx("coin");
+            } else if (Math.random() < 0.08) {
+              audio.beep(520, 0.018, "sawtooth");
             }
           }
+        }
+        this.ship.beam = Math.max(0, this.ship.beam - delta);
+        this.rocks = this.rocks.filter((rock) => !rock.dead);
+        this.ore = this.ore.filter((item) => !item.collected);
+        for (const rock of this.rocks) {
           if (distance(rock.x, rock.y, this.ship.x, this.ship.y) < rock.r + 22) {
-            rock.dead = true;
             this.lives -= 1;
+            this.cargo = Math.max(0, this.cargo - 1);
+            this.ship.x = this.refinery.x;
+            this.ship.y = this.refinery.y - 68;
             this.flash = 0.18;
             this.breakCombo();
+            audio.sfx("danger");
             if (this.lives <= 0) this.finish();
           }
         }
         this.ore.forEach((item) => {
           if (distance(item.x, item.y, this.ship.x, this.ship.y) < item.r + 24) {
             item.collected = true;
+            this.cargo += item.value;
             this.pushCombo();
-            this.addScore(70 + this.level * 6, item.x, item.y, "Ore");
+            this.addScore(30 + this.level * 3, item.x, item.y, "Ore");
             this.burst(item.x, item.y, "#ffd166", 12);
+            audio.beep(840, 0.03, "triangle");
           }
         });
-        this.score += delta * (12 + this.level * 2);
+        if (this.cargo > 0 && distance(this.ship.x, this.ship.y, this.refinery.x, this.refinery.y) < this.refinery.r + 20) {
+          const cargo = this.cargo;
+          this.cargo = 0;
+          this.banked += cargo;
+          this.addScore(95 * cargo + this.level * 15, this.refinery.x, this.refinery.y - 60, "Bank");
+          this.burst(this.refinery.x, this.refinery.y, "#34d6ff", 18);
+          audio.sfx("bank");
+        }
+        this.score += delta * (5 + this.level + this.cargo * 0.8);
       },
       draw(context) {
         drawSpaceScene(context, this.elapsed);
         drawBadge(context, `Lives ${this.lives}`, 24, 34, "#93c5fd");
+        drawBadge(context, `Cargo ${this.cargo}`, 140, 34, "#ffd166");
+        drawBadge(context, `Banked ${this.banked}`, 260, 34, "#34d6ff");
         drawAsteroids(context, this);
         this.drawEffects(context);
         if (this.flash) {
@@ -3368,19 +3479,42 @@
     context.lineWidth = 4;
     context.stroke();
     game.bumpers.forEach((bumper) => {
+      const isTarget = game.bumpers[game.targetBumper] === bumper;
       context.fillStyle = bumper.color;
       context.shadowColor = bumper.color;
-      context.shadowBlur = 22;
+      context.shadowBlur = isTarget ? 34 : 22 + bumper.pulse * 18;
       context.beginPath();
-      context.arc(bumper.x, bumper.y, bumper.r, 0, Math.PI * 2);
+      context.arc(bumper.x, bumper.y, bumper.r + bumper.pulse * 8, 0, Math.PI * 2);
       context.fill();
+      context.strokeStyle = isTarget ? "#ffffff" : "rgba(255,255,255,0.42)";
+      context.lineWidth = isTarget ? 5 : 2;
+      context.stroke();
       context.shadowBlur = 0;
+      drawText(context, bumper.label, bumper.x, bumper.y + 6, "#08111f", "900 14px system-ui", "center");
     });
+    const target = game.bumpers[game.targetBumper];
+    context.strokeStyle = "#ffffff";
+    context.lineWidth = 3;
+    context.setLineDash([10, 8]);
+    context.beginPath();
+    context.arc(target.x, target.y, target.r + 18 + Math.sin(game.elapsed * 8) * 4, 0, Math.PI * 2);
+    context.stroke();
+    context.setLineDash([]);
+    drawText(context, "NEXT LIT TARGET", target.x, target.y - target.r - 30, "#ffd166", "900 14px system-ui", "center");
     context.fillStyle = "#34d6ff";
-    roundedRect(context, 300, 452, 150, 18, 9);
+    context.save();
+    context.translate(375, 462);
+    context.rotate(game.lastFlip < 0 ? -0.18 : 0);
+    roundedRect(context, -75, -9, 150, 18, 9);
     context.fill();
-    roundedRect(context, 510, 452, 150, 18, 9);
+    context.restore();
+    context.save();
+    context.translate(585, 462);
+    context.rotate(game.lastFlip > 0 ? 0.18 : 0);
+    roundedRect(context, -75, -9, 150, 18, 9);
     context.fill();
+    context.restore();
+    drawText(context, "Left / Right flip. Hit the lit target for bonus.", 480, 505, "#dff6ff", "800 18px system-ui", "center");
     context.fillStyle = "#f5f7ff";
     context.shadowColor = "rgba(255,255,255,0.65)";
     context.shadowBlur = 18;
@@ -3563,10 +3697,35 @@
 
   function drawAsteroids(context, game) {
     context.save();
+    context.fillStyle = "rgba(52, 214, 255, 0.12)";
+    context.strokeStyle = "#34d6ff";
+    context.shadowColor = "rgba(52,214,255,0.5)";
+    context.shadowBlur = 18;
+    context.beginPath();
+    context.arc(game.refinery.x, game.refinery.y, game.refinery.r, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+    context.shadowBlur = 0;
+    drawText(context, "REFINERY", game.refinery.x, game.refinery.y + 6, "#dff6ff", "900 15px system-ui", "center");
     game.rocks.forEach((rock) => {
+      context.save();
+      context.translate(rock.x, rock.y);
+      context.rotate(rock.spin);
       context.fillStyle = "#6b7280";
       context.beginPath();
-      context.arc(rock.x, rock.y, rock.r, 0, Math.PI * 2);
+      context.arc(0, 0, rock.r, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#374151";
+      context.beginPath();
+      context.arc(-rock.r * 0.25, -rock.r * 0.12, rock.r * 0.22, 0, Math.PI * 2);
+      context.arc(rock.r * 0.24, rock.r * 0.22, rock.r * 0.16, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+      context.fillStyle = "rgba(255,255,255,0.18)";
+      roundedRect(context, rock.x - rock.r, rock.y + rock.r + 8, rock.r * 2, 6, 3);
+      context.fill();
+      context.fillStyle = "#ffd166";
+      roundedRect(context, rock.x - rock.r, rock.y + rock.r + 8, rock.r * 2 * Math.max(0, rock.hp / rock.maxHp), 6, 3);
       context.fill();
     });
     game.ore.forEach((ore) => {
@@ -3575,8 +3734,17 @@
       context.arc(ore.x, ore.y, ore.r, 0, Math.PI * 2);
       context.fill();
     });
-    context.fillStyle = "#93c5fd";
-    game.shots.forEach((shot) => context.fillRect(shot.x - 3, shot.y - 12, 6, 18));
+    if (game.beamTarget) {
+      context.strokeStyle = "#93c5fd";
+      context.lineWidth = 5;
+      context.shadowColor = "#93c5fd";
+      context.shadowBlur = 18;
+      context.beginPath();
+      context.moveTo(game.ship.x, game.ship.y - 18);
+      context.lineTo(game.beamTarget.x, game.beamTarget.y);
+      context.stroke();
+      context.shadowBlur = 0;
+    }
     context.translate(game.ship.x, game.ship.y);
     context.fillStyle = "#34d6ff";
     context.beginPath();
