@@ -268,6 +268,12 @@ body[data-screen="intro"] .app-shell {
   display: grid;
 }
 
+.intro-visual-stack {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+
 .hero-visual {
   background: #070a12;
   border: 1px solid rgba(255, 255, 255, 0.13);
@@ -651,15 +657,10 @@ body[data-screen="intro"] .app-shell {
 }
 
 .dashboard-dock {
-  bottom: 18px;
   display: grid;
   gap: 10px;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.85fr);
-  left: 18px;
-  max-width: min(560px, calc(100% - 36px));
-  position: absolute;
-  right: 18px;
-  z-index: 4;
+  width: 100%;
 }
 
 .dashboard-panel {
@@ -2225,7 +2226,7 @@ h2 {
     inset 0 0 0 1px rgba(255, 255, 255, 0.045),
     0 0 70px rgba(52, 214, 255, 0.12),
     0 0 120px rgba(255, 61, 129, 0.1);
-  min-height: calc(100vh - clamp(20px, 3.2vw, 44px));
+  min-height: clamp(440px, calc(100vh - 174px), 640px);
 }
 
 .hero-visual::before {
@@ -2250,7 +2251,7 @@ h2 {
 }
 
 #attractCanvas {
-  min-height: calc(100vh - clamp(20px, 3.2vw, 44px));
+  min-height: clamp(440px, calc(100vh - 174px), 640px);
 }
 
 .player-card {
@@ -2840,21 +2841,17 @@ h2 {
     order: 2;
   }
 
+  .intro-visual-stack {
+    order: 1;
+  }
+
   .hero-visual,
   #attractCanvas {
     min-height: min(62vh, 560px);
   }
 
-  .hero-visual {
-    order: 1;
-  }
-
   .dashboard-dock {
-    bottom: 12px;
     grid-template-columns: 1fr;
-    left: 12px;
-    max-width: none;
-    right: 12px;
   }
 
   .player-card {

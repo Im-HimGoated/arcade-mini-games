@@ -962,8 +962,9 @@
   function saveRunResult(game, playerName = profile.name, mode = "Solo") {
     const score = Math.floor(game.score);
     const time = Math.min(60, game.elapsed);
-    const driftCoins = game.definition.id === "driftboss" ? Math.floor(game.trackCoins || 0) : 0;
-    const coinReward = Math.max(5, Math.floor(score / 80) + Math.floor(time / 12) + (mode === "Daily Challenge" ? 10 : 0)) + driftCoins;
+    const driftCoins = game.definition.id === "driftboss" ? Math.floor((game.trackCoins || 0) / 5) : 0;
+    const baseCoinReward = Math.max(5, Math.floor(score / 220) + Math.floor(time / 15) + (mode === "Daily Challenge" ? 10 : 0));
+    const coinReward = Math.min(game.definition.id === "driftboss" ? 90 : 140, baseCoinReward + driftCoins);
     const xpReward = Math.max(12, Math.floor(score / 12) + Math.floor(time * 1.5));
     saveBestScore(game.definition.id, score);
     saveBestTime(game.definition.id, time);
@@ -2142,6 +2143,8 @@
       target: makeTarget(1),
       decoys: [],
       shots: 0,
+      hits: 0,
+      focus: 0,
       actionWasDown: false,
       update(delta) {
         this.updateTimer(delta);
@@ -2182,19 +2185,42 @@
           const hit = distance(this.cursor.x, this.cursor.y, this.target.x, this.target.y) < this.target.r;
           const decoyHit = this.decoys.find((decoy) => distance(this.cursor.x, this.cursor.y, decoy.x, decoy.y) < decoy.r);
           if (hit) {
-            this.pushCombo(this.target.bonus ? 2 : 1);
-            this.addScore((this.target.bonus ? 44 : 28) + this.target.timer * 5 + this.level * 3, this.target.x, this.target.y, this.target.bonus ? "Bonus" : "Hit");
-            this.burst(this.target.x, this.target.y, this.target.bonus ? "#ffd166" : "#34d6ff", this.target.bonus ? 24 : 16);
-            this.target = makeTarget(this.level);
-            audio.beep(760, 0.06, "square");
+            this.target.hp -= 1;
+            if (this.target.hp > 0) {
+              this.target.r = Math.max(18, this.target.r * 0.84);
+              this.target.vx *= 1.28;
+              this.target.vy *= 1.28;
+              this.target.timer = Math.min(this.target.maxTimer, this.target.timer + 0.42);
+              this.addScore(18 + this.level * 2, this.target.x, this.target.y, "Crack");
+              this.burst(this.target.x, this.target.y, "#b78cff", 14);
+              audio.beep(520, 0.04, "triangle");
+            } else {
+              this.hits += 1;
+              this.focus = Math.min(100, this.focus + (this.target.kind === "vault" ? 28 : this.target.bonus ? 22 : 14));
+              this.pushCombo(this.target.bonus || this.target.kind === "vault" ? 2 : 1);
+              this.addScore((this.target.bonus ? 52 : 32) + this.target.timer * 6 + this.level * 4 + (this.target.kind === "vault" ? 38 : 0), this.target.x, this.target.y, this.target.bonus ? "Bonus" : this.target.kind === "vault" ? "Vault" : "Hit");
+              this.burst(this.target.x, this.target.y, this.target.bonus ? "#ffd166" : this.target.kind === "vault" ? "#b78cff" : "#34d6ff", this.target.bonus ? 28 : 18);
+              if (this.focus >= 100) {
+                this.focus = 0;
+                this.addScore(75 + this.level * 8, this.cursor.x, this.cursor.y, "Focus clear");
+                this.decoys.forEach((decoy) => this.burst(decoy.x, decoy.y, "#ff5b5b", 7));
+                this.decoys = [];
+                audio.beep(980, 0.08, "square");
+              } else {
+                audio.beep(760, 0.06, "square");
+              }
+              this.target = makeTarget(this.level);
+            }
           } else if (decoyHit) {
-            this.score = Math.max(0, this.score - 12);
+            this.score = Math.max(0, this.score - 18);
+            this.focus = Math.max(0, this.focus - 18);
             this.breakCombo();
             decoyHit.life = 0;
             this.burst(decoyHit.x, decoyHit.y, "#ff5b5b", 12);
             audio.beep(110, 0.08, "sawtooth");
           } else {
             this.score = Math.max(0, this.score - 3);
+            this.focus = Math.max(0, this.focus - 5);
             audio.beep(180, 0.05, "triangle");
           }
         }
@@ -2202,8 +2228,10 @@
       },
       draw(context) {
         this.drawBase(context);
+        drawBadge(context, `Hits ${this.hits}`, 24, 34, "#34d6ff");
+        drawBadge(context, `Focus ${Math.floor(this.focus)}%`, 146, 34, "#ffd166");
         this.decoys.forEach((decoy) => drawTarget(context, decoy.x, decoy.y, decoy.r, "#ff5b5b", decoy.life / 4));
-        drawTarget(context, this.target.x, this.target.y, this.target.r, this.target.bonus ? "#ffd166" : "#34d6ff", this.target.timer / this.target.maxTimer);
+        drawTarget(context, this.target.x, this.target.y, this.target.r, targetColor(this.target), this.target.timer / this.target.maxTimer, this.target.hp);
         drawCrosshair(context, this.cursor.x, this.cursor.y);
         this.drawEffects(context);
         this.drawEnd(context, "Signal Cleared");
@@ -2690,14 +2718,20 @@
     const carSpec = activeDriftCar();
     const activeBoosters = { doubleScore: false, insurance: false, coinRush: false };
     const points = [];
+    const startY = 420;
+    const startCenter = gameCanvas.width / 2;
     for (let y = -180; y <= gameCanvas.height + 180; y += 90) {
       const previous = points[points.length - 1]?.x ?? gameCanvas.width / 2;
-      points.push({ x: clamp(previous + random(-145, 145), 170, gameCanvas.width - 170), y });
+      const safeStartZone = y >= startY - 180 && y <= startY + 90;
+      points.push({
+        x: safeStartZone ? startCenter : clamp(previous + random(-145, 145), 170, gameCanvas.width - 170),
+        y,
+      });
     }
-    const startX = roadCenterAt(points, 420);
+    const startX = roadCenterAt(points, startY);
     return {
       ...base,
-      car: { x: startX, y: 420, angle: 0 },
+      car: { x: startX, y: startY, angle: 0 },
       carSpec,
       activeBoosters,
       road: points,
@@ -2708,11 +2742,13 @@
       insured: activeBoosters.insurance,
       started: false,
       readyCountdown: 3,
+      spawnGrace: 1.25,
       update(delta) {
         if (this.over) return;
         if (!this.started) return;
         if (this.readyCountdown > 0) {
           this.readyCountdown = Math.max(0, this.readyCountdown - delta);
+          this.car.x = roadCenterAt(this.road, this.car.y);
           return;
         }
         this.updateTimer(delta);
@@ -2738,6 +2774,7 @@
         this.coins = this.coins.filter((coin) => coin.y < gameCanvas.height + 80 && !coin.collected);
         this.distance += speed * delta;
         this.score += delta * (24 + this.level * 7) * (this.activeBoosters.doubleScore ? 2 : 1);
+        this.spawnGrace = Math.max(0, this.spawnGrace - delta);
         if (this.distance - this.checkpoint > 720) {
           this.checkpoint = this.distance;
           this.pushCombo();
@@ -2756,6 +2793,10 @@
         });
 
         const center = roadCenterAt(this.road, this.car.y);
+        if (this.spawnGrace > 0) {
+          this.car.x += (center - this.car.x) * Math.min(1, delta * 5);
+          return;
+        }
         if (Math.abs(this.car.x - center) > width / 2 - 18) {
           if (this.insured) {
             this.insured = false;
@@ -2800,6 +2841,8 @@
       input: { action: false, move: false },
       misses: 0,
       heat: 0,
+      recipe: makeBeatRecipe(3),
+      recipeStep: 0,
       laneColors: ["#34d6ff", "#fb7185", "#ffd166"],
       update(delta) {
         this.updateTimer(delta);
@@ -2817,14 +2860,34 @@
           const window = Math.max(0.16, 0.48 - this.level * 0.022);
           const gap = angularDistance(this.pulse, this.target);
           if (gap <= window) {
+            const expectedLane = this.recipe[this.recipeStep];
+            if (this.lane !== expectedLane) {
+              this.misses += 1;
+              this.heat = Math.max(0, this.heat - 12);
+              this.breakCombo();
+              this.flash = 0.14;
+              this.addScore(6, 480, 170 + this.lane * 92, "Wrong core");
+              audio.beep(150, 0.09, "sawtooth");
+              if (this.misses >= 5) this.finish();
+              this.input = { action, move: Boolean(vertical) };
+              return;
+            }
             const perfect = gap <= window * 0.42;
             const points = perfect ? 120 + this.level * 12 : 65 + this.level * 8;
             this.heat = Math.min(100, this.heat + (perfect ? 12 : 7));
             this.pushCombo(perfect ? 2 : 1);
             this.addScore(points, 480, 170 + this.lane * 92, perfect ? "Perfect" : "Strike");
             this.burst(480, 170 + this.lane * 92, this.laneColors[this.lane], perfect ? 22 : 14);
+            this.recipeStep += 1;
+            if (this.recipeStep >= this.recipe.length) {
+              this.addScore(210 + this.level * 18 + Math.floor(this.heat), 480, 470, "Pattern forged");
+              this.burst(480, 470, "#ffd166", 30);
+              this.heat = Math.min(100, this.heat + 18);
+              this.recipe = makeBeatRecipe(this.level >= 7 ? 5 : 4);
+              this.recipeStep = 0;
+            }
             this.target = random(0, Math.PI * 2);
-            if (perfect && Math.random() < 0.45) this.lane = Math.floor(random(0, 3));
+            if (perfect && Math.random() < 0.3) this.lane = this.recipe[this.recipeStep];
             audio.beep(perfect ? 920 : 700, 0.045, "square");
           } else {
             this.misses += 1;
@@ -3236,13 +3299,13 @@
         this.keeper.w = actionPressed("action") ? 116 : 76;
         this.spawn -= delta;
         if (this.spawn <= 0) {
-          this.spawn = Math.max(0.34, 1.22 - this.level * 0.075);
+          this.spawn = Math.max(0.28, 1.08 - this.level * 0.08);
           const targetX = random(goalLeft + 26, goalRight - 26);
           const startX = random(250, gameCanvas.width - 250);
           const typeRoll = Math.random();
-          const type = typeRoll > 0.78 ? "power" : typeRoll > 0.48 ? "curve" : "normal";
-          const speed = (type === "power" ? 345 : 285) + this.level * 34;
-          const curve = type === "curve" ? random(-185, 185) : type === "power" ? random(-55, 55) : random(-25, 25);
+          const type = typeRoll > 0.66 ? "power" : typeRoll > 0.3 ? "curve" : "normal";
+          const speed = (type === "power" ? 430 : type === "curve" ? 330 : 300) + this.level * (type === "power" ? 46 : 38);
+          const curve = type === "curve" ? random(-420, 420) : type === "power" ? random(-150, 150) : random(-42, 42);
           const goalY = this.keeper.y + 24;
           const flightTime = (goalY - 86) / speed;
           const vx = (targetX - startX - 0.5 * curve * flightTime * flightTime) / flightTime;
@@ -3806,16 +3869,40 @@
 
   function makeTarget(level) {
     const timer = Math.max(1.1, random(2.2, 4.2) - level * 0.14);
+    const kindRoll = Math.random();
+    const kind = kindRoll > 0.78 ? "vault" : kindRoll > 0.58 ? "runner" : "signal";
+    const hp = kind === "vault" ? 2 + Number(level >= 7) : 1;
     return {
       x: random(90, gameCanvas.width - 90),
       y: random(80, gameCanvas.height - 80),
-      r: Math.max(22, random(34, 58) - level * 1.6),
+      r: Math.max(22, random(kind === "vault" ? 42 : 34, kind === "vault" ? 62 : 58) - level * 1.6),
       timer,
       maxTimer: timer,
-      vx: random(-22, 22) * level,
-      vy: random(-18, 18) * level,
+      vx: random(-22, 22) * level * (kind === "runner" ? 1.5 : 1),
+      vy: random(-18, 18) * level * (kind === "runner" ? 1.5 : 1),
       bonus: Math.random() < 0.18,
+      kind,
+      hp,
     };
+  }
+
+  function targetColor(target) {
+    if (target.bonus) return "#ffd166";
+    if (target.kind === "vault") return "#b78cff";
+    if (target.kind === "runner") return "#58f29f";
+    return "#34d6ff";
+  }
+
+  function makeBeatRecipe(length) {
+    const recipe = [];
+    let previous = Math.floor(random(0, 3));
+    for (let index = 0; index < length; index += 1) {
+      let lane = Math.floor(random(0, 3));
+      if (index > 0) while (lane === previous) lane = Math.floor(random(0, 3));
+      recipe.push(lane);
+      previous = lane;
+    }
+    return recipe;
   }
 
   function makeDecoy(level) {
@@ -4315,14 +4402,20 @@
     const radius = 54;
     game.laneColors.forEach((color, index) => {
       const y = 170 + index * 92;
+      const expected = game.recipe[game.recipeStep] === index;
       context.save();
-      context.globalAlpha = index === game.lane ? 1 : 0.42;
+      context.globalAlpha = index === game.lane || expected ? 1 : 0.42;
       context.fillStyle = "rgba(6, 7, 15, 0.72)";
       context.strokeStyle = color;
-      context.lineWidth = index === game.lane ? 5 : 2;
+      context.lineWidth = expected ? 7 : index === game.lane ? 5 : 2;
       roundedRect(context, 240, y - 46, 480, 92, 12);
       context.fill();
       context.stroke();
+      if (expected) {
+        context.fillStyle = "rgba(255, 209, 102, 0.14)";
+        roundedRect(context, 248, y - 38, 464, 76, 10);
+        context.fill();
+      }
       context.strokeStyle = "rgba(255,255,255,0.18)";
       context.lineWidth = 16;
       context.beginPath();
@@ -4351,10 +4444,21 @@
         context.arc(handX, handY, 8, 0, Math.PI * 2);
         context.fill();
       }
-      drawText(context, index === game.lane ? "ACTIVE CORE" : "STANDBY CORE", 320, y + 6, color, "900 16px system-ui", "left");
+      drawText(context, expected ? "NEXT CORE" : index === game.lane ? "ACTIVE CORE" : "STANDBY CORE", 320, y + 6, expected ? "#ffd166" : color, "900 16px system-ui", "left");
       context.restore();
     });
-    drawText(context, "Up/Down changes core lane. Action strikes the lit arc.", centerX, 486, "#d6deff", "800 18px system-ui", "center");
+    const recipeX = centerX - game.recipe.length * 24;
+    game.recipe.forEach((lane, index) => {
+      context.fillStyle = index < game.recipeStep ? "#58f29f" : index === game.recipeStep ? "#ffd166" : "rgba(255,255,255,0.2)";
+      context.shadowColor = index === game.recipeStep ? "rgba(255,209,102,0.7)" : "transparent";
+      context.shadowBlur = index === game.recipeStep ? 18 : 0;
+      context.beginPath();
+      context.arc(recipeX + index * 48, 468, 15, 0, Math.PI * 2);
+      context.fill();
+      drawText(context, (lane + 1).toString(), recipeX + index * 48, 474, "#08111f", "900 14px system-ui", "center");
+    });
+    context.shadowBlur = 0;
+    drawText(context, "Match the lane recipe, then strike the lit arc.", centerX, 512, "#d6deff", "800 18px system-ui", "center");
   }
 
   function drawDriftCar(context, car, spec = driftCars[0]) {
@@ -4591,7 +4695,7 @@
     context.restore();
   }
 
-  function drawTarget(context, x, y, radius, color, progress) {
+  function drawTarget(context, x, y, radius, color, progress, hp = 1) {
     context.save();
     context.strokeStyle = color;
     context.lineWidth = 5;
@@ -4603,6 +4707,13 @@
     context.beginPath();
     context.arc(x, y, radius * 0.45, 0, Math.PI * 2);
     context.stroke();
+    if (hp > 1) {
+      context.fillStyle = "#f5f7ff";
+      context.font = "900 18px system-ui";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(`x${hp}`, x, y);
+    }
     context.strokeStyle = "#f5f7ff";
     context.lineWidth = 3;
     context.beginPath();
@@ -4984,6 +5095,8 @@
     activeGame.carSpec = activeDriftCar();
     activeGame.activeBoosters = consumeDriftBoosters();
     activeGame.insured = activeGame.activeBoosters.insurance;
+    activeGame.car.x = roadCenterAt(activeGame.road, activeGame.car.y);
+    activeGame.spawnGrace = 1.25;
     activeGame.started = true;
     activeGame.readyCountdown = 3;
     driftStartOverlay.classList.add("hidden-field");
