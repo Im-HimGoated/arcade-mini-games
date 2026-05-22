@@ -310,6 +310,42 @@ main {
   text-transform: uppercase;
 }
 
+.cabinet-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.025)),
+    rgba(6, 8, 18, 0.76);
+  border: 1px solid rgba(255, 209, 102, 0.22);
+  border-radius: 8px;
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.38),
+    0 0 34px rgba(255, 209, 102, 0.13);
+  left: clamp(14px, 3vw, 30px);
+  margin: 0;
+  overflow: hidden;
+  padding: 8px;
+  position: absolute;
+  top: clamp(14px, 3vw, 30px);
+  width: min(38%, 300px);
+  z-index: 2;
+}
+
+.cabinet-card img {
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  object-fit: cover;
+  width: 100%;
+}
+
+.cabinet-card figcaption {
+  color: var(--cool);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  padding: 8px 4px 2px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .intro-panel {
   background: linear-gradient(180deg, rgba(17, 21, 34, 0.78), rgba(17, 21, 34, 0.38));
   border: 1px solid rgba(255, 255, 255, 0.09);
@@ -2714,6 +2750,12 @@ h2 {
     min-width: 132px;
     right: 14px;
     width: min(32vw, 178px);
+  }
+
+  .cabinet-card {
+    left: 14px;
+    top: 14px;
+    width: min(42vw, 210px);
   }
 
   .game-grid {

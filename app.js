@@ -3347,15 +3347,19 @@
       ship: { x: 480, y: 430, beam: 0 },
       refinery: { x: 480, y: 494, r: 44 },
       rocks: [
-        { x: 260, y: 190, r: 38, hp: 100, maxHp: 100, vx: 18, vy: 12, ore: 3, spin: 0 },
-        { x: 620, y: 230, r: 46, hp: 140, maxHp: 140, vx: -14, vy: 10, ore: 4, spin: 1 },
-        { x: 470, y: 120, r: 32, hp: 80, maxHp: 80, vx: 12, vy: 16, ore: 2, spin: 2 },
+        makeAsteroidRock(260, 190, 38, "iron"),
+        makeAsteroidRock(620, 230, 46, "crystal"),
+        makeAsteroidRock(470, 120, 32, "gold"),
       ],
       ore: [],
       spawn: 3,
       lives: 3,
-      cargo: 0,
+      cargo: { iron: 0, crystal: 0, gold: 0 },
       banked: 0,
+      contracts: 0,
+      contract: makeMiningContract(1),
+      beamHeat: 0,
+      overheated: 0,
       beamTarget: null,
       update(delta) {
         this.updateTimer(delta);
@@ -3367,18 +3371,7 @@
         this.spawn -= delta;
         if (this.spawn <= 0) {
           this.spawn = Math.max(1.8, 4.6 - this.level * 0.18);
-          const radius = random(28, 50);
-          this.rocks.push({
-            x: random(120, gameCanvas.width - 120),
-            y: random(95, 310),
-            r: radius,
-            hp: radius * 2.8,
-            maxHp: radius * 2.8,
-            vx: random(-28, 28),
-            vy: random(-18, 22),
-            ore: Math.max(2, Math.floor(radius / 12)),
-            spin: random(0, Math.PI * 2),
-          });
+          this.rocks.push(makeAsteroidRock(random(120, gameCanvas.width - 120), random(95, 310), random(28, 50)));
           this.rocks = this.rocks.slice(-7);
         }
         this.rocks.forEach((rock) => {
@@ -3395,29 +3388,39 @@
           ore.vy *= 0.985;
         });
         this.beamTarget = null;
-        if (actionPressed("action")) {
+        this.overheated = Math.max(0, this.overheated - delta);
+        const mining = actionPressed("action") && this.overheated <= 0;
+        if (mining) {
           const target = this.rocks
             .filter((rock) => !rock.dead)
             .sort((a, b) => distance(this.ship.x, this.ship.y, a.x, a.y) - distance(this.ship.x, this.ship.y, b.x, b.y))[0];
           if (target && distance(this.ship.x, this.ship.y, target.x, target.y) < 170) {
             this.beamTarget = target;
             this.ship.beam = 0.1;
-            target.hp -= (42 + this.level * 4) * delta;
+            this.beamHeat += (34 + this.level * 2) * delta;
+            if (this.beamHeat >= 100) {
+              this.beamHeat = 100;
+              this.overheated = 1.4;
+              audio.sfx("danger");
+            }
+            target.hp -= (42 + this.level * 4) * delta * (this.overheated > 0 ? 0 : 1);
             this.score += delta * (8 + this.level);
             if (Math.random() < 0.18) this.burst(target.x, target.y, "#93c5fd", 1);
             if (target.hp <= 0) {
               target.dead = true;
               for (let i = 0; i < target.ore; i += 1) {
-                this.ore.push({ x: target.x, y: target.y, vx: random(-90, 90), vy: random(-80, 80), r: 10, value: 1 });
+                this.ore.push({ x: target.x, y: target.y, vx: random(-90, 90), vy: random(-80, 80), r: 10, value: 1, mineral: target.mineral });
               }
               this.pushCombo();
-              this.addScore(80 + this.level * 8, target.x, target.y, "Core mined");
-              this.burst(target.x, target.y, "#ffd166", 20);
+              this.addScore(80 + this.level * 8, target.x, target.y, `${target.mineral} core`);
+              this.burst(target.x, target.y, mineralColor(target.mineral), 20);
               audio.sfx("coin");
             } else if (Math.random() < 0.08) {
               audio.beep(520, 0.018, "sawtooth");
             }
           }
+        } else {
+          this.beamHeat = Math.max(0, this.beamHeat - 28 * delta);
         }
         this.ship.beam = Math.max(0, this.ship.beam - delta);
         this.rocks = this.rocks.filter((rock) => !rock.dead);
@@ -3425,7 +3428,7 @@
         for (const rock of this.rocks) {
           if (distance(rock.x, rock.y, this.ship.x, this.ship.y) < rock.r + 22) {
             this.lives -= 1;
-            this.cargo = Math.max(0, this.cargo - 1);
+            drainCargo(this.cargo, 1);
             this.ship.x = this.refinery.x;
             this.ship.y = this.refinery.y - 68;
             this.flash = 0.18;
@@ -3437,28 +3440,36 @@
         this.ore.forEach((item) => {
           if (distance(item.x, item.y, this.ship.x, this.ship.y) < item.r + 24) {
             item.collected = true;
-            this.cargo += item.value;
+            this.cargo[item.mineral] = (this.cargo[item.mineral] || 0) + item.value;
             this.pushCombo();
-            this.addScore(30 + this.level * 3, item.x, item.y, "Ore");
-            this.burst(item.x, item.y, "#ffd166", 12);
+            this.addScore(30 + this.level * 3, item.x, item.y, item.mineral);
+            this.burst(item.x, item.y, mineralColor(item.mineral), 12);
             audio.beep(840, 0.03, "triangle");
           }
         });
-        if (this.cargo > 0 && distance(this.ship.x, this.ship.y, this.refinery.x, this.refinery.y) < this.refinery.r + 20) {
-          const cargo = this.cargo;
-          this.cargo = 0;
+        const totalCargo = cargoTotal(this.cargo);
+        if (totalCargo > 0 && distance(this.ship.x, this.ship.y, this.refinery.x, this.refinery.y) < this.refinery.r + 20) {
+          const cargo = totalCargo;
+          const contractMet = this.cargo[this.contract.mineral] >= this.contract.amount;
+          if (contractMet) {
+            this.contracts += 1;
+            this.addScore(240 + this.level * 25, this.refinery.x, this.refinery.y - 88, "Contract");
+            this.contract = makeMiningContract(this.level + this.contracts);
+          }
+          this.cargo = { iron: 0, crystal: 0, gold: 0 };
           this.banked += cargo;
           this.addScore(95 * cargo + this.level * 15, this.refinery.x, this.refinery.y - 60, "Bank");
           this.burst(this.refinery.x, this.refinery.y, "#34d6ff", 18);
           audio.sfx("bank");
         }
-        this.score += delta * (5 + this.level + this.cargo * 0.8);
+        this.score += delta * (5 + this.level + totalCargo * 0.8);
       },
       draw(context) {
         drawSpaceScene(context, this.elapsed);
         drawBadge(context, `Lives ${this.lives}`, 24, 34, "#93c5fd");
-        drawBadge(context, `Cargo ${this.cargo}`, 140, 34, "#ffd166");
-        drawBadge(context, `Banked ${this.banked}`, 260, 34, "#34d6ff");
+        drawBadge(context, `Cargo ${cargoTotal(this.cargo)}`, 140, 34, "#ffd166");
+        drawBadge(context, `${this.contract.mineral} ${this.cargo[this.contract.mineral] || 0}/${this.contract.amount}`, 260, 34, mineralColor(this.contract.mineral));
+        drawBadge(context, `Heat ${Math.floor(this.beamHeat)}%`, 430, 34, this.overheated ? "#ff5b5b" : "#93c5fd");
         drawAsteroids(context, this);
         this.drawEffects(context);
         if (this.flash) {
@@ -3707,19 +3718,22 @@
     context.stroke();
     context.shadowBlur = 0;
     drawText(context, "REFINERY", game.refinery.x, game.refinery.y + 6, "#dff6ff", "900 15px system-ui", "center");
+    drawText(context, `CONTRACT: ${game.contract.amount} ${game.contract.mineral.toUpperCase()}`, game.refinery.x, game.refinery.y - 54, mineralColor(game.contract.mineral), "900 15px system-ui", "center");
     game.rocks.forEach((rock) => {
       context.save();
       context.translate(rock.x, rock.y);
       context.rotate(rock.spin);
-      context.fillStyle = "#6b7280";
+      context.fillStyle = rock.mineral === "gold" ? "#8a6a2f" : rock.mineral === "crystal" ? "#315f75" : "#6b7280";
       context.beginPath();
       context.arc(0, 0, rock.r, 0, Math.PI * 2);
       context.fill();
-      context.fillStyle = "#374151";
+      context.fillStyle = mineralColor(rock.mineral);
+      context.globalAlpha = 0.42;
       context.beginPath();
       context.arc(-rock.r * 0.25, -rock.r * 0.12, rock.r * 0.22, 0, Math.PI * 2);
       context.arc(rock.r * 0.24, rock.r * 0.22, rock.r * 0.16, 0, Math.PI * 2);
       context.fill();
+      context.globalAlpha = 1;
       context.restore();
       context.fillStyle = "rgba(255,255,255,0.18)";
       roundedRect(context, rock.x - rock.r, rock.y + rock.r + 8, rock.r * 2, 6, 3);
@@ -3729,7 +3743,7 @@
       context.fill();
     });
     game.ore.forEach((ore) => {
-      context.fillStyle = "#ffd166";
+      context.fillStyle = mineralColor(ore.mineral);
       context.beginPath();
       context.arc(ore.x, ore.y, ore.r, 0, Math.PI * 2);
       context.fill();
@@ -3745,6 +3759,7 @@
       context.stroke();
       context.shadowBlur = 0;
     }
+    if (game.overheated) drawText(context, "BEAM OVERHEATED", game.ship.x, game.ship.y - 42, "#ff5b5b", "900 16px system-ui", "center");
     context.translate(game.ship.x, game.ship.y);
     context.fillStyle = "#34d6ff";
     context.beginPath();
@@ -3796,6 +3811,57 @@
 
   function distance(ax, ay, bx, by) {
     return Math.hypot(ax - bx, ay - by);
+  }
+
+  function mineralColor(mineral) {
+    return {
+      iron: "#93c5fd",
+      crystal: "#34d6ff",
+      gold: "#ffd166",
+    }[mineral] || "#93c5fd";
+  }
+
+  function randomMineral() {
+    const roll = Math.random();
+    if (roll > 0.72) return "gold";
+    if (roll > 0.42) return "crystal";
+    return "iron";
+  }
+
+  function makeAsteroidRock(x, y, radius, mineral = randomMineral()) {
+    const hp = radius * (mineral === "gold" ? 3.4 : mineral === "crystal" ? 3 : 2.6);
+    return {
+      x,
+      y,
+      r: radius,
+      hp,
+      maxHp: hp,
+      vx: random(-28, 28),
+      vy: random(-18, 22),
+      ore: Math.max(2, Math.floor(radius / 12) + (mineral === "gold" ? 1 : 0)),
+      mineral,
+      spin: random(0, Math.PI * 2),
+    };
+  }
+
+  function makeMiningContract(level) {
+    return {
+      mineral: randomMineral(),
+      amount: Math.min(6, 2 + Math.floor(level / 3)),
+    };
+  }
+
+  function cargoTotal(cargo) {
+    return Object.values(cargo).reduce((sum, value) => sum + (Number(value) || 0), 0);
+  }
+
+  function drainCargo(cargo, amount) {
+    for (const mineral of ["gold", "crystal", "iron"]) {
+      while (amount > 0 && cargo[mineral] > 0) {
+        cargo[mineral] -= 1;
+        amount -= 1;
+      }
+    }
   }
 
   function angularDistance(a, b) {
