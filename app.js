@@ -99,6 +99,8 @@
     reducedMotion: false,
   };
 
+  const levelInterval = 6.8;
+
   const defaultKeybinds = {
     left: "ArrowLeft",
     right: "ArrowRight",
@@ -1907,7 +1909,7 @@
         if (this.over) return;
         this.elapsed += delta;
         this.timeLeft = Math.max(0, 60 - this.elapsed);
-        this.level = Math.min(12, Math.floor(this.elapsed / 8) + 1);
+        this.level = Math.min(12, Math.floor(this.elapsed / levelInterval) + 1);
         this.comboTimer = Math.max(0, this.comboTimer - delta);
         if (this.comboTimer <= 0) this.combo = 1;
         if (this.timeLeft <= 0) this.finish();
@@ -2692,9 +2694,10 @@
       const previous = points[points.length - 1]?.x ?? gameCanvas.width / 2;
       points.push({ x: clamp(previous + random(-145, 145), 170, gameCanvas.width - 170), y });
     }
+    const startX = roadCenterAt(points, 420);
     return {
       ...base,
-      car: { x: gameCanvas.width / 2, y: 420, angle: 0 },
+      car: { x: startX, y: 420, angle: 0 },
       carSpec,
       activeBoosters,
       road: points,
@@ -3025,15 +3028,17 @@
   function createPinball(base) {
     return {
       ...base,
-      ball: { x: 480, y: 240, vx: 170, vy: -220, r: 11 },
+      ball: { x: 480, y: 302, vx: 135, vy: -245, r: 11 },
       lives: 3,
+      table: { left: 170, right: 790, top: 74, drain: 520 },
       bumpers: [
         { x: 360, y: 190, r: 30, color: "#ff8a3d", label: "HOT", pulse: 0 },
         { x: 500, y: 150, r: 28, color: "#34d6ff", label: "RAMP", pulse: 0 },
         { x: 610, y: 230, r: 32, color: "#ffd166", label: "BANK", pulse: 0 },
       ],
       flipCooldown: 0,
-      lastFlip: 0,
+      leftFlip: 0,
+      rightFlip: 0,
       targetBumper: 1,
       update(delta) {
         this.updateTimer(delta);
@@ -3041,35 +3046,54 @@
         const left = actionPressed("left") || actionPressed("action");
         const right = actionPressed("right") || actionPressed("action");
         this.flipCooldown = Math.max(0, this.flipCooldown - delta);
-        this.lastFlip = Math.max(0, this.lastFlip - delta);
+        this.leftFlip = Math.max(0, this.leftFlip - delta * 4);
+        this.rightFlip = Math.max(0, this.rightFlip - delta * 4);
         this.bumpers.forEach((bumper) => { bumper.pulse = Math.max(0, bumper.pulse - delta * 2.8); });
-        this.ball.vy += (410 + this.level * 12) * delta;
+        this.ball.vy += (500 + this.level * 15) * delta;
         this.ball.x += this.ball.vx * delta;
         this.ball.y += this.ball.vy * delta;
-        if (this.ball.x < 90 || this.ball.x > gameCanvas.width - 90) {
-          this.ball.vx *= -0.92;
-          this.ball.x = clamp(this.ball.x, 90, gameCanvas.width - 90);
+        const leftWall = this.table.left + this.ball.r;
+        const rightWall = this.table.right - this.ball.r;
+        if (this.ball.x < leftWall) {
+          this.ball.x = leftWall;
+          this.ball.vx = Math.abs(this.ball.vx) * 0.94;
           audio.beep(260, 0.025, "triangle");
         }
-        if (this.ball.y < 70) {
+        if (this.ball.x > rightWall) {
+          this.ball.x = rightWall;
+          this.ball.vx = -Math.abs(this.ball.vx) * 0.94;
+          audio.beep(260, 0.025, "triangle");
+        }
+        if (this.ball.y < this.table.top + this.ball.r) {
+          this.ball.y = this.table.top + this.ball.r;
           this.ball.vy = Math.abs(this.ball.vy);
           audio.beep(320, 0.025, "triangle");
         }
-        const leftHit = left && this.ball.x < 480 && this.ball.y > 430 && this.ball.y < 500;
-        const rightHit = right && this.ball.x >= 480 && this.ball.y > 430 && this.ball.y < 500;
+        const leftHit = left && this.ball.x < 480 && this.ball.y > 416 && this.ball.y < 498 && this.ball.vy > -90;
+        const rightHit = right && this.ball.x >= 480 && this.ball.y > 416 && this.ball.y < 498 && this.ball.vy > -90;
         if ((leftHit || rightHit) && this.flipCooldown <= 0) {
           this.flipCooldown = 0.12;
-          this.lastFlip = leftHit ? -1 : 1;
-          this.ball.vy = -Math.abs(this.ball.vy) - 160;
-          this.ball.vx += (leftHit ? 220 : -220) + random(-40, 40);
+          if (leftHit) this.leftFlip = 1;
+          if (rightHit) this.rightFlip = 1;
+          const flipperCenter = leftHit ? 374 : 586;
+          const offset = clamp((this.ball.x - flipperCenter) / 90, -1, 1);
+          this.ball.vy = -Math.max(340, Math.abs(this.ball.vy) + 150);
+          this.ball.vx = offset * 360 + (leftHit ? 150 : -150) + random(-24, 24);
           this.addScore(18 + this.level, this.ball.x, this.ball.y, "Flip");
           audio.sfx("launch");
+        }
+        if (this.ball.y > 500 && (this.ball.x < 310 || this.ball.x > 650)) {
+          this.ball.vx += this.ball.x < 480 ? 120 * delta : -120 * delta;
+          this.ball.vy -= 80 * delta;
         }
         this.bumpers.forEach((bumper, index) => {
           const gap = distance(this.ball.x, this.ball.y, bumper.x, bumper.y);
           if (gap < this.ball.r + bumper.r) {
             const wasTarget = index === this.targetBumper;
-            const angle = Math.atan2(this.ball.y - bumper.y, this.ball.x - bumper.x);
+            const angle = gap > 0 ? Math.atan2(this.ball.y - bumper.y, this.ball.x - bumper.x) : random(0, Math.PI * 2);
+            const edge = this.ball.r + bumper.r + 1;
+            this.ball.x = bumper.x + Math.cos(angle) * edge;
+            this.ball.y = bumper.y + Math.sin(angle) * edge;
             this.ball.vx = Math.cos(angle) * (310 + this.level * 16);
             this.ball.vy = Math.sin(angle) * (310 + this.level * 16);
             bumper.pulse = 1;
@@ -3080,7 +3104,7 @@
             audio.sfx(wasTarget ? "coin" : "hit");
           }
         });
-        if (this.ball.y > gameCanvas.height + 30) {
+        if (this.ball.y > this.table.drain || Math.abs(this.ball.vx) > 900 || Math.abs(this.ball.vy) > 900) {
           this.lives -= 1;
           this.breakCombo();
           if (this.lives <= 0) this.finish();
@@ -3115,7 +3139,7 @@
         if (this.over) return;
         this.elapsed += delta;
         this.timeLeft = Math.max(0, 35 - this.elapsed);
-        this.level = Math.min(12, Math.floor(this.checkpoints / 3) + 1);
+        this.level = Math.min(12, Math.floor(this.checkpoints / 2.55) + 1);
         this.comboTimer = Math.max(0, this.comboTimer - delta);
         if (this.comboTimer <= 0) this.combo = 1;
         this.flash = Math.max(0, this.flash - delta);
@@ -3484,10 +3508,18 @@
   function drawPinballTable(context, game) {
     context.save();
     context.fillStyle = "rgba(10, 12, 20, 0.78)";
-    roundedRect(context, 150, 62, 660, 454, 18);
+    roundedRect(context, game.table.left - 20, game.table.top - 12, game.table.right - game.table.left + 40, game.table.drain - game.table.top + 16, 18);
     context.fill();
     context.strokeStyle = "#ff8a3d";
     context.lineWidth = 4;
+    context.stroke();
+    context.strokeStyle = "rgba(255,255,255,0.16)";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(game.table.left + 22, 410);
+    context.lineTo(310, 510);
+    context.moveTo(game.table.right - 22, 410);
+    context.lineTo(650, 510);
     context.stroke();
     game.bumpers.forEach((bumper) => {
       const isTarget = game.bumpers[game.targetBumper] === bumper;
@@ -3515,13 +3547,13 @@
     context.fillStyle = "#34d6ff";
     context.save();
     context.translate(375, 462);
-    context.rotate(game.lastFlip < 0 ? -0.18 : 0);
+    context.rotate(-0.14 - game.leftFlip * 0.42);
     roundedRect(context, -75, -9, 150, 18, 9);
     context.fill();
     context.restore();
     context.save();
     context.translate(585, 462);
-    context.rotate(game.lastFlip > 0 ? 0.18 : 0);
+    context.rotate(0.14 + game.rightFlip * 0.42);
     roundedRect(context, -75, -9, 150, 18, 9);
     context.fill();
     context.restore();
