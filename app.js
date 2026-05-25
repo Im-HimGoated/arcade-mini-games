@@ -281,11 +281,11 @@
     {
       id: "dodger",
       title: "Neon Dodger",
-      subtitle: "Drift through falling voltage",
-      hook: "Collect charge cells, graze hazards, and chain shields through an accelerating storm.",
-      rules: "Survive a 60-second voltage storm. Close calls and pickups build combo, but direct hits burn lives.",
-      controls: "Move with the directional keys. Hold Action to boost through tight openings.",
-      strategy: "Graze hazards when you have room, then cash in the combo on charge and shield pickups.",
+      subtitle: "Seal city rifts during a voltage storm",
+      hook: "Collect energy cells, dodge falling voltage, and spend stored power to seal unstable rifts before they flood the skyline.",
+      rules: "Survive the storm while sealing rifts. Energy cells power seals, shields block one hit, and direct voltage burns lives.",
+      controls: "Move with the directional keys. Hold Action to boost; press it near a rift with energy to seal it.",
+      strategy: "Gather two energy cells before chasing a rift. Boost in short bursts so you do not overshoot the seal window.",
       tag: "Survival",
       accent: "#ff3d81",
       glow: "rgba(255, 61, 129, 0.7)",
@@ -398,11 +398,11 @@
     {
       id: "snake",
       title: "Byte Snake",
-      subtitle: "Data-heist snake with banking",
-      hook: "Steal packets, carry a growing cache, and deliver it to uplink zones before firewall nodes box you in.",
-      rules: "Packets add cache and length. Banking at an uplink scores the cache and trims your trail. Walls, firewalls, or your own trail end the run.",
-      controls: "Use the directional keys to steer. Action drops a decoy packet if your cache is loaded.",
-      strategy: "Bank after two or three packets when the board is tight. Greedy caches score more, but they make every turn dangerous.",
+      subtitle: "Contract heists with extraction portals",
+      hook: "Steal packets, upload enough cache to satisfy each contract, then escape through the exit portal before firewalls trap your trail.",
+      rules: "Packets add cache and length. Uplinks bank cache toward the contract quota. Finish the quota to open an exit portal.",
+      controls: "Use the directional keys to steer. Action spends cache to scrub nearby firewall traces.",
+      strategy: "Upload in batches, then route toward extraction. Long snakes score well, but short trails make portals reachable.",
       tag: "Survival",
       accent: "#58f29f",
       glow: "rgba(88, 242, 159, 0.7)",
@@ -485,6 +485,58 @@
       accent: "#93c5fd",
       glow: "rgba(147, 197, 253, 0.72)",
       background: "linear-gradient(135deg, #0c1228, #1f1d3f 58%, #102b3a)",
+    },
+    {
+      id: "lunar",
+      title: "Lunar Dock",
+      subtitle: "Soft-land a twitchy moon pod",
+      hook: "Feather your thrusters, fight sideways drift, and touch down on moving landing pads without smashing the pod.",
+      rules: "Land gently on the bright pad. Crashing costs a hull point; clean docks reload a harder approach.",
+      controls: "Left/Right steer side thrusters. Hold Action or Up for main thrust.",
+      strategy: "Kill sideways speed first, then slow the fall. A perfect landing is boring in the best possible way.",
+      tag: "Precision",
+      accent: "#a3e635",
+      glow: "rgba(163, 230, 53, 0.72)",
+      background: "linear-gradient(135deg, #142017, #10253c 58%, #22142e)",
+    },
+    {
+      id: "repair",
+      title: "Circuit Repair",
+      subtitle: "Patch bad nodes before overload",
+      hook: "Jump around a 3x3 control board, repair sparking nodes, and avoid fake red traps as the circuit speeds up.",
+      rules: "Repair blue and gold faults before they expire. Hitting trap nodes or missing faults damages the board.",
+      controls: "Move the cursor with the directional keys. Press Action to repair the selected node.",
+      strategy: "Gold nodes buy breathing room. Traps look tempting, but they reset your combo.",
+      tag: "Reflex",
+      accent: "#22d3ee",
+      glow: "rgba(34, 211, 238, 0.72)",
+      background: "linear-gradient(135deg, #061f25, #172243 58%, #23182f)",
+    },
+    {
+      id: "cipher",
+      title: "Cipher Dials",
+      subtitle: "Align rotating code wheels under pressure",
+      hook: "Rotate three symbol dials to match the target code before the terminal corrupts. It is a quick puzzle, not another dodge run.",
+      rules: "Match all three dial symbols to the target and press Action. Failed submits and expired timers add corruption.",
+      controls: "Up/Down choose a dial. Left/Right rotate it. Press Action to submit the code.",
+      strategy: "Solve the dial with the farthest symbol first, then clean up the close ones before submitting.",
+      tag: "Puzzle",
+      accent: "#f472b6",
+      glow: "rgba(244, 114, 182, 0.72)",
+      background: "linear-gradient(135deg, #301026, #112a3d 58%, #241a43)",
+    },
+    {
+      id: "orbitguard",
+      title: "Orbit Guard",
+      subtitle: "Spin a shield around the core",
+      hook: "Rotate a shield ring, block incoming meteors, and keep the neon core alive through converging attack waves.",
+      rules: "Meteors fly toward the center. Block them with the shield arc; five impacts overload the core.",
+      controls: "Hold Left/Right to rotate the shield. Hold Action for a quick shield sweep.",
+      strategy: "Move early, then stop. The shield is wide, but over-rotating opens the opposite side.",
+      tag: "Survival",
+      accent: "#60a5fa",
+      glow: "rgba(96, 165, 250, 0.72)",
+      background: "linear-gradient(135deg, #081733, #21163a 58%, #10251c)",
     },
   ];
 
@@ -1205,6 +1257,10 @@
       keeper: "SAVE",
       memory: "PAIR",
       asteroids: "ORE",
+      lunar: "LAND",
+      repair: "FIX",
+      cipher: "DIAL",
+      orbitguard: "ORBIT",
     };
     return symbols[id] || "PLAY";
   }
@@ -1889,6 +1945,10 @@
     if (definition.id === "keeper") return createKeeper(base);
     if (definition.id === "memory") return createMemoryMatch(base);
     if (definition.id === "asteroids") return createAsteroids(base);
+    if (definition.id === "lunar") return createLunarDock(base);
+    if (definition.id === "repair") return createCircuitRepair(base);
+    if (definition.id === "cipher") return createCipherChain(base);
+    if (definition.id === "orbitguard") return createOrbitGuard(base);
     return createRunner(base);
   }
 
@@ -2029,19 +2089,25 @@
       player: { x: 480, y: 462, size: 34, speed: 330, shield: 0 },
       hazards: [],
       charges: [],
+      rifts: [],
       spawn: 0,
       chargeSpawn: 1.4,
+      riftSpawn: 2.2,
       lives: 3,
+      energy: 0,
+      sealed: 0,
+      actionWasDown: false,
       update(delta) {
         this.updateTimer(delta);
         if (this.over) return;
         const direction = Number(actionPressed("right")) - Number(actionPressed("left"));
         const vertical = Number(actionPressed("down")) - Number(actionPressed("up"));
-        const boost = actionPressed("action") ? 1.5 : 1;
+        const action = actionPressed("action");
+        const boost = action ? 1.5 : 1;
         this.player.x += direction * this.player.speed * boost * delta;
         this.player.y += vertical * this.player.speed * 0.72 * delta;
         this.player.x = clamp(this.player.x, 28, gameCanvas.width - 28);
-        this.player.y = clamp(this.player.y, gameCanvas.height * 0.48, gameCanvas.height - 32);
+        this.player.y = clamp(this.player.y, gameCanvas.height * 0.34, gameCanvas.height - 32);
         this.player.shield = Math.max(0, this.player.shield - delta);
 
         this.spawn -= delta;
@@ -2063,13 +2129,26 @@
 
         this.chargeSpawn -= delta;
         if (this.chargeSpawn <= 0) {
-          this.chargeSpawn = random(2.6, 4.4);
+          this.chargeSpawn = random(1.7, 3.1);
           this.charges.push({
             x: random(40, gameCanvas.width - 40),
             y: -30,
             r: 13,
             speed: 130 + this.level * 18,
             shield: Math.random() < 0.28,
+          });
+        }
+
+        this.riftSpawn -= delta;
+        if (this.riftSpawn <= 0) {
+          this.riftSpawn = Math.max(2.7, random(5.1, 7.3) - this.level * 0.12);
+          this.rifts.push({
+            x: random(90, gameCanvas.width - 90),
+            y: random(118, 330),
+            r: random(36, 52),
+            timer: Math.max(4.2, 8.2 - this.level * 0.28),
+            max: Math.max(4.2, 8.2 - this.level * 0.28),
+            pulse: random(0, Math.PI * 2),
           });
         }
 
@@ -2080,8 +2159,44 @@
         this.charges.forEach((charge) => {
           charge.y += charge.speed * delta;
         });
+        this.rifts.forEach((rift) => {
+          rift.timer -= delta;
+          rift.pulse += delta * 4;
+          if (rift.timer <= 0 && !rift.burst) {
+            rift.burst = true;
+            this.flash = 0.15;
+            this.breakCombo();
+            for (let i = 0; i < 5; i += 1) {
+              this.hazards.push({
+                x: rift.x + random(-36, 36),
+                y: rift.y + random(-18, 18),
+                r: random(14, 24 + this.level),
+                speed: random(170, 240) + this.level * 24,
+                wobble: random(0.8, 1.8),
+                phase: random(0, Math.PI * 2),
+                grazed: false,
+              });
+            }
+            audio.sfx("danger");
+          }
+        });
         this.hazards = this.hazards.filter((hazard) => hazard.y < gameCanvas.height + 40);
         this.charges = this.charges.filter((charge) => charge.y < gameCanvas.height + 40);
+        this.rifts = this.rifts.filter((rift) => !rift.sealed && rift.timer > -0.4);
+
+        if (action && !this.actionWasDown && this.energy >= 2) {
+          const rift = this.rifts.find((item) => distance(item.x, item.y, this.player.x, this.player.y) < item.r + this.player.size * 1.65);
+          if (rift) {
+            rift.sealed = true;
+            this.energy -= 2;
+            this.sealed += 1;
+            this.pushCombo(2);
+            this.addScore(150 + this.level * 12 + Math.floor(rift.timer * 10), rift.x, rift.y, "Rift sealed");
+            this.burst(rift.x, rift.y, "#58f29f", 24);
+            audio.sfx("coin");
+          }
+        }
+        this.actionWasDown = action;
 
         for (const hazard of this.hazards) {
           const gap = distance(hazard.x, hazard.y, this.player.x, this.player.y);
@@ -2112,20 +2227,23 @@
             charge.y = gameCanvas.height + 80;
             this.pushCombo(charge.shield ? 2 : 1);
             if (charge.shield) this.player.shield = 5;
+            else this.energy = Math.min(6, this.energy + 1);
             this.addScore(charge.shield ? 45 : 24, charge.x, charge.y, charge.shield ? "Shield" : "Charge");
             this.burst(charge.x, charge.y, charge.shield ? "#58f29f" : "#34d6ff", 14);
             audio.beep(charge.shield ? 860 : 680, 0.06, "triangle");
           }
         }
-        this.score += delta * (15 + this.level * 3);
+        this.score += delta * (13 + this.level * 3 + this.sealed * 0.8);
       },
       draw(context) {
-        this.drawBase(context);
+        drawDodgerCity(context, this);
         drawBadge(context, `Lives ${this.lives}`, 24, 34, "#ffd166");
-        if (this.player.shield > 0) drawBadge(context, `Shield ${Math.ceil(this.player.shield)}`, 140, 34, "#58f29f");
-        this.charges.forEach((charge) => drawOrb(context, charge.x, charge.y, charge.r, charge.shield ? "#58f29f" : "#34d6ff"));
-        this.hazards.forEach((hazard) => drawShard(context, hazard.x, hazard.y, hazard.r, this.elapsed));
-        drawShip(context, this.player.x, this.player.y, this.player.size, this.player.shield > 0);
+        drawBadge(context, `Energy ${this.energy}/6`, 140, 34, "#34d6ff");
+        drawBadge(context, `Sealed ${this.sealed}`, 276, 34, "#58f29f");
+        this.rifts.forEach((rift) => drawRift(context, rift));
+        this.charges.forEach((charge) => drawEnergyCell(context, charge.x, charge.y, charge.r, charge.shield));
+        this.hazards.forEach((hazard) => drawVoltageShard(context, hazard.x, hazard.y, hazard.r, this.elapsed));
+        drawRescueShip(context, this.player.x, this.player.y, this.player.size, this.player.shield > 0, this.energy);
         this.drawEffects(context);
         if (this.flash) {
           context.fillStyle = `rgba(255, 91, 91, ${this.flash * 2})`;
@@ -2456,6 +2574,7 @@
       roundMessage: "Your move",
       resetTimer: 0,
       aiDelay: 0,
+      inputGrace: 0,
       moveWasDown: false,
       actionWasDown: false,
       update(delta) {
@@ -2464,6 +2583,13 @@
         if (this.resetTimer > 0) {
           this.resetTimer -= delta;
           if (this.resetTimer <= 0) this.resetBoard();
+          return;
+        }
+
+        if (this.inputGrace > 0) {
+          this.inputGrace = Math.max(0, this.inputGrace - delta);
+          this.actionWasDown = actionPressed("action");
+          this.moveWasDown = actionPressed("left") || actionPressed("right") || actionPressed("up") || actionPressed("down");
           return;
         }
 
@@ -2498,12 +2624,15 @@
           audio.beep(620, 0.05, "square");
           this.resolveBoard();
           if (!this.resetTimer && !this.over) {
-            this.playerTurn = false;
-            this.aiDelay = Math.max(0.18, 0.42 - this.level * 0.015);
-            this.roundMessage = "Bot thinking";
+            this.startBotTurn();
           }
         }
         this.actionWasDown = actionDown;
+      },
+      startBotTurn() {
+        this.playerTurn = false;
+        this.aiDelay = Math.max(0.18, 0.42 - this.level * 0.015);
+        this.roundMessage = "Bot thinking";
       },
       aiMove() {
         const empty = this.board.map((value, index) => (value ? null : index)).filter((value) => value !== null);
@@ -2550,8 +2679,9 @@
         this.cursor = 4;
         this.playerTurn = true;
         this.aiDelay = 0;
-        this.moveWasDown = false;
-        this.actionWasDown = false;
+        this.inputGrace = 0.22;
+        this.moveWasDown = actionPressed("left") || actionPressed("right") || actionPressed("up") || actionPressed("down");
+        this.actionWasDown = actionPressed("action");
         this.roundMessage = "Your move";
       },
       draw(context) {
@@ -2926,11 +3056,15 @@
       nextDir: { x: 1, y: 0 },
       pellet: { x: 16, y: 7, type: "packet" },
       uplink: { x: 20, y: 11 },
+      exit: null,
       firewalls: [],
       stepTimer: 0,
       input: { action: false },
       cache: 0,
       delivered: 0,
+      contract: 6,
+      contractBanked: 0,
+      contracts: 0,
       decoys: 2,
       update(delta) {
         this.updateTimer(delta);
@@ -2940,10 +3074,12 @@
         const action = actionPressed("action");
         if (action && !this.input.action && this.cache >= 2 && this.decoys > 0) {
           const tail = this.snake[this.snake.length - 1];
-          this.firewalls = this.firewalls.filter((wall) => distance(wall.x, wall.y, tail.x, tail.y) > 2.1);
+          const before = this.firewalls.length;
+          this.firewalls = this.firewalls.filter((wall) => distance(wall.x, wall.y, tail.x, tail.y) > 2.25);
           this.cache -= 1;
           this.decoys -= 1;
-          this.addScore(18, gameCanvas.width / 2, 96, "Decoy");
+          this.addScore(before > this.firewalls.length ? 42 : 18, gameCanvas.width / 2, 96, "Trace scrub");
+          this.burst(480, 270, "#ffd166", 10);
           audio.beep(540, 0.04, "triangle");
         }
         this.input.action = action;
@@ -2969,11 +3105,11 @@
             this.cache += this.pellet.type === "key" ? 2 : 1;
             this.pushCombo();
             this.addScore(this.pellet.type === "key" ? 68 : 36, gameCanvas.width / 2, 94, this.pellet.type === "key" ? "Key" : "Packet");
-            this.pellet = makeSnakePellet(this.cols, this.rows, this.snake, [...this.firewalls, this.uplink]);
+            this.pellet = makeSnakePellet(this.cols, this.rows, this.snake, [...this.firewalls, this.uplink, this.exit].filter(Boolean));
             this.pellet.type = Math.random() < 0.18 ? "key" : "packet";
             grow = true;
             if (this.cache >= 3 && Math.random() < 0.55) {
-              const firewall = makeSnakePellet(this.cols, this.rows, this.snake, [this.pellet, this.uplink, ...this.firewalls]);
+              const firewall = makeSnakePellet(this.cols, this.rows, this.snake, [this.pellet, this.uplink, this.exit, ...this.firewalls].filter(Boolean));
               this.firewalls.push(firewall);
               this.firewalls = this.firewalls.slice(-Math.min(10, 3 + this.level));
             }
@@ -2983,13 +3119,34 @@
           if (nextHead.x === this.uplink.x && nextHead.y === this.uplink.y && this.cache > 0) {
             const banked = this.cache;
             this.delivered += banked;
+            this.contractBanked = Math.min(this.contract, this.contractBanked + banked);
             this.addScore(85 * banked + this.level * 12, gameCanvas.width / 2, 126, "Upload");
             this.cache = 0;
             this.decoys = Math.min(3, this.decoys + 1);
             this.snake = this.snake.slice(0, Math.max(3, this.snake.length - Math.max(1, banked)));
-            this.uplink = makeSnakePellet(this.cols, this.rows, this.snake, [this.pellet, ...this.firewalls]);
+            if (this.contractBanked >= this.contract && !this.exit) {
+              this.exit = makeSnakePellet(this.cols, this.rows, this.snake, [this.pellet, this.uplink, ...this.firewalls]);
+              this.addScore(120 + this.level * 10, gameCanvas.width / 2, 162, "Exit open");
+              audio.sfx("bank");
+            } else {
+              this.uplink = makeSnakePellet(this.cols, this.rows, this.snake, [this.pellet, this.exit, ...this.firewalls].filter(Boolean));
+            }
             this.burst(480, 270, "#34d6ff", 18);
             audio.beep(940, 0.06, "square");
+          }
+          if (this.exit && nextHead.x === this.exit.x && nextHead.y === this.exit.y) {
+            this.contracts += 1;
+            this.pushCombo(3);
+            this.addScore(360 + this.contract * 22 + this.level * 20, gameCanvas.width / 2, 142, "Contract");
+            this.contract = Math.min(14, 6 + this.contracts * 2 + Math.floor(this.level / 2));
+            this.contractBanked = 0;
+            this.exit = null;
+            this.cache = 0;
+            this.decoys = Math.min(3, this.decoys + 1);
+            this.firewalls = this.firewalls.slice(-Math.max(1, Math.floor(this.firewalls.length * 0.55)));
+            this.uplink = makeSnakePellet(this.cols, this.rows, this.snake, [this.pellet, ...this.firewalls]);
+            this.burst(480, 270, "#58f29f", 26);
+            audio.sfx("coin");
           }
           if (!grow) {
             this.snake.pop();
@@ -2998,10 +3155,10 @@
         this.score += delta * (6 + this.level + this.cache * 0.8);
       },
       draw(context) {
-        this.drawBase(context);
+        drawDataVaultScene(context, this);
         drawBadge(context, `Cache ${this.cache}`, 24, 34, "#58f29f");
-        drawBadge(context, `Uploaded ${this.delivered}`, 142, 34, "#34d6ff");
-        drawBadge(context, `Decoys ${this.decoys}`, 306, 34, "#ffd166");
+        drawBadge(context, `Quota ${this.contractBanked}/${this.contract}`, 142, 34, "#34d6ff");
+        drawBadge(context, `Runs ${this.contracts}`, 306, 34, "#ffd166");
         drawSnakeBoard(context, this);
         this.drawEffects(context);
         this.drawEnd(context, this.timeLeft <= 0 ? "Data Escaped" : "Trace Caught");
@@ -3119,18 +3276,35 @@
         const rightWall = this.table.right - this.ball.r;
         if (this.ball.x < leftWall) {
           this.ball.x = leftWall;
-          this.ball.vx = Math.abs(this.ball.vx) * 0.94;
+          this.ball.vx = Math.max(150, Math.abs(this.ball.vx) * 0.96);
           audio.beep(260, 0.025, "triangle");
         }
         if (this.ball.x > rightWall) {
           this.ball.x = rightWall;
-          this.ball.vx = -Math.abs(this.ball.vx) * 0.94;
+          this.ball.vx = -Math.max(150, Math.abs(this.ball.vx) * 0.96);
           audio.beep(260, 0.025, "triangle");
         }
         if (this.ball.y < this.table.top + this.ball.r) {
           this.ball.y = this.table.top + this.ball.r;
-          this.ball.vy = Math.abs(this.ball.vy);
+          this.ball.vy = Math.max(180, Math.abs(this.ball.vy) * 0.96);
           audio.beep(320, 0.025, "triangle");
+        }
+        if (this.ball.y > 410 && this.ball.y < this.table.drain) {
+          const railProgress = clamp((this.ball.y - 410) / (this.table.drain - 410), 0, 1);
+          const leftRail = this.table.left + 22 + railProgress * 118 + this.ball.r;
+          const rightRail = this.table.right - 22 - railProgress * 118 - this.ball.r;
+          if (this.ball.x < leftRail) {
+            this.ball.x = leftRail;
+            this.ball.vx = Math.max(190, Math.abs(this.ball.vx) * 0.9);
+            this.ball.vy = Math.min(this.ball.vy, 120) - 90;
+            audio.beep(300, 0.025, "triangle");
+          }
+          if (this.ball.x > rightRail) {
+            this.ball.x = rightRail;
+            this.ball.vx = -Math.max(190, Math.abs(this.ball.vx) * 0.9);
+            this.ball.vy = Math.min(this.ball.vy, 120) - 90;
+            audio.beep(300, 0.025, "triangle");
+          }
         }
         const leftHit = left && this.ball.x < 480 && this.ball.y > 416 && this.ball.y < 498 && this.ball.vy > -90;
         const rightHit = right && this.ball.x >= 480 && this.ball.y > 416 && this.ball.y < 498 && this.ball.vy > -90;
@@ -3568,6 +3742,303 @@
     };
   }
 
+  function createLunarDock(base) {
+    return {
+      ...base,
+      pod: { x: 480, y: 92, vx: random(-32, 32), vy: 0, angle: 0 },
+      pad: { x: random(250, 710), w: 150, vx: random(-32, 32) },
+      fuel: 100,
+      hull: 3,
+      docks: 0,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const thrust = actionPressed("action") || actionPressed("up");
+        const steer = Number(actionPressed("right")) - Number(actionPressed("left"));
+        this.fuel = Math.max(0, this.fuel - (thrust ? 10 : 0) * delta - Math.abs(steer) * 3 * delta);
+        const fuelLive = this.fuel > 0;
+        this.pod.vx += steer * (fuelLive ? 120 : 42) * delta;
+        this.pod.vy += (145 + this.level * 5) * delta;
+        if (thrust && fuelLive) this.pod.vy -= 260 * delta;
+        this.pod.x += this.pod.vx * delta;
+        this.pod.y += this.pod.vy * delta;
+        this.pod.angle = clamp(this.pod.vx / 240, -0.45, 0.45);
+        this.pad.x += this.pad.vx * delta;
+        if (this.pad.x < 180 || this.pad.x > gameCanvas.width - 180) this.pad.vx *= -1;
+        if (this.pod.x < 30 || this.pod.x > gameCanvas.width - 30) {
+          this.pod.x = clamp(this.pod.x, 30, gameCanvas.width - 30);
+          this.pod.vx *= -0.52;
+        }
+        if (this.pod.y > 438) {
+          const landed = Math.abs(this.pod.x - this.pad.x) < this.pad.w / 2 && Math.abs(this.pod.vx) < 70 && this.pod.vy < 118;
+          if (landed) {
+            this.docks += 1;
+            this.pushCombo(2);
+            this.addScore(220 + this.level * 20 + Math.floor(this.fuel), this.pod.x, this.pod.y - 45, "Dock");
+            this.burst(this.pod.x, this.pod.y, "#a3e635", 22);
+            this.pod = { x: random(250, 710), y: 86, vx: random(-42, 42), vy: 0, angle: 0 };
+            this.pad = { x: random(250, 710), w: Math.max(82, 150 - this.level * 5), vx: random(-42, 42) };
+            this.fuel = Math.min(100, 74 + this.docks * 4);
+            audio.sfx("coin");
+          } else {
+            this.hull -= 1;
+            this.breakCombo();
+            this.burst(this.pod.x, this.pod.y, "#ff5b5b", 24);
+            this.pod = { x: 480, y: 92, vx: random(-36, 36), vy: 0, angle: 0 };
+            this.fuel = 100;
+            audio.sfx("danger");
+            if (this.hull <= 0) this.finish();
+          }
+        }
+        this.score += delta * (5 + this.level + this.docks * 0.8);
+      },
+      draw(context) {
+        drawLunarDock(context, this);
+        drawBadge(context, `Hull ${this.hull}`, 24, 34, "#a3e635");
+        drawBadge(context, `Fuel ${Math.floor(this.fuel)}%`, 138, 34, "#ffd166");
+        drawBadge(context, `Docks ${this.docks}`, 284, 34, "#34d6ff");
+        this.drawEffects(context);
+        this.drawEnd(context, this.hull <= 0 ? "Pod Lost" : "Docking Complete");
+      },
+    };
+  }
+
+  function createCircuitRepair(base) {
+    return {
+      ...base,
+      cursor: 4,
+      nodes: Array(9).fill(null),
+      spawn: 0.45,
+      repairs: 0,
+      damage: 0,
+      moveWasDown: false,
+      actionWasDown: false,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const horizontal = Number(actionPressed("right")) - Number(actionPressed("left"));
+        const vertical = Number(actionPressed("down")) - Number(actionPressed("up"));
+        const moving = horizontal || vertical;
+        if (moving && !this.moveWasDown) {
+          const row = Math.floor(this.cursor / 3);
+          const col = this.cursor % 3;
+          this.cursor = clamp(row + vertical, 0, 2) * 3 + clamp(col + horizontal, 0, 2);
+          audio.beep(360, 0.025, "triangle");
+        }
+        this.moveWasDown = Boolean(moving);
+        this.nodes = this.nodes.map((node) => {
+          if (!node) return null;
+          node.life -= delta;
+          node.pulse += delta * 7;
+          if (node.life > 0) return node;
+          if (node.type !== "trap") {
+            this.damage += 1;
+            this.breakCombo();
+            audio.sfx("danger");
+            if (this.damage >= 5) this.finish();
+          }
+          return null;
+        });
+        this.spawn -= delta;
+        if (this.spawn <= 0) {
+          this.spawn = Math.max(0.34, random(0.92, 1.35) - this.level * 0.045);
+          const empty = this.nodes.map((node, index) => (node ? null : index)).filter((index) => index !== null);
+          if (empty.length) {
+            const index = empty[Math.floor(random(0, empty.length))];
+            const roll = Math.random();
+            const life = roll > 0.82 ? 2.6 : Math.max(1.15, 2.9 - this.level * 0.09);
+            this.nodes[index] = { type: roll > 0.82 ? "trap" : roll > 0.64 ? "gold" : "fault", life, max: life, pulse: 0 };
+          }
+        }
+        const action = actionPressed("action");
+        if (action && !this.actionWasDown) {
+          const node = this.nodes[this.cursor];
+          if (!node) {
+            this.score = Math.max(0, this.score - 4);
+            audio.beep(160, 0.04, "triangle");
+          } else if (node.type === "trap") {
+            this.damage += 1;
+            this.nodes[this.cursor] = null;
+            this.breakCombo();
+            const center = cellCenter(this.cursor);
+            this.burst(center.x, center.y, "#ff5b5b", 18);
+            audio.sfx("danger");
+            if (this.damage >= 5) this.finish();
+          } else {
+            this.repairs += 1;
+            this.pushCombo(node.type === "gold" ? 2 : 1);
+            this.addScore(node.type === "gold" ? 115 + this.level * 9 : 62 + this.level * 6, cellCenter(this.cursor).x, cellCenter(this.cursor).y, node.type === "gold" ? "Overclock" : "Repair");
+            this.burst(cellCenter(this.cursor).x, cellCenter(this.cursor).y, node.type === "gold" ? "#ffd166" : "#22d3ee", 16);
+            this.nodes[this.cursor] = null;
+            audio.sfx("coin");
+          }
+        }
+        this.actionWasDown = action;
+        this.score += delta * (7 + this.level + this.repairs * 0.06);
+      },
+      draw(context) {
+        this.drawBase(context);
+        drawBadge(context, `Fix ${this.repairs}`, 24, 34, "#22d3ee");
+        drawBadge(context, `Damage ${this.damage}/5`, 140, 34, "#ff5b5b");
+        drawRepairGrid(context, this);
+        this.drawEffects(context);
+        this.drawEnd(context, this.damage >= 5 ? "Circuit Burned" : "Board Stable");
+      },
+    };
+  }
+
+  function createCipherChain(base) {
+    return {
+      ...base,
+      symbols: ["◆", "▲", "●", "■", "✦", "⌁", "◇", "✕"],
+      dials: [0, 2, 5],
+      target: [3, 6, 1],
+      activeDial: 0,
+      corrupt: 0,
+      solves: 0,
+      solveTimer: 9,
+      maxSolveTimer: 9,
+      codeReady: false,
+      moveWasDown: false,
+      actionWasDown: false,
+      resetCode(success = false) {
+        const size = this.symbols.length;
+        this.target = this.dials.map(() => Math.floor(random(0, size)));
+        this.dials = this.target.map((target) => (target + Math.floor(random(2, size - 1))) % size);
+        this.maxSolveTimer = Math.max(4.2, 9 - this.level * 0.22 - this.solves * 0.08);
+        this.solveTimer = this.maxSolveTimer;
+        this.codeReady = true;
+        if (success) {
+          this.burst(480, 270, "#f472b6", 28);
+          audio.sfx("coin");
+        }
+      },
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        if (!this.codeReady) this.resetCode();
+        this.solveTimer -= delta;
+        if (this.solveTimer <= 0) {
+          this.corrupt += 1;
+          this.breakCombo();
+          this.flash = 0.18;
+          audio.sfx("danger");
+          this.resetCode();
+          if (this.corrupt >= 4) this.finish();
+        }
+
+        const vertical = Number(actionPressed("down")) - Number(actionPressed("up"));
+        const horizontal = Number(actionPressed("right")) - Number(actionPressed("left"));
+        const moving = vertical || horizontal;
+        if (moving && !this.moveWasDown) {
+          if (vertical) {
+            this.activeDial = clamp(this.activeDial + vertical, 0, 2);
+            audio.beep(360 + this.activeDial * 80, 0.025, "triangle");
+          }
+          if (horizontal) {
+            const size = this.symbols.length;
+            this.dials[this.activeDial] = (this.dials[this.activeDial] + horizontal + size) % size;
+            audio.beep(560 + this.dials[this.activeDial] * 18, 0.025, "triangle");
+          }
+        }
+        this.moveWasDown = Boolean(moving);
+
+        const action = actionPressed("action");
+        if (action && !this.actionWasDown) {
+          const solved = this.dials.every((value, index) => value === this.target[index]);
+          if (solved) {
+            this.solves += 1;
+            this.pushCombo(2);
+            this.addScore(210 + this.level * 18 + Math.floor(this.solveTimer * 18), 480, 142, "Decrypt");
+            this.resetCode(true);
+          } else {
+            this.corrupt += 1;
+            this.breakCombo();
+            this.flash = 0.16;
+            audio.sfx("danger");
+            if (this.corrupt >= 4) this.finish();
+          }
+        }
+        this.actionWasDown = action;
+        this.score += delta * (6 + this.level + this.solves * 0.8);
+      },
+      draw(context) {
+        drawCipherChain(context, this);
+        drawBadge(context, `Solved ${this.solves}`, 24, 34, "#f472b6");
+        drawBadge(context, `Corrupt ${this.corrupt}/4`, 162, 34, "#ff5b5b");
+        drawBadge(context, `${Math.ceil(this.solveTimer)}s`, 322, 34, "#ffd166");
+        this.drawEffects(context);
+        if (this.flash) {
+          context.fillStyle = `rgba(255, 91, 91, ${this.flash * 2})`;
+          context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+        }
+        this.drawEnd(context, this.corrupt >= 4 ? "Cipher Locked" : "Code Solved");
+      },
+    };
+  }
+
+  function createOrbitGuard(base) {
+    return {
+      ...base,
+      shield: 0,
+      meteors: [],
+      spawn: 0.75,
+      core: 5,
+      blocks: 0,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const turn = Number(actionPressed("right")) - Number(actionPressed("left"));
+        this.shield += turn * (2.8 + this.level * 0.06) * delta;
+        if (actionPressed("action")) this.shield += 1.7 * delta;
+        this.spawn -= delta;
+        if (this.spawn <= 0) {
+          this.spawn = Math.max(0.24, random(0.72, 1.1) - this.level * 0.045);
+          const angle = random(0, Math.PI * 2);
+          this.meteors.push({ angle, dist: 360, speed: random(82, 118) + this.level * 9, r: random(9, 16), spin: random(-2, 2) });
+        }
+        this.meteors.forEach((meteor) => {
+          meteor.dist -= meteor.speed * delta;
+          meteor.angle += meteor.spin * 0.06 * delta;
+        });
+        for (const meteor of this.meteors) {
+          if (meteor.hit) continue;
+          if (meteor.dist < 96) {
+            const gap = angularDistance(meteor.angle, this.shield);
+            if (gap < 0.48) {
+              meteor.hit = true;
+              this.blocks += 1;
+              this.pushCombo();
+              this.addScore(70 + this.level * 7, 480 + Math.cos(meteor.angle) * 92, 270 + Math.sin(meteor.angle) * 92, "Block");
+              this.burst(480 + Math.cos(meteor.angle) * 98, 270 + Math.sin(meteor.angle) * 98, "#60a5fa", 14);
+              audio.beep(820, 0.035, "square");
+            } else if (meteor.dist < 34) {
+              meteor.hit = true;
+              this.core -= 1;
+              this.breakCombo();
+              this.flash = 0.18;
+              audio.sfx("danger");
+              if (this.core <= 0) this.finish();
+            }
+          }
+        }
+        this.meteors = this.meteors.filter((meteor) => !meteor.hit && meteor.dist > 20);
+        this.score += delta * (10 + this.level + this.blocks * 0.12);
+      },
+      draw(context) {
+        drawOrbitGuard(context, this);
+        drawBadge(context, `Core ${this.core}/5`, 24, 34, "#60a5fa");
+        drawBadge(context, `Blocks ${this.blocks}`, 150, 34, "#ffd166");
+        this.drawEffects(context);
+        if (this.flash) {
+          context.fillStyle = `rgba(255, 91, 91, ${this.flash * 2})`;
+          context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+        }
+        this.drawEnd(context, this.core <= 0 ? "Core Down" : "Orbit Held");
+      },
+    };
+  }
+
   function drawPinballTable(context, game) {
     context.save();
     context.fillStyle = "rgba(10, 12, 20, 0.78)";
@@ -3864,6 +4335,185 @@
     context.lineTo(-24, 24);
     context.closePath();
     context.fill();
+    context.restore();
+  }
+
+  function drawLunarDock(context, game) {
+    drawSpaceScene(context, game.elapsed);
+    context.save();
+    context.fillStyle = "rgba(163, 230, 53, 0.14)";
+    context.strokeStyle = "#a3e635";
+    context.lineWidth = 4;
+    roundedRect(context, game.pad.x - game.pad.w / 2, 454, game.pad.w, 16, 8);
+    context.fill();
+    context.stroke();
+    context.fillStyle = "rgba(255,255,255,0.08)";
+    context.fillRect(0, 470, gameCanvas.width, 70);
+    context.strokeStyle = "rgba(255,255,255,0.14)";
+    for (let x = 0; x < gameCanvas.width; x += 72) {
+      context.beginPath();
+      context.moveTo(x, 470);
+      context.lineTo(x - 44, gameCanvas.height);
+      context.stroke();
+    }
+    context.translate(game.pod.x, game.pod.y);
+    context.rotate(game.pod.angle);
+    context.fillStyle = "#e5f7ff";
+    context.strokeStyle = "#34d6ff";
+    context.lineWidth = 3;
+    context.beginPath();
+    context.moveTo(0, -26);
+    context.lineTo(24, 24);
+    context.lineTo(-24, 24);
+    context.closePath();
+    context.fill();
+    context.stroke();
+    if ((actionPressed("action") || actionPressed("up")) && game.fuel > 0) {
+      context.fillStyle = "#ffd166";
+      context.beginPath();
+      context.moveTo(-10, 24);
+      context.lineTo(0, 48 + Math.sin(game.elapsed * 30) * 6);
+      context.lineTo(10, 24);
+      context.fill();
+    }
+    context.restore();
+    drawText(context, `VX ${Math.round(game.pod.vx)}  VY ${Math.round(game.pod.vy)}`, 480, 510, "#dff6ff", "800 17px system-ui", "center");
+  }
+
+  function drawRepairGrid(context, game) {
+    const size = 112;
+    const gap = 16;
+    const startX = gameCanvas.width / 2 - (size * 3 + gap * 2) / 2;
+    const startY = 126;
+    context.save();
+    for (let index = 0; index < 9; index += 1) {
+      const x = startX + (index % 3) * (size + gap);
+      const y = startY + Math.floor(index / 3) * (size + gap);
+      const node = game.nodes[index];
+      const color = node?.type === "gold" ? "#ffd166" : node?.type === "trap" ? "#ff5b5b" : "#22d3ee";
+      context.fillStyle = index === game.cursor ? "rgba(183,140,255,0.18)" : "rgba(6,7,15,0.64)";
+      context.strokeStyle = index === game.cursor ? "#b78cff" : "rgba(255,255,255,0.13)";
+      context.lineWidth = index === game.cursor ? 4 : 2;
+      roundedRect(context, x, y, size, size, 8);
+      context.fill();
+      context.stroke();
+      if (node) {
+        context.shadowColor = color;
+        context.shadowBlur = 20;
+        context.fillStyle = color;
+        context.beginPath();
+        context.arc(x + size / 2, y + size / 2, 20 + Math.sin(node.pulse) * 3, 0, Math.PI * 2);
+        context.fill();
+        context.shadowBlur = 0;
+        drawText(context, node.type === "trap" ? "!" : node.type === "gold" ? "$" : "+", x + size / 2, y + size / 2 + 7, "#08111f", "1000 26px system-ui", "center");
+        context.strokeStyle = color;
+        context.lineWidth = 5;
+        context.beginPath();
+        context.arc(x + size / 2, y + size / 2, 42, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * clamp(node.life / node.max, 0, 1));
+        context.stroke();
+      }
+    }
+    context.restore();
+  }
+
+  function drawCipherChain(context, game) {
+    const gradient = context.createLinearGradient(0, 0, 0, gameCanvas.height);
+    gradient.addColorStop(0, "#301026");
+    gradient.addColorStop(0.52, "#112a3d");
+    gradient.addColorStop(1, "#120a22");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+    context.save();
+    drawText(context, "TARGET CODE", 480, 92, "#ffd166", "900 18px system-ui", "center");
+    const targetStart = 390;
+    game.target.forEach((target, index) => {
+      const x = targetStart + index * 90;
+      context.fillStyle = "rgba(255,209,102,0.14)";
+      context.strokeStyle = "#ffd166";
+      context.lineWidth = 3;
+      roundedRect(context, x - 30, 112, 60, 60, 10);
+      context.fill();
+      context.stroke();
+      drawText(context, game.symbols[target], x, 153, "#ffffff", "1000 32px system-ui", "center");
+    });
+    const timerWidth = 360 * clamp(game.solveTimer / game.maxSolveTimer, 0, 1);
+    context.fillStyle = "rgba(255,255,255,0.1)";
+    roundedRect(context, 300, 188, 360, 12, 999);
+    context.fill();
+    context.fillStyle = game.solveTimer < 2 ? "#ff5b5b" : "#f472b6";
+    roundedRect(context, 300, 188, timerWidth, 12, 999);
+    context.fill();
+
+    const centers = [260, 480, 700];
+    centers.forEach((x, dialIndex) => {
+      const active = dialIndex === game.activeDial;
+      const value = game.dials[dialIndex];
+      context.save();
+      context.translate(x, 330);
+      context.strokeStyle = active ? "#f472b6" : "rgba(255,255,255,0.22)";
+      context.lineWidth = active ? 6 : 3;
+      context.shadowColor = active ? "#f472b6" : "transparent";
+      context.shadowBlur = active ? 24 : 0;
+      context.beginPath();
+      context.arc(0, 0, active ? 84 : 76, 0, Math.PI * 2);
+      context.stroke();
+      context.shadowBlur = 0;
+      game.symbols.forEach((symbol, symbolIndex) => {
+        const angle = ((symbolIndex - value) / game.symbols.length) * Math.PI * 2 - Math.PI / 2;
+        const sx = Math.cos(angle) * 58;
+        const sy = Math.sin(angle) * 58;
+        const selected = symbolIndex === value;
+        context.fillStyle = selected ? "#ffffff" : "rgba(214,222,255,0.55)";
+        drawText(context, symbol, sx, sy + 9, context.fillStyle, selected ? "1000 30px system-ui" : "900 18px system-ui", "center");
+      });
+      context.fillStyle = active ? "#f472b6" : "rgba(255,255,255,0.14)";
+      roundedRect(context, -40, -22, 80, 44, 10);
+      context.fill();
+      drawText(context, game.symbols[value], 0, 13, active ? "#18091f" : "#ffffff", "1000 30px system-ui", "center");
+      context.restore();
+      const locked = game.dials[dialIndex] === game.target[dialIndex];
+      drawText(context, locked ? "LOCKED" : `DIAL ${dialIndex + 1}`, x, 444, locked ? "#58f29f" : "#d6deff", "900 15px system-ui", "center");
+    });
+    drawText(context, "Up/Down selects a dial. Left/Right rotates. Action submits.", 480, 510, "#d6deff", "800 18px system-ui", "center");
+    context.restore();
+  }
+
+  function drawOrbitGuard(context, game) {
+    drawSpaceScene(context, game.elapsed);
+    const cx = 480;
+    const cy = 270;
+    context.save();
+    context.strokeStyle = "rgba(96,165,250,0.22)";
+    context.lineWidth = 3;
+    for (let r = 96; r <= 340; r += 62) {
+      context.beginPath();
+      context.arc(cx, cy, r, 0, Math.PI * 2);
+      context.stroke();
+    }
+    game.meteors.forEach((meteor) => {
+      const x = cx + Math.cos(meteor.angle) * meteor.dist;
+      const y = cy + Math.sin(meteor.angle) * meteor.dist;
+      context.fillStyle = "#ff8a3d";
+      context.shadowColor = "rgba(255,138,61,0.75)";
+      context.shadowBlur = 16;
+      context.beginPath();
+      context.arc(x, y, meteor.r, 0, Math.PI * 2);
+      context.fill();
+    });
+    context.shadowBlur = 0;
+    context.fillStyle = "#60a5fa";
+    context.shadowColor = "rgba(96,165,250,0.75)";
+    context.shadowBlur = 24;
+    context.beginPath();
+    context.arc(cx, cy, 34 + Math.sin(game.elapsed * 5) * 2, 0, Math.PI * 2);
+    context.fill();
+    context.shadowBlur = 0;
+    context.strokeStyle = "#e5f2ff";
+    context.lineWidth = 14;
+    context.lineCap = "round";
+    context.beginPath();
+    context.arc(cx, cy, 104, game.shield - 0.5, game.shield + 0.5);
+    context.stroke();
     context.restore();
   }
 
@@ -4224,21 +4874,40 @@
       row.forEach((value, x) => {
         const px = startX + x * (size + gap);
         const py = startY + y * (size + gap);
-        const hue = value ? Math.min(54, Math.log2(value) * 5) : 0;
-        context.fillStyle = value ? `hsl(${44 + hue}, 88%, ${Math.max(42, 70 - Math.log2(value) * 3)}%)` : "rgba(255,255,255,0.07)";
+        const tileStyle = tile2048Style(value);
+        context.fillStyle = tileStyle.fill;
         context.strokeStyle = value ? "rgba(255,255,255,0.58)" : "rgba(255,255,255,0.1)";
-        context.shadowColor = value ? "rgba(255,209,102,0.35)" : "transparent";
+        context.shadowColor = value ? tileStyle.glow : "transparent";
         context.shadowBlur = value ? 18 : 0;
         roundedRect(context, px, py, size, size, 8);
         context.fill();
         context.stroke();
         if (value) {
           context.shadowBlur = 0;
-          drawText(context, value.toString(), px + size / 2, py + size / 2 + 11, "#08111f", "900 30px system-ui", "center");
+          drawText(context, value.toString(), px + size / 2, py + size / 2 + 11, tileStyle.text, "900 30px system-ui", "center");
         }
       });
     });
     context.restore();
+  }
+
+  function tile2048Style(value) {
+    const styles = {
+      2: ["#7dd3fc", "rgba(125,211,252,0.45)", "#07131c"],
+      4: ["#5eead4", "rgba(94,234,212,0.45)", "#071915"],
+      8: ["#a7f3d0", "rgba(167,243,208,0.42)", "#082016"],
+      16: ["#f9a8d4", "rgba(249,168,212,0.44)", "#260817"],
+      32: ["#c4b5fd", "rgba(196,181,253,0.46)", "#130b2a"],
+      64: ["#fb7185", "rgba(251,113,133,0.5)", "#ffffff"],
+      128: ["#facc15", "rgba(250,204,21,0.5)", "#171306"],
+      256: ["#38bdf8", "rgba(56,189,248,0.54)", "#03141f"],
+      512: ["#4ade80", "rgba(74,222,128,0.54)", "#052012"],
+      1024: ["#f97316", "rgba(249,115,22,0.56)", "#ffffff"],
+      2048: ["#8b5cf6", "rgba(139,92,246,0.62)", "#ffffff"],
+    };
+    const fallback = ["#e879f9", "rgba(232,121,249,0.6)", "#ffffff"];
+    const [fill, glow, text] = styles[value] || fallback;
+    return { fill, glow, text };
   }
 
   function drawDriftScene(context, game) {
@@ -4491,13 +5160,38 @@
     const startX = gameCanvas.width / 2 - boardW / 2;
     const startY = 88;
     context.save();
-    context.fillStyle = "rgba(6, 7, 15, 0.68)";
-    context.strokeStyle = "rgba(88,242,159,0.36)";
+    context.fillStyle = "rgba(3, 10, 18, 0.88)";
+    context.strokeStyle = "rgba(88,242,159,0.54)";
     context.lineWidth = 3;
     roundedRect(context, startX - 10, startY - 10, boardW + 20, boardH + 20, 8);
     context.fill();
     context.stroke();
-    context.fillStyle = "rgba(52, 214, 255, 0.22)";
+
+    context.strokeStyle = "rgba(88,242,159,0.08)";
+    context.lineWidth = 1;
+    for (let x = 0; x <= game.cols; x += 1) {
+      context.beginPath();
+      context.moveTo(startX + x * cell, startY);
+      context.lineTo(startX + x * cell, startY + boardH);
+      context.stroke();
+    }
+    for (let y = 0; y <= game.rows; y += 1) {
+      context.beginPath();
+      context.moveTo(startX, startY + y * cell);
+      context.lineTo(startX + boardW, startY + y * cell);
+      context.stroke();
+    }
+
+    const progress = clamp(game.contractBanked / game.contract, 0, 1);
+    context.fillStyle = "rgba(255,255,255,0.08)";
+    roundedRect(context, startX, startY + boardH + 16, boardW, 16, 999);
+    context.fill();
+    context.fillStyle = game.exit ? "#58f29f" : "#34d6ff";
+    roundedRect(context, startX, startY + boardH + 16, boardW * progress, 16, 999);
+    context.fill();
+    drawText(context, game.exit ? "EXTRACTION OPEN" : `CONTRACT ${game.contractBanked}/${game.contract}`, startX + boardW / 2, startY + boardH + 48, game.exit ? "#58f29f" : "#dff6ff", "900 16px system-ui", "center");
+
+    context.fillStyle = "rgba(52, 214, 255, 0.2)";
     context.strokeStyle = "#34d6ff";
     context.shadowColor = "rgba(52,214,255,0.75)";
     context.shadowBlur = 20;
@@ -4505,24 +5199,48 @@
     context.fill();
     context.stroke();
     drawText(context, "UP", startX + game.uplink.x * cell + cell / 2, startY + game.uplink.y * cell + 18, "#dff6ff", "900 10px system-ui", "center");
+    if (game.exit) {
+      context.fillStyle = "rgba(88,242,159,0.26)";
+      context.strokeStyle = "#58f29f";
+      context.shadowColor = "rgba(88,242,159,0.9)";
+      context.shadowBlur = 28;
+      roundedRect(context, startX + game.exit.x * cell, startY + game.exit.y * cell, cell, cell, 8);
+      context.fill();
+      context.stroke();
+      drawText(context, "EX", startX + game.exit.x * cell + cell / 2, startY + game.exit.y * cell + 18, "#eafff4", "900 10px system-ui", "center");
+    }
     game.firewalls.forEach((wall) => {
-      context.fillStyle = "rgba(255, 91, 91, 0.78)";
+      context.fillStyle = "rgba(255, 91, 91, 0.82)";
       context.shadowColor = "rgba(255,91,91,0.75)";
       context.shadowBlur = 14;
       roundedRect(context, startX + wall.x * cell + 5, startY + wall.y * cell + 5, cell - 10, cell - 10, 5);
       context.fill();
+      drawText(context, "!", startX + wall.x * cell + cell / 2, startY + wall.y * cell + 18, "#25040a", "1000 13px system-ui", "center");
     });
     context.fillStyle = game.pellet.type === "key" ? "#ffd166" : "#58f29f";
     context.shadowColor = game.pellet.type === "key" ? "rgba(255,209,102,0.8)" : "rgba(88,242,159,0.8)";
     context.shadowBlur = 18;
     roundedRect(context, startX + game.pellet.x * cell + 4, startY + game.pellet.y * cell + 4, cell - 8, cell - 8, 6);
     context.fill();
+    drawText(context, game.pellet.type === "key" ? "$" : "+", startX + game.pellet.x * cell + cell / 2, startY + game.pellet.y * cell + 18, "#05120c", "1000 14px system-ui", "center");
     game.snake.forEach((part, index) => {
-      context.fillStyle = index === 0 ? "#58f29f" : "#34d6ff";
-      context.shadowColor = index === 0 ? "#58f29f" : "#34d6ff";
-      context.shadowBlur = index === 0 ? 18 : 9;
-      roundedRect(context, startX + part.x * cell + 2, startY + part.y * cell + 2, cell - 4, cell - 4, 7);
+      const head = index === 0;
+      const tailFade = 1 - index / Math.max(1, game.snake.length);
+      context.fillStyle = head ? "#58f29f" : `rgba(52, 214, 255, ${0.42 + tailFade * 0.48})`;
+      context.strokeStyle = head ? "#d8ffe8" : "rgba(255,255,255,0.22)";
+      context.shadowColor = head ? "#58f29f" : "#34d6ff";
+      context.shadowBlur = head ? 20 : 8;
+      roundedRect(context, startX + part.x * cell + 2, startY + part.y * cell + 2, cell - 4, cell - 4, head ? 9 : 6);
       context.fill();
+      context.stroke();
+      if (head) {
+        const eyeX = game.dir.x * 4;
+        const eyeY = game.dir.y * 4;
+        context.fillStyle = "#06111f";
+        context.beginPath();
+        context.arc(startX + part.x * cell + cell / 2 + eyeX, startY + part.y * cell + cell / 2 + eyeY, 3, 0, Math.PI * 2);
+        context.fill();
+      }
     });
     context.restore();
   }
@@ -4631,6 +5349,203 @@
     context.fill();
     context.stroke();
     drawText(context, text, x + 48, y - 1, color, "800 16px system-ui", "center");
+    context.restore();
+  }
+
+  function drawDodgerCity(context, game) {
+    const width = gameCanvas.width;
+    const height = gameCanvas.height;
+    const sky = context.createLinearGradient(0, 0, 0, height);
+    sky.addColorStop(0, "#14081f");
+    sky.addColorStop(0.42, "#09243a");
+    sky.addColorStop(1, "#03050b");
+    context.fillStyle = sky;
+    context.fillRect(0, 0, width, height);
+
+    context.save();
+    context.globalAlpha = 0.36;
+    for (let i = 0; i < 34; i += 1) {
+      const x = (i * 131 + game.elapsed * 18) % width;
+      const y = (i * 73) % (height * 0.7);
+      context.fillStyle = i % 2 ? "#34d6ff" : "#ff3d81";
+      context.fillRect(x, y, 2, 2);
+    }
+    context.restore();
+
+    const horizon = 350;
+    context.save();
+    for (let i = 0; i < 14; i += 1) {
+      const w = 46 + (i % 4) * 18;
+      const h = 100 + (i % 5) * 32;
+      const x = i * 74 - 28;
+      const y = horizon - h;
+      context.fillStyle = i % 2 ? "#0a1222" : "#0d172a";
+      roundedRect(context, x, y, w, h + 190, 3);
+      context.fill();
+      context.fillStyle = i % 3 === 0 ? "rgba(255,61,129,0.58)" : "rgba(52,214,255,0.5)";
+      for (let wy = y + 16; wy < horizon - 8; wy += 22) {
+        for (let wx = x + 10; wx < x + w - 8; wx += 18) {
+          if ((wx + wy + i) % 3) context.fillRect(wx, wy, 7, 3);
+        }
+      }
+    }
+    context.restore();
+
+    context.strokeStyle = "rgba(52,214,255,0.12)";
+    context.lineWidth = 2;
+    const offset = (game.elapsed * 56) % 44;
+    for (let y = horizon; y < height + 60; y += 36) {
+      context.beginPath();
+      context.moveTo(0, y + offset);
+      context.lineTo(width, y + offset);
+      context.stroke();
+    }
+    for (let x = -width; x < width * 2; x += 78) {
+      context.beginPath();
+      context.moveTo(width / 2 + (x - width / 2) * 0.18, horizon);
+      context.lineTo(x - offset, height);
+      context.stroke();
+    }
+
+    drawText(context, "Seal unstable rifts with 2 energy", 480, 520, "rgba(214,222,255,0.88)", "800 17px system-ui", "center");
+  }
+
+  function drawDataVaultScene(context, game) {
+    const width = gameCanvas.width;
+    const height = gameCanvas.height;
+    const gradient = context.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, "#03130d");
+    gradient.addColorStop(0.5, "#071827");
+    gradient.addColorStop(1, "#040710");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, width, height);
+    context.save();
+    context.globalAlpha = 0.5;
+    context.strokeStyle = "rgba(88,242,159,0.14)";
+    context.lineWidth = 2;
+    const drift = (game.elapsed * 22) % 64;
+    for (let x = -64; x < width + 64; x += 64) {
+      context.beginPath();
+      context.moveTo(x + drift, 0);
+      context.lineTo(x - 120 + drift, height);
+      context.stroke();
+    }
+    for (let y = -64; y < height + 64; y += 64) {
+      context.beginPath();
+      context.moveTo(0, y + drift);
+      context.lineTo(width, y + drift);
+      context.stroke();
+    }
+    context.restore();
+    context.save();
+    context.globalAlpha = 0.16;
+    for (let i = 0; i < 28; i += 1) {
+      const x = (i * 181 + game.elapsed * 26) % width;
+      const y = 72 + ((i * 47) % 390);
+      drawText(context, i % 2 ? "0101" : "AUTH", x, y, i % 3 ? "#58f29f" : "#34d6ff", "900 13px monospace", "center");
+    }
+    context.restore();
+  }
+
+  function drawRift(context, rift) {
+    context.save();
+    const progress = clamp(rift.timer / rift.max, 0, 1);
+    context.translate(rift.x, rift.y);
+    context.rotate(rift.pulse * 0.18);
+    context.strokeStyle = progress < 0.28 ? "#ff5b5b" : "#f472b6";
+    context.lineWidth = 8;
+    context.shadowColor = context.strokeStyle;
+    context.shadowBlur = 28;
+    context.beginPath();
+    context.ellipse(0, 0, rift.r * (1 + Math.sin(rift.pulse) * 0.08), rift.r * 0.62, 0, 0, Math.PI * 2);
+    context.stroke();
+    context.strokeStyle = "#34d6ff";
+    context.lineWidth = 3;
+    context.beginPath();
+    context.arc(0, 0, rift.r + 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+    context.stroke();
+    context.shadowBlur = 0;
+    drawText(context, "SEAL", 0, 6, "#ffffff", "1000 15px system-ui", "center");
+    context.restore();
+  }
+
+  function drawEnergyCell(context, x, y, radius, shield) {
+    context.save();
+    const color = shield ? "#58f29f" : "#34d6ff";
+    context.translate(x, y);
+    context.fillStyle = color;
+    context.shadowColor = color;
+    context.shadowBlur = 24;
+    context.beginPath();
+    context.arc(0, 0, radius, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = "#ffffff";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.arc(0, 0, radius + 6, 0, Math.PI * 2);
+    context.stroke();
+    drawText(context, shield ? "S" : "+", 0, 6, "#06111f", "1000 17px system-ui", "center");
+    context.restore();
+  }
+
+  function drawVoltageShard(context, x, y, radius, elapsed) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(elapsed * 3 + x * 0.01);
+    const gradient = context.createLinearGradient(-radius, -radius, radius, radius);
+    gradient.addColorStop(0, "#fff7ad");
+    gradient.addColorStop(0.4, "#ff3d81");
+    gradient.addColorStop(1, "#7c2dff");
+    context.fillStyle = gradient;
+    context.shadowColor = "rgba(255,61,129,0.9)";
+    context.shadowBlur = 26;
+    context.beginPath();
+    context.moveTo(0, -radius * 1.25);
+    context.lineTo(radius * 0.48, -radius * 0.12);
+    context.lineTo(radius * 1.06, radius * 0.1);
+    context.lineTo(radius * 0.16, radius * 0.32);
+    context.lineTo(0, radius * 1.25);
+    context.lineTo(-radius * 0.42, radius * 0.08);
+    context.lineTo(-radius, -radius * 0.12);
+    context.lineTo(-radius * 0.12, -radius * 0.38);
+    context.closePath();
+    context.fill();
+    context.strokeStyle = "rgba(255,255,255,0.52)";
+    context.stroke();
+    context.restore();
+  }
+
+  function drawRescueShip(context, x, y, size, shielded, energy) {
+    context.save();
+    context.translate(x, y);
+    context.fillStyle = "#07111f";
+    context.strokeStyle = "#34d6ff";
+    context.lineWidth = 4;
+    context.shadowColor = "rgba(52,214,255,0.9)";
+    context.shadowBlur = 26;
+    context.beginPath();
+    context.moveTo(0, -size * 1.05);
+    context.lineTo(size * 0.9, size * 0.62);
+    context.lineTo(size * 0.22, size * 0.44);
+    context.lineTo(0, size * 0.86);
+    context.lineTo(-size * 0.22, size * 0.44);
+    context.lineTo(-size * 0.9, size * 0.62);
+    context.closePath();
+    context.fill();
+    context.stroke();
+    context.fillStyle = "#f5f7ff";
+    roundedRect(context, -size * 0.2, -size * 0.42, size * 0.4, size * 0.38, 6);
+    context.fill();
+    context.fillStyle = energy >= 2 ? "#58f29f" : "#ffd166";
+    roundedRect(context, -size * 0.34, size * 0.36, size * 0.68, 7, 4);
+    context.fill();
+    if (shielded) {
+      context.strokeStyle = "#58f29f";
+      context.lineWidth = 4;
+      context.beginPath();
+      context.arc(0, 0, size * 1.25, 0, Math.PI * 2);
+      context.stroke();
+    }
     context.restore();
   }
 

@@ -848,9 +848,9 @@ body[data-screen="intro"] .app-shell {
 
 .game-grid {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-auto-flow: dense;
-  grid-template-columns: repeat(4, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   margin: 0;
   max-width: none;
 }
@@ -861,7 +861,7 @@ body[data-screen="intro"] .app-shell {
   border-radius: 12px;
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
   display: block;
-  min-height: 252px;
+  min-height: 210px;
   overflow: hidden;
   padding: 0;
   opacity: 1;
@@ -878,8 +878,8 @@ body[data-screen="intro"] .app-shell {
 
 .game-card:nth-child(1),
 .game-card:nth-child(4) {
-  grid-column: span 2;
-  min-height: 328px;
+  grid-column: span 1;
+  min-height: 210px;
 }
 
 .game-preview {
@@ -990,22 +990,23 @@ body[data-screen="intro"] .app-shell {
   background: linear-gradient(180deg, transparent, rgba(5, 6, 12, 0.78) 18%, rgba(5, 6, 12, 0.94));
   bottom: 0;
   display: grid;
-  gap: 8px;
+  gap: 7px;
   left: 0;
-  padding: 68px 14px 14px;
+  padding: 54px 10px 10px;
   position: absolute;
   right: 0;
   z-index: 3;
 }
 
 .game-card h3 {
-  font-size: 1.25rem;
+  font-size: 1.02rem;
   margin: 0;
 }
 
 .game-card p {
   color: #e8ecff;
-  line-height: 1.35;
+  font-size: 0.82rem;
+  line-height: 1.25;
   margin-bottom: 0;
 }
 
@@ -1060,7 +1061,7 @@ body[data-screen="intro"] .app-shell {
 
 .card-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   opacity: 0.92;
   pointer-events: auto;
   transform: translateY(0);
@@ -1078,6 +1079,9 @@ body[data-screen="intro"] .app-shell {
 
 .card-actions button {
   flex: 1;
+  font-size: 0.78rem;
+  min-height: 34px;
+  padding: 7px 8px;
 }
 
 .empty-cabinets {
@@ -2457,8 +2461,18 @@ h2 {
 
 .game-card[data-game="dodger"] .game-preview {
   background:
-    linear-gradient(180deg, #84d8ff 0 34%, #315878 35% 36%, #273247 37% 100%),
-    radial-gradient(circle at 72% 42%, rgba(255, 61, 129, 0.72), transparent 18%);
+    radial-gradient(ellipse at 72% 36%, rgba(255, 61, 129, 0.68) 0 13%, transparent 14%),
+    radial-gradient(circle at 32% 68%, rgba(52, 214, 255, 0.52), transparent 15%),
+    linear-gradient(180deg, #19081f 0 28%, #09243a 29% 66%, #03050b 67% 100%);
+}
+
+.game-card[data-game="dodger"] .game-preview::after {
+  background:
+    linear-gradient(135deg, #34d6ff, #f5f7ff 44%, #ff3d81);
+  clip-path: polygon(50% 0, 88% 100%, 50% 78%, 12% 100%);
+  height: 40%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  width: 28%;
 }
 
 .game-card[data-game="popper"] .game-preview {
@@ -2532,8 +2546,25 @@ h2 {
 
 .game-card[data-game="snake"] .game-preview {
   background:
-    radial-gradient(circle at 74% 38%, rgba(88, 242, 159, 0.78), transparent 10%),
-    linear-gradient(135deg, #0e2b1d, #162445);
+    linear-gradient(90deg, rgba(88, 242, 159, 0.16) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(52, 214, 255, 0.14) 1px, transparent 1px),
+    radial-gradient(circle at 76% 34%, rgba(52, 214, 255, 0.58), transparent 12%),
+    radial-gradient(circle at 28% 70%, rgba(88, 242, 159, 0.62), transparent 11%),
+    linear-gradient(135deg, #03130d, #071827 60%, #050816);
+  background-size: 34px 34px, 34px 34px, auto, auto, auto;
+}
+
+.game-card[data-game="snake"] .game-preview::after {
+  background: linear-gradient(90deg, #58f29f, #34d6ff);
+  border-radius: 999px;
+  box-shadow:
+    -34px 0 0 -6px #34d6ff,
+    -68px 0 0 -8px #34d6ff,
+    48px -30px 0 -10px #ffd166,
+    0 0 24px var(--preview-glow);
+  height: 26px;
+  transform: translate(-50%, -50%) rotate(0deg);
+  width: 72px;
 }
 
 .game-card[data-game="breaker"] .game-preview {
@@ -2695,7 +2726,77 @@ h2 {
 }
 
 .game-card h3 {
-  font-size: 1.34rem;
+  font-size: 1.02rem;
+}
+
+.game-card[data-game="lunar"] .game-preview {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.9) 0 1px, transparent 2px),
+    radial-gradient(circle at 72% 24%, rgba(255, 255, 255, 0.66) 0 1px, transparent 2px),
+    radial-gradient(circle at 40% 76%, rgba(163, 230, 53, 0.54), transparent 14%),
+    linear-gradient(180deg, #071120, #13284a 58%, #24331f);
+}
+
+.game-card[data-game="lunar"] .game-preview::after {
+  background: linear-gradient(180deg, #e5e7eb, #64748b);
+  clip-path: polygon(50% 0, 76% 36%, 68% 100%, 32% 100%, 24% 36%);
+  height: 42%;
+  transform: translate(-50%, -50%) rotate(5deg);
+  width: 28%;
+}
+
+.game-card[data-game="repair"] .game-preview {
+  background:
+    linear-gradient(90deg, rgba(34, 211, 238, 0.26) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(34, 211, 238, 0.2) 1px, transparent 1px),
+    linear-gradient(135deg, #0c2530, #101827);
+  background-size: 42px 42px, 42px 42px, auto;
+}
+
+.game-card[data-game="repair"] .preview-token {
+  border-radius: 6px;
+  box-shadow:
+    -38px -22px 0 -8px #22d3ee,
+    38px -22px 0 -8px #ffd166,
+    -38px 26px 0 -8px #ff5b5b,
+    38px 26px 0 -8px #22d3ee,
+    0 0 24px var(--preview-glow);
+}
+
+.game-card[data-game="cipher"] .game-preview {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(244, 114, 182, 0.32) 0 12%, transparent 13%),
+    radial-gradient(circle at 28% 56%, rgba(96, 165, 250, 0.28) 0 14%, transparent 15%),
+    radial-gradient(circle at 72% 56%, rgba(255, 209, 102, 0.28) 0 14%, transparent 15%),
+    linear-gradient(180deg, #1e1737, #081827);
+}
+
+.game-card[data-game="cipher"] .game-preview::after {
+  background:
+    radial-gradient(circle, transparent 0 34%, #f472b6 35% 43%, transparent 44%),
+    radial-gradient(circle at 50% 13%, #ffffff 0 8%, transparent 9%);
+  border-radius: 999px;
+  height: 56%;
+  transform: translate(-50%, -50%) rotate(18deg);
+  width: 38%;
+}
+
+.game-card[data-game="orbitguard"] .game-preview {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(96, 165, 250, 0.46) 0 12%, transparent 13%),
+    radial-gradient(circle at 72% 32%, rgba(255, 209, 102, 0.72) 0 8px, transparent 9px),
+    radial-gradient(circle at 28% 70%, rgba(255, 91, 91, 0.7) 0 7px, transparent 8px),
+    linear-gradient(180deg, #050817, #101f3a);
+}
+
+.game-card[data-game="orbitguard"] .game-preview::after {
+  background: transparent;
+  border: 10px solid #60a5fa;
+  border-left-color: transparent;
+  border-radius: 999px;
+  height: 52%;
+  transform: translate(-50%, -50%) rotate(-24deg);
+  width: 52%;
 }
 
 .intro-stats span,
