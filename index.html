@@ -8,19 +8,40 @@
       content="A neon arcade hub with multiple mini-games, settings, keybinds, cabinet details, best scores, and fast arcade-style gameplay."
     />
     <title>Arcade Mini Games</title>
-    <link rel="stylesheet" href="styles.css?v=2026-05-25-1" />
+    <link rel="stylesheet" href="styles.css?v=2026-06-07-1" />
   </head>
   <body>
     <div id="app" class="app-shell">
       <aside class="side-rail" aria-label="Arcade shortcuts">
-        <button class="rail-light active" type="button" data-route="intro" aria-label="Home"></button>
-        <button class="rail-light" type="button" data-route="games" aria-label="Games"></button>
-        <button class="rail-light" type="button" data-route="daily" aria-label="Daily Challenge"></button>
-        <button class="rail-light" type="button" data-route="tournament" aria-label="Tournament"></button>
+        <button class="rail-light active" type="button" data-route="intro" aria-label="Home" title="Home">
+          <span class="rail-icon" aria-hidden="true">⌂</span>
+          <span class="rail-label">Home</span>
+        </button>
+        <button class="rail-light" type="button" data-route="games" aria-label="Games" title="Games">
+          <span class="rail-icon" aria-hidden="true">▦</span>
+          <span class="rail-label">Games</span>
+        </button>
+        <button class="rail-light" type="button" data-route="daily" aria-label="Daily Challenge" title="Daily Challenge">
+          <span class="rail-icon" aria-hidden="true">◆</span>
+          <span class="rail-label">Daily</span>
+        </button>
+        <button class="rail-light" type="button" data-route="tournament" aria-label="Tournament" title="Tournament">
+          <span class="rail-icon" aria-hidden="true">⚔</span>
+          <span class="rail-label">Tourney</span>
+        </button>
         <span class="rail-divider"></span>
-        <button class="rail-light" type="button" data-route="leaderboards" aria-label="Leaderboards"></button>
-        <button class="rail-light" type="button" data-route="achievements" aria-label="Achievements"></button>
-        <button class="rail-light" type="button" data-route="settings" aria-label="Settings"></button>
+        <button class="rail-light" type="button" data-route="leaderboards" aria-label="Leaderboards" title="Leaderboards">
+          <span class="rail-icon" aria-hidden="true">≡</span>
+          <span class="rail-label">Scores</span>
+        </button>
+        <button class="rail-light" type="button" data-route="achievements" aria-label="Achievements" title="Achievements">
+          <span class="rail-icon" aria-hidden="true">★</span>
+          <span class="rail-label">Badges</span>
+        </button>
+        <button class="rail-light" type="button" data-route="settings" aria-label="Settings" title="Settings">
+          <span class="rail-icon" aria-hidden="true">⚙</span>
+          <span class="rail-label">Settings</span>
+        </button>
       </aside>
       <header class="topbar">
         <button class="icon-button hidden" id="backButton" type="button" aria-label="Back">
@@ -62,16 +83,16 @@
               <article class="dashboard-panel">
                 <span>Progress</span>
                 <div>
-                  <button class="dock-button" id="leaderboardButton" type="button">Leaderboards</button>
-                  <button class="dock-button" id="achievementsButton" type="button">Achievements</button>
-                  <button class="dock-button" id="historyButton" type="button">History</button>
+                  <button class="dock-button" id="leaderboardButton" type="button"><span aria-hidden="true">≡</span> Leaderboards</button>
+                  <button class="dock-button" id="achievementsButton" type="button"><span aria-hidden="true">★</span> Achievements</button>
+                  <button class="dock-button" id="historyButton" type="button"><span aria-hidden="true">◷</span> History</button>
                 </div>
               </article>
               <article class="dashboard-panel">
                 <span>Cabinet</span>
                 <div>
-                  <button class="dock-button" id="settingsButton" type="button">Settings</button>
-                  <button class="dock-button" id="keybindButton" type="button">Keybinds</button>
+                  <button class="dock-button" id="settingsButton" type="button"><span aria-hidden="true">⚙</span> Settings</button>
+                  <button class="dock-button" id="keybindButton" type="button"><span aria-hidden="true">⌨</span> Keybinds</button>
                 </div>
               </article>
             </div>
@@ -167,6 +188,12 @@
               <button class="filter-tab" type="button" data-filter="Reflex">Reflex</button>
               <button class="filter-tab" type="button" data-filter="Timing">Timing</button>
               <button class="filter-tab" type="button" data-filter="Strategy">Strategy</button>
+            </div>
+            <div class="play-level-picker" aria-label="Play level">
+              <span>Play Level</span>
+              <button class="level-chip active" type="button" data-play-level="1">1</button>
+              <button class="level-chip" type="button" data-play-level="2">2</button>
+              <button class="level-chip" type="button" data-play-level="3">3</button>
             </div>
           </div>
           <div class="game-grid" id="gameGrid"></div>
@@ -395,7 +422,9 @@
               <button class="primary-button" id="startDriftRunButton" type="button">Start Drift Run</button>
             </article>
           </div>
-          <canvas id="gameCanvas" width="960" height="540"></canvas>
+          <div class="play-canvas-frame">
+            <canvas id="gameCanvas" width="960" height="540"></canvas>
+          </div>
           <div class="touch-controls" id="touchControls" aria-label="Touch controls">
             <div class="touch-dpad">
               <button type="button" data-touch="up" aria-label="Move up">^</button>
@@ -412,6 +441,6 @@
         </section>
       </main>
     </div>
-    <script src="app.js?v=2026-05-25-1"></script>
+    <script src="app.js?v=2026-06-07-1"></script>
   </body>
 </html>

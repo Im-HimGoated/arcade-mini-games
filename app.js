@@ -21,6 +21,7 @@
   const gameGrid = document.querySelector("#gameGrid");
   const gameSearch = document.querySelector("#gameSearch");
   const filterTabs = document.querySelector("#filterTabs");
+  const playLevelButtons = document.querySelectorAll("[data-play-level]");
   const introCabinetCount = document.querySelector("#introCabinetCount");
   const totalBestScore = document.querySelector("#totalBestScore");
   const favoriteCabinet = document.querySelector("#favoriteCabinet");
@@ -97,6 +98,7 @@
     music: true,
     volume: 70,
     reducedMotion: false,
+    playLevel: 1,
   };
 
   const levelInterval = 6.8;
@@ -1118,14 +1120,38 @@
   }
 
   function applySettings() {
+    settings.playLevel = normalizedPlayLevel(settings.playLevel);
     audioToggle.checked = settings.audio;
     musicToggle.checked = settings.music;
     motionToggle.checked = settings.reducedMotion;
     volumeSlider.value = settings.volume;
     volumeValue.textContent = `${settings.volume}%`;
     muteIcon.textContent = settings.audio ? "♪" : "x";
+    playLevelButtons.forEach((button) => {
+      button.classList.toggle("active", Number(button.dataset.playLevel) === settings.playLevel);
+    });
     document.body.classList.toggle("reduced-motion", settings.reducedMotion);
     audio.refresh();
+  }
+
+  function normalizedPlayLevel(level) {
+    return clamp(Math.round(Number(level) || 1), 1, 3);
+  }
+
+  function playLevelName(level = settings.playLevel) {
+    return ["", "Level 1", "Level 2", "Level 3"][normalizedPlayLevel(level)];
+  }
+
+  function playLevelStart(level = settings.playLevel) {
+    return [1, 1, 3, 5][normalizedPlayLevel(level)];
+  }
+
+  function playLevelPace(level = settings.playLevel) {
+    return [1, 1, 1.2, 1.45][normalizedPlayLevel(level)];
+  }
+
+  function playLevelScoreBonus(level = settings.playLevel) {
+    return [1, 1, 1.15, 1.35][normalizedPlayLevel(level)];
   }
 
   function showScreen(name) {
@@ -1199,6 +1225,7 @@
           <span class="preview-line preview-line-b"></span>
           <span class="preview-token"></span>
           <strong class="preview-symbol">${previewSymbolFor(game.id)}</strong>
+          <span class="preview-caption">${previewCaptionFor(game.id)}</span>
         </div>
         <div class="game-card-body">
           <div>
@@ -1265,6 +1292,32 @@
     return symbols[id] || "PLAY";
   }
 
+  function previewCaptionFor(id) {
+    const captions = {
+      dodger: "Seal rifts",
+      popper: "Hit target",
+      runner: "Switch lanes",
+      flap: "Thread gates",
+      tictactoe: "Win rows",
+      tetris: "Clear lines",
+      twenty48: "Merge cores",
+      driftboss: "Hold turns",
+      beatfoundry: "Strike beat",
+      snake: "Upload quota",
+      breaker: "Break wall",
+      pinball: "Hit bumpers",
+      river: "Run gates",
+      keeper: "Save shots",
+      memory: "Match pairs",
+      asteroids: "Mine ore",
+      lunar: "Soft land",
+      repair: "Patch nodes",
+      cipher: "Align dials",
+      orbitguard: "Block meteors",
+    };
+    return captions[id] || "Play run";
+  }
+
   function difficultyFor(game) {
     const scale = {
       Survival: "Medium",
@@ -1272,6 +1325,7 @@
       Reflex: "Fast",
       Timing: "Tricky",
       Strategy: "Smart",
+      Puzzle: "Brainy",
     };
     return scale[game.tag] || "Normal";
   }
@@ -1886,9 +1940,10 @@
     activeGame = createGame(definition);
     if (definition.id === "driftboss") renderDriftShop();
     playTitle.textContent = definition.title;
-    gameSubtitle.textContent = runContext?.player ? `${definition.subtitle} · ${runContext.player}` : `${definition.subtitle} · ${profile.name}`;
+    const playerLabel = runContext?.player || profile.name;
+    gameSubtitle.textContent = `${definition.subtitle} · ${playerLabel} · ${playLevelName()}`;
     scoreValue.textContent = "0";
-    levelValue.textContent = "1";
+    levelValue.textContent = playLevelStart().toString();
     comboValue.textContent = "x1";
     bestValue.textContent = getBestScore(definition.id).toString();
     timeValue.textContent = "60";
@@ -1958,7 +2013,8 @@
       score: 0,
       elapsed: 0,
       timeLeft: 60,
-      level: 1,
+      playLevel: settings.playLevel,
+      level: playLevelStart(settings.playLevel),
       combo: 1,
       comboTimer: 0,
       over: false,
@@ -1970,7 +2026,7 @@
         if (this.over) return;
         this.elapsed += delta;
         this.timeLeft = Math.max(0, 60 - this.elapsed);
-        this.level = Math.min(12, Math.floor(this.elapsed / levelInterval) + 1);
+        this.level = Math.min(12, playLevelStart(this.playLevel) + Math.floor((this.elapsed * playLevelPace(this.playLevel)) / levelInterval));
         this.comboTimer = Math.max(0, this.comboTimer - delta);
         if (this.comboTimer <= 0) this.combo = 1;
         if (this.timeLeft <= 0) this.finish();
@@ -1978,7 +2034,7 @@
         this.updateEffects(delta);
       },
       addScore(points, x = gameCanvas.width / 2, y = 90, label = "") {
-        const value = Math.ceil(points * this.combo);
+        const value = Math.ceil(points * this.combo * playLevelScoreBonus(this.playLevel));
         this.score += value;
         if (label) {
           const text = label === "Graze bonus" ? `Graze bonus +${value}` : `${label} +${value}`;
@@ -5989,6 +6045,14 @@
     filterTabs.querySelectorAll(".filter-tab").forEach((tab) => tab.classList.toggle("active", tab === button));
     renderGameCards();
     audio.beep(420, 0.04, "triangle");
+  });
+  playLevelButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      settings.playLevel = normalizedPlayLevel(button.dataset.playLevel);
+      saveSettings();
+      renderGameCards();
+      audio.beep(420 + settings.playLevel * 120, 0.05, "triangle");
+    });
   });
   wireClick("#resetKeysButton", () => {
     keybinds = { ...defaultKeybinds };
