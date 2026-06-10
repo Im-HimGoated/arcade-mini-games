@@ -2,11 +2,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/fireba
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 import {
   collection,
+  doc,
+  getDoc,
   getDocs,
   getFirestore,
   limit,
   orderBy,
   query,
+  serverTimestamp,
+  setDoc,
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-functions.js";
 
@@ -37,12 +41,18 @@ const ready = new Promise((resolve) => {
   });
 });
 
-globalThis.arcadeCloud = {
+const cloudApi = {
   ready,
   saveScore,
   getScores,
+  saveProfile,
+  loadProfile,
   getUserId: () => currentUser?.uid || null,
 };
+
+globalThis.arcadeCloud = cloudApi;
+window.arcadeCloud = cloudApi;
+window.dispatchEvent(new Event("arcade-cloud-ready"));
 document.documentElement.dataset.cloudStatus = "loading";
 
 signInAnonymously(auth).catch((error) => {
@@ -81,4 +91,28 @@ async function getScores(gameId, count = 5) {
       cloud: true,
     };
   });
+}
+
+async function saveProfile(progress) {
+  await ready;
+  if (!currentUser) return null;
+  const profileRef = doc(db, "profiles", currentUser.uid);
+  await setDoc(
+    profileRef,
+    {
+      ...progress,
+      uid: currentUser.uid,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+  return { saved: true, uid: currentUser.uid };
+}
+
+async function loadProfile() {
+  await ready;
+  if (!currentUser) return null;
+  const profileRef = doc(db, "profiles", currentUser.uid);
+  const snapshot = await getDoc(profileRef);
+  return snapshot.exists() ? snapshot.data() : null;
 }

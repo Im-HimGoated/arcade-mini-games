@@ -332,11 +332,15 @@
             <article class="setting-row profile-editor">
               <span>
                 <strong>Player profile</strong>
-                <small>Scores, coins, XP, and skins are saved on this device</small>
+                <small id="cloudProfileStatus">Saved on this device. Enable Firebase Auth to sync across devices.</small>
               </span>
               <div class="profile-form">
                 <input id="profileNameInput" maxlength="18" type="text" aria-label="Player name" />
                 <div class="avatar-picker" id="avatarPicker" aria-label="Choose avatar"></div>
+                <div class="cloud-profile-actions" aria-label="Cloud profile actions">
+                  <button class="secondary-button compact" id="cloudSaveButton" type="button">Save Cloud Profile</button>
+                  <button class="secondary-button compact" id="cloudLoadButton" type="button">Load Cloud Profile</button>
+                </div>
               </div>
             </article>
             <article class="setting-row skin-editor">

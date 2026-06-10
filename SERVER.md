@@ -1,6 +1,7 @@
 # Cool Arcade Server Setup
 
 This project uses Firebase Cloud Functions to protect online leaderboard writes.
+It also stores each player's cloud profile in Firestore so coins, XP, skins, cars, settings, achievements, and history can follow them across devices.
 
 ## What the server does
 
@@ -9,6 +10,7 @@ This project uses Firebase Cloud Functions to protect online leaderboard writes.
 - It validates the game id, score, run time, mode, and player name.
 - It rate-limits each signed-in user to one score submission every 5 seconds.
 - It writes accepted scores to `leaderboards/{gameId}/scores` with the Admin SDK.
+- The browser can read/write only its own `profiles/{uid}` document after Firebase Auth signs the player in anonymously.
 
 ## Firebase console checklist
 

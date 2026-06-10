@@ -67,6 +67,9 @@
   const nextTournamentRunButton = document.querySelector("#nextTournamentRunButton");
   const keybindGrid = document.querySelector("#keybindGrid");
   const profileNameInput = document.querySelector("#profileNameInput");
+  const cloudProfileStatus = document.querySelector("#cloudProfileStatus");
+  const cloudSaveButton = document.querySelector("#cloudSaveButton");
+  const cloudLoadButton = document.querySelector("#cloudLoadButton");
   const avatarPicker = document.querySelector("#avatarPicker");
   const skinGrid = document.querySelector("#skinGrid");
   const driftShop = document.querySelector("#driftShop");
@@ -557,6 +560,8 @@
   let attractCanvasHeight = 0;
   let activeRunContext = null;
   let tournament = createTournamentState();
+  let cloudSaveTimer = 0;
+  let cloudSyncPaused = false;
   const pressed = new Set();
   const touchActionKeys = {};
 
@@ -704,20 +709,22 @@
     };
   }
 
-  function saveProfile() {
+  function saveProfile(syncCloud = true) {
     profile = normalizeProfile(profile);
     localStorage.setItem("arcade-profile", JSON.stringify(profile));
     applySkin();
     renderProfile();
     renderSkins();
     renderDriftShop();
+    if (syncCloud) scheduleCloudProfileSave();
   }
 
   function saveAllProgress(showMessage = false) {
-    saveProfile();
+    saveProfile(!showMessage);
     saveSettings();
     saveKeybinds();
     localStorage.setItem("arcade-last-save", new Date().toISOString());
+    if (showMessage) saveCloudProfile(true);
     if (showMessage && saveFeedback) {
       saveFeedback.textContent = `Progress saved at ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`;
       window.clearTimeout(saveAllProgress.feedbackTimer);
@@ -725,6 +732,167 @@
         saveFeedback.textContent = "";
       }, 2600);
     }
+  }
+
+  function setCloudProfileStatus(message, tone = "neutral") {
+    if (!cloudProfileStatus) return;
+    cloudProfileStatus.textContent = message;
+    cloudProfileStatus.dataset.tone = tone;
+  }
+
+  function getLocalGameProgress() {
+    return gameDefinitions.map((game) => ({
+      id: game.id,
+      bestScore: getBestScore(game.id),
+      bestTime: getBestTime(game.id),
+      plays: getPlayCount(game.id),
+      leaderboard: getLeaderboard(game.id),
+    }));
+  }
+
+  function getCloudProgressPayload() {
+    return {
+      version: 1,
+      profile: normalizeProfile(profile),
+      settings: { ...settings, playLevel: normalizedPlayLevel(settings.playLevel) },
+      keybinds: { ...defaultKeybinds, ...keybinds },
+      achievements: getAchievements(),
+      recentPlays: loadJson("arcade-recent-plays", []),
+      tournamentHistory: getTournamentHistory(),
+      games: getLocalGameProgress(),
+      savedAt: new Date().toISOString(),
+    };
+  }
+
+  function applyCloudProgressPayload(payload) {
+    if (!payload || typeof payload !== "object") return false;
+    cloudSyncPaused = true;
+    try {
+      if (payload.profile) {
+        profile = normalizeProfile(payload.profile);
+        localStorage.setItem("arcade-profile", JSON.stringify(profile));
+      }
+      if (payload.settings) {
+        settings = { ...defaultSettings, ...payload.settings };
+        localStorage.setItem("arcade-settings", JSON.stringify(settings));
+      }
+      if (payload.keybinds) {
+        keybinds = { ...defaultKeybinds, ...payload.keybinds };
+        localStorage.setItem("arcade-keybinds", JSON.stringify(keybinds));
+      }
+      if (Array.isArray(payload.achievements)) {
+        localStorage.setItem("arcade-achievements", JSON.stringify([...new Set(payload.achievements)]));
+      }
+      if (Array.isArray(payload.recentPlays)) {
+        localStorage.setItem("arcade-recent-plays", JSON.stringify(payload.recentPlays.slice(0, 5)));
+      }
+      if (Array.isArray(payload.tournamentHistory)) {
+        localStorage.setItem("arcade-tournament-history", JSON.stringify(payload.tournamentHistory.slice(0, 8)));
+      }
+      if (Array.isArray(payload.games)) {
+        payload.games.forEach((game) => {
+          if (!gameDefinitions.some((definition) => definition.id === game.id)) return;
+          localStorage.setItem(`arcade-best-${game.id}`, Math.max(0, Math.floor(Number(game.bestScore) || 0)).toString());
+          localStorage.setItem(`arcade-best-time-${game.id}`, Math.max(0, Number(game.bestTime) || 0).toFixed(1));
+          localStorage.setItem(`arcade-plays-${game.id}`, Math.max(0, Math.floor(Number(game.plays) || 0)).toString());
+          if (Array.isArray(game.leaderboard)) {
+            localStorage.setItem(`arcade-leaderboard-${game.id}`, JSON.stringify(game.leaderboard.slice(0, 5)));
+          }
+        });
+      }
+    } finally {
+      cloudSyncPaused = false;
+    }
+    applySkin();
+    applySettings();
+    renderProfile();
+    renderSkins();
+    renderDriftShop();
+    renderGameCards();
+    renderLeaderboards();
+    renderAchievements();
+    renderRecentPlays();
+    renderHistory();
+    renderKeybinds();
+    return true;
+  }
+
+  function scheduleCloudProfileSave() {
+    if (cloudSyncPaused || !window.arcadeCloud?.saveProfile) return;
+    window.clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = window.setTimeout(() => {
+      saveCloudProfile(false);
+    }, 1800);
+  }
+
+  async function saveCloudProfile(showMessage = false) {
+    if (!window.arcadeCloud?.saveProfile) {
+      setCloudProfileStatus("Cloud sync is not loaded yet. Local progress is safe.", "warning");
+      return false;
+    }
+    setCloudProfileStatus("Saving cloud profile...", "neutral");
+    try {
+      await window.arcadeCloud.saveProfile(getCloudProgressPayload());
+      const savedAt = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      setCloudProfileStatus(`Cloud profile saved at ${savedAt}.`, "success");
+      if (showMessage && saveFeedback) saveFeedback.textContent = `Cloud profile saved at ${savedAt}.`;
+      return true;
+    } catch (error) {
+      console.warn("Cloud profile save failed.", error);
+      setCloudProfileStatus("Cloud profile unavailable. Check Firebase Auth and Firestore setup.", "warning");
+      return false;
+    }
+  }
+
+  async function loadCloudProfile() {
+    if (!window.arcadeCloud?.loadProfile) {
+      setCloudProfileStatus("Cloud sync is not loaded yet. Local progress is safe.", "warning");
+      return false;
+    }
+    setCloudProfileStatus("Loading cloud profile...", "neutral");
+    try {
+      const cloudProfile = await window.arcadeCloud.loadProfile();
+      if (!cloudProfile) {
+        setCloudProfileStatus("No cloud profile found yet. Save once to create it.", "warning");
+        return false;
+      }
+      applyCloudProgressPayload(cloudProfile);
+      const savedAt = cloudProfile.savedAt ? new Date(cloudProfile.savedAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "just now";
+      setCloudProfileStatus(`Cloud profile loaded from ${savedAt}.`, "success");
+      return true;
+    } catch (error) {
+      console.warn("Cloud profile load failed.", error);
+      setCloudProfileStatus("Cloud profile unavailable. Check Firebase Auth and Firestore setup.", "warning");
+      return false;
+    }
+  }
+
+  function initializeCloudProfileStatus() {
+    if (!window.arcadeCloud?.ready) {
+      setCloudProfileStatus("Connecting cloud profile...", "neutral");
+      window.addEventListener("arcade-cloud-ready", initializeCloudProfileStatus, { once: true });
+      window.setTimeout(() => {
+        if (!window.arcadeCloud?.ready) {
+          setCloudProfileStatus("Cloud sync is offline. Local progress is safe.", "warning");
+        }
+      }, 3500);
+      return;
+    }
+    setCloudProfileStatus("Connecting cloud profile...", "neutral");
+    window.arcadeCloud.ready
+      .then((user) => {
+        if (user) {
+          setCloudProfileStatus("Cloud sync ready. Save or load this profile from any device.", "success");
+          if (cloudSaveButton) cloudSaveButton.disabled = false;
+          if (cloudLoadButton) cloudLoadButton.disabled = false;
+          return;
+        }
+        setCloudProfileStatus("Enable Anonymous Auth in Firebase to sync this profile.", "warning");
+      })
+      .catch((error) => {
+        console.warn("Cloud profile setup failed.", error);
+        setCloudProfileStatus("Cloud sync is unavailable. Local progress is safe.", "warning");
+      });
   }
 
   function getProfileLevel() {
@@ -1120,11 +1288,13 @@
   function saveSettings() {
     localStorage.setItem("arcade-settings", JSON.stringify(settings));
     applySettings();
+    scheduleCloudProfileSave();
   }
 
   function saveKeybinds() {
     localStorage.setItem("arcade-keybinds", JSON.stringify(keybinds));
     renderKeybinds();
+    scheduleCloudProfileSave();
   }
 
   function applySettings() {
@@ -6061,6 +6231,14 @@
     saveAllProgress(true);
     audio.beep(760, 0.06, "triangle");
   });
+  wireClick("#cloudSaveButton", () => {
+    saveCloudProfile(true);
+    audio.beep(760, 0.06, "triangle");
+  });
+  wireClick("#cloudLoadButton", () => {
+    loadCloudProfile();
+    audio.beep(520, 0.06, "triangle");
+  });
   gameSearch.addEventListener("input", renderGameCards);
   globalSearch.addEventListener("input", () => {
     gameSearch.value = globalSearch.value;
@@ -6228,9 +6406,10 @@
   renderKeybinds();
   renderAvatarPicker();
   applySkin();
-  saveProfile();
+  saveProfile(false);
   playerOneName.value = profile.name;
   applySettings();
+  initializeCloudProfileStatus();
   showScreen("intro");
   runAttractMode();
 })();
