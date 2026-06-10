@@ -8,6 +8,15 @@
       content="A neon arcade hub with multiple mini-games, settings, keybinds, cabinet details, best scores, and fast arcade-style gameplay."
     />
     <title>Arcade Mini Games</title>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-710W0EF1Q2"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-710W0EF1Q2");
+    </script>
     <link rel="stylesheet" href="styles.css?v=2026-06-07-1" />
   </head>
   <body>
@@ -233,7 +242,7 @@
             <article class="scoreboard-card">
               <span>Longest Run</span>
               <strong id="leaderboardBestTime">0s</strong>
-              <p>Best survival time saved locally on this device.</p>
+              <p>Best survival time saved on this device.</p>
             </article>
             <article class="scoreboard-card">
               <span>Most Played</span>
@@ -441,6 +450,7 @@
         </section>
       </main>
     </div>
-    <script src="app.js?v=2026-06-07-1"></script>
+    <script type="module" src="firebase.js?v=2026-06-09-3"></script>
+    <script src="app.js?v=2026-06-09-3"></script>
   </body>
 </html>

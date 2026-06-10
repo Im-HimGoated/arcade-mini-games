@@ -1,0 +1,17 @@
+{
+  "name": "cool-arcade-functions",
+  "description": "Server-side score validation for Cool Arcade",
+  "private": true,
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "scripts": {
+    "lint": "node --check index.js",
+    "deploy": "firebase deploy --only functions,firestore:rules"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.6.0",
+    "firebase-functions": "^6.5.0"
+  }
+}

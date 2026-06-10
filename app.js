@@ -1030,9 +1030,17 @@
     renderAchievements();
     const result = { gameId: game.definition.id, player: playerName, score, time, mode, coinReward, xpReward };
     saveRecentPlay(result);
+    saveCloudRunResult(result);
     renderRecentPlays();
     checkDailyChallenge(result);
     return result;
+  }
+
+  function saveCloudRunResult(result) {
+    if (!window.arcadeCloud?.saveScore) return;
+    window.arcadeCloud.saveScore(result).catch((error) => {
+      console.warn("Cloud leaderboard save failed. Local leaderboard still works.", error);
+    });
   }
 
   function checkRunAchievements(result) {
@@ -1496,19 +1504,6 @@
       row.style.setProperty("--preview-accent", game.accent);
       row.style.setProperty("--preview-glow", game.glow);
       const entries = getLeaderboard(game.id);
-      const entryMarkup = entries.length
-        ? entries
-            .map(
-              (entry, entryIndex) => `
-                <li>
-                  <span>#${entryIndex + 1} ${entry.player}</span>
-                  <strong>${entry.score}</strong>
-                  <em>${formatRunTime(entry.time)} · ${entry.mode}</em>
-                </li>
-              `,
-            )
-            .join("")
-        : `<li><span>No runs yet</span><strong>0</strong><em>Play this cabinet to rank</em></li>`;
       row.innerHTML = `
         <div class="leaderboard-rank">${index + 1}</div>
         <div>
@@ -1520,9 +1515,43 @@
             <span><strong>${getPlayCount(game.id)}</strong> Plays</span>
           </div>
         </div>
-        <ol>${entryMarkup}</ol>
+        <ol data-cloud-board="${game.id}">${leaderboardEntryMarkup(entries, "Local")}</ol>
       `;
       leaderboardRows.append(row);
+    });
+    renderCloudLeaderboards();
+  }
+
+  function leaderboardEntryMarkup(entries, source = "") {
+    return entries.length
+      ? entries
+          .map(
+            (entry, entryIndex) => `
+              <li>
+                <span>#${entryIndex + 1} ${entry.player}</span>
+                <strong>${entry.score}</strong>
+                <em>${formatRunTime(entry.time)} · ${entry.mode}${source ? ` · ${source}` : ""}</em>
+              </li>
+            `,
+          )
+          .join("")
+      : `<li><span>No runs yet</span><strong>0</strong><em>Play this cabinet to rank</em></li>`;
+  }
+
+  function renderCloudLeaderboards() {
+    if (!window.arcadeCloud?.getScores) return;
+    gameDefinitions.forEach((game) => {
+      const list = leaderboardRows.querySelector(`[data-cloud-board="${game.id}"]`);
+      if (!list) return;
+      window.arcadeCloud
+        .getScores(game.id, 5)
+        .then((entries) => {
+          if (!entries?.length) return;
+          list.innerHTML = leaderboardEntryMarkup(entries, "Cloud");
+        })
+        .catch((error) => {
+          console.warn(`Cloud leaderboard load failed for ${game.id}.`, error);
+        });
     });
   }
 
