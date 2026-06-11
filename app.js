@@ -7,6 +7,7 @@
     leaderboards: document.querySelector("#leaderboardScreen"),
     achievements: document.querySelector("#achievementsScreen"),
     social: document.querySelector("#socialScreen"),
+    progression: document.querySelector("#progressionScreen"),
     tournament: document.querySelector("#tournamentScreen"),
     history: document.querySelector("#historyScreen"),
     settings: document.querySelector("#settingsScreen"),
@@ -53,6 +54,12 @@
   const leaderboardRows = document.querySelector("#leaderboardRows");
   const achievementCount = document.querySelector("#achievementCount");
   const achievementGrid = document.querySelector("#achievementGrid");
+  const seasonLevelTitle = document.querySelector("#seasonLevelTitle");
+  const seasonProgressText = document.querySelector("#seasonProgressText");
+  const seasonProgressBar = document.querySelector("#seasonProgressBar");
+  const masterySummaryTitle = document.querySelector("#masterySummaryTitle");
+  const seasonTrack = document.querySelector("#seasonTrack");
+  const masteryGrid = document.querySelector("#masteryGrid");
   const dailyRewardTitle = document.querySelector("#dailyRewardTitle");
   const dailyRewardStatus = document.querySelector("#dailyRewardStatus");
   const claimDailyRewardButton = document.querySelector("#claimDailyRewardButton");
@@ -141,6 +148,7 @@
     lastDailyReward: "",
     rewardStreak: 0,
     missions: {},
+    claimedSeasonRewards: [],
   };
 
   const avatarOptions = ["P1", "VX", "KO", "AI", "GG", "XP"];
@@ -334,6 +342,14 @@
       rewardXp: 150,
       progress: () => gameDefinitions.reduce((best, game) => Math.max(best, getBestTime(game.id)), 0),
     },
+  ];
+
+  const seasonRewards = [
+    { level: 2, title: "Starter Tokens", description: "A small coin pack for early upgrades.", coins: 90, xp: 0 },
+    { level: 4, title: "Booster Crate", description: "Extra XP and coins for your next unlocks.", coins: 120, xp: 100 },
+    { level: 6, title: "Neon Title", description: "A progression badge for your profile wall.", coins: 160, xp: 140 },
+    { level: 8, title: "Garage Grant", description: "A bigger coin drop for Drift Boss cars.", coins: 220, xp: 180 },
+    { level: 10, title: "Season Champion", description: "The top season-one prize bundle.", coins: 320, xp: 260 },
   ];
 
   const gameDefinitions = [
@@ -776,6 +792,9 @@
       lastDailyReward: /^\d{4}-\d{2}-\d{2}$/.test(value.lastDailyReward || "") ? value.lastDailyReward : "",
       rewardStreak: Math.max(0, Math.floor(Number(value.rewardStreak) || 0)),
       missions: typeof value.missions === "object" && value.missions ? value.missions : {},
+      claimedSeasonRewards: Array.isArray(value.claimedSeasonRewards)
+        ? [...new Set(value.claimedSeasonRewards.map((level) => Math.max(0, Math.floor(Number(level) || 0))).filter(Boolean))]
+        : [],
     };
   }
 
@@ -883,6 +902,7 @@
     renderLeaderboards();
     renderAchievements();
     renderSocialHub();
+    renderProgression();
     renderRecentPlays();
     renderHistory();
     renderKeybinds();
@@ -972,6 +992,50 @@
 
   function getProfileLevel() {
     return Math.floor(profile.xp / 250) + 1;
+  }
+
+  function getSeasonLevel() {
+    return clamp(Math.floor(profile.xp / 300) + 1, 1, 10);
+  }
+
+  function getSeasonLevelXp(level = getSeasonLevel()) {
+    return Math.max(0, (level - 1) * 300);
+  }
+
+  function getSeasonProgress() {
+    const level = getSeasonLevel();
+    const currentFloor = getSeasonLevelXp(level);
+    const nextFloor = getSeasonLevelXp(Math.min(10, level + 1));
+    const span = Math.max(1, nextFloor - currentFloor);
+    const progress = level >= 10 ? 1 : clamp((profile.xp - currentFloor) / span, 0, 1);
+    return { level, currentFloor, nextFloor, progress };
+  }
+
+  function getMasteryForGame(game) {
+    const score = getBestScore(game.id);
+    const time = getBestTime(game.id);
+    const plays = getPlayCount(game.id);
+    const scorePoints = Math.floor(score / 550);
+    const timePoints = Math.floor(time / 15);
+    const playPoints = Math.floor(plays / 2);
+    const level = clamp(1 + scorePoints + timePoints + playPoints, 1, 10);
+    const nextTarget = level >= 10 ? "Maxed" : `${Math.max(0, level * 550 - score)} score or ${(level + 1) * 2} plays`;
+    return { level, score, time, plays, nextTarget };
+  }
+
+  function claimSeasonReward(level) {
+    const reward = seasonRewards.find((item) => item.level === level);
+    if (!reward || profile.claimedSeasonRewards.includes(level) || getSeasonLevel() < level) {
+      audio.beep(180, 0.08, "sawtooth");
+      return;
+    }
+    profile.claimedSeasonRewards.push(level);
+    profile.coins += reward.coins;
+    profile.xp += reward.xp;
+    saveProfile();
+    renderProgression();
+    renderSocialHub(`Season reward claimed: ${reward.coins} coins.`);
+    audio.chord([620, 820, 1080], 0.06, "triangle");
   }
 
   function addProgress({ coins = 0, xp = 0 } = {}) {
@@ -1272,6 +1336,7 @@
     renderLeaderboards();
     renderAchievements();
     renderSocialHub();
+    renderProgression();
     const result = { gameId: game.definition.id, player: playerName, score, time, mode, coinReward, xpReward };
     saveRecentPlay(result);
     saveCloudRunResult(result);
@@ -1425,6 +1490,7 @@
       leaderboards: "Leaderboards",
       achievements: "Achievements",
       social: "Missions & Friends",
+      progression: "Season Pass",
       tournament: "Tournament",
       history: "History",
       settings: "Settings",
@@ -1442,6 +1508,7 @@
     if (name === "leaderboards") renderLeaderboards();
     if (name === "achievements") renderAchievements();
     if (name === "social") renderSocialHub();
+    if (name === "progression") renderProgression();
     if (name === "tournament") renderTournament();
     if (name === "history") renderHistory();
     if (name === "settings") {
@@ -1843,6 +1910,65 @@
         )
         .join("")}
     `;
+  }
+
+  function renderProgression() {
+    const season = getSeasonProgress();
+    const masteredCount = gameDefinitions.filter((game) => getMasteryForGame(game).level >= 10).length;
+    seasonLevelTitle.textContent = `Level ${season.level}`;
+    seasonProgressText.textContent = season.level >= 10
+      ? "Season track complete. Keep playing to raise cabinet mastery."
+      : `${profile.xp - season.currentFloor}/${season.nextFloor - season.currentFloor} XP to Level ${season.level + 1}.`;
+    seasonProgressBar.style.width = `${Math.round(season.progress * 100)}%`;
+    masterySummaryTitle.textContent = `${masteredCount}/${gameDefinitions.length} mastered`;
+
+    seasonTrack.innerHTML = seasonRewards
+      .map((reward) => {
+        const unlocked = season.level >= reward.level;
+        const claimed = profile.claimedSeasonRewards.includes(reward.level);
+        return `
+          <article class="season-reward-card${unlocked ? " unlocked" : ""}${claimed ? " claimed" : ""}">
+            <span class="kicker">Level ${reward.level}</span>
+            <h3>${reward.title}</h3>
+            <p>${reward.description}</p>
+            <div class="mission-footer">
+              <strong>${reward.coins} coins${reward.xp ? ` · ${reward.xp} XP` : ""}</strong>
+              <button class="secondary-button compact" type="button" data-season-reward="${reward.level}" ${unlocked && !claimed ? "" : "disabled"}>
+                ${claimed ? "Claimed" : unlocked ? "Claim" : "Locked"}
+              </button>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    seasonTrack.querySelectorAll("[data-season-reward]").forEach((button) => {
+      button.addEventListener("click", () => claimSeasonReward(Number(button.dataset.seasonReward)));
+    });
+
+    masteryGrid.innerHTML = gameDefinitions
+      .map((game) => {
+        const mastery = getMasteryForGame(game);
+        return `
+          <article class="mastery-card" style="--preview-accent: ${game.accent}; --preview-glow: ${game.glow};">
+            <div>
+              <span class="kicker">${game.tag} mastery</span>
+              <h3>${game.title}</h3>
+            </div>
+            <strong>Lv ${mastery.level}</strong>
+            <div class="mission-progress" aria-label="${game.title} mastery progress">
+              <span style="width: ${mastery.level * 10}%"></span>
+            </div>
+            <div class="leaderboard-metrics">
+              <span><strong>${mastery.score}</strong> Best</span>
+              <span><strong>${formatRunTime(mastery.time)}</strong> Time</span>
+              <span><strong>${mastery.plays}</strong> Plays</span>
+            </div>
+            <p>${mastery.nextTarget}</p>
+          </article>
+        `;
+      })
+      .join("");
   }
 
   function renderDailyChallenge() {
@@ -6462,6 +6588,8 @@
       "#dailyButton": "daily",
       "#tournamentButton": "tournament",
       "#socialButton": "social",
+      "#seasonButton": "progression",
+      "#progressionButton": "progression",
       "#leaderboardButton": "leaderboards",
       "#achievementsButton": "achievements",
       "#historyButton": "history",
@@ -6482,6 +6610,8 @@
       dailyButton: () => showScreen("daily"),
       tournamentButton: () => showScreen("tournament"),
       socialButton: () => showScreen("social"),
+      seasonButton: () => showScreen("progression"),
+      progressionButton: () => showScreen("progression"),
       leaderboardButton: () => showScreen("leaderboards"),
       achievementsButton: () => showScreen("achievements"),
       historyButton: () => showScreen("history"),
@@ -6524,6 +6654,14 @@
   wireClick("#socialButton", () => {
     showScreen("social");
     audio.beep(640, 0.06, "triangle");
+  });
+  wireClick("#seasonButton", () => {
+    showScreen("progression");
+    audio.beep(720, 0.06, "triangle");
+  });
+  wireClick("#progressionButton", () => {
+    showScreen("progression");
+    audio.beep(720, 0.06, "triangle");
   });
   wireClick("#leaderboardButton", () => {
     showScreen("leaderboards");

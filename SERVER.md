@@ -2,6 +2,7 @@
 
 This project uses Firebase Cloud Functions to protect online leaderboard writes.
 It also stores each player's cloud profile in Firestore so coins, XP, skins, cars, settings, achievements, and history can follow them across devices.
+Season pass rewards, claimed prizes, and cabinet mastery progress are included in that cloud profile.
 
 ## What the server does
 

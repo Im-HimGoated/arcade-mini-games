@@ -17,7 +17,7 @@
       gtag("js", new Date());
       gtag("config", "G-710W0EF1Q2");
     </script>
-    <link rel="stylesheet" href="styles.css?v=2026-06-10-1" />
+    <link rel="stylesheet" href="styles.css?v=2026-06-10-2" />
   </head>
   <body>
     <div id="app" class="app-shell">
@@ -41,6 +41,10 @@
         <button class="rail-light" type="button" data-route="social" aria-label="Missions and Friends" title="Missions and Friends">
           <span class="rail-icon" aria-hidden="true">◎</span>
           <span class="rail-label">Social</span>
+        </button>
+        <button class="rail-light" type="button" data-route="progression" aria-label="Season Progression" title="Season Progression">
+          <span class="rail-icon" aria-hidden="true">▰</span>
+          <span class="rail-label">Season</span>
         </button>
         <span class="rail-divider"></span>
         <button class="rail-light" type="button" data-route="leaderboards" aria-label="Leaderboards" title="Leaderboards">
@@ -96,10 +100,11 @@
               <article class="dashboard-panel">
                 <span>Progress</span>
                 <div>
-                  <button class="dock-button" id="leaderboardButton" type="button"><span aria-hidden="true">≡</span> Leaderboards</button>
-                  <button class="dock-button" id="achievementsButton" type="button"><span aria-hidden="true">★</span> Achievements</button>
-                  <button class="dock-button" id="historyButton" type="button"><span aria-hidden="true">◷</span> History</button>
-                </div>
+                <button class="dock-button" id="leaderboardButton" type="button"><span aria-hidden="true">≡</span> Leaderboards</button>
+                <button class="dock-button" id="achievementsButton" type="button"><span aria-hidden="true">★</span> Achievements</button>
+                <button class="dock-button" id="progressionButton" type="button"><span aria-hidden="true">▰</span> Season</button>
+                <button class="dock-button" id="historyButton" type="button"><span aria-hidden="true">◷</span> History</button>
+              </div>
               </article>
               <article class="dashboard-panel">
                 <span>Cabinet</span>
@@ -162,6 +167,7 @@
                 <button class="secondary-button" id="dailyButton" type="button">Daily Challenge</button>
                 <button class="secondary-button" id="tournamentButton" type="button">Tournament</button>
                 <button class="secondary-button" id="socialButton" type="button">Missions & Friends</button>
+                <button class="secondary-button" id="seasonButton" type="button">Season Pass</button>
                 <button class="secondary-button" id="saveProgressButton" type="button">Save Progress</button>
               </div>
               <p class="save-feedback" id="saveFeedback" aria-live="polite"></p>
@@ -298,6 +304,30 @@
           </div>
           <div class="mission-grid" id="missionGrid" aria-live="polite"></div>
           <div class="friends-board" id="friendsBoard" aria-live="polite"></div>
+        </section>
+
+        <section class="screen progression-screen" id="progressionScreen" aria-labelledby="progressionTitle">
+          <div class="section-heading">
+            <p class="kicker">Season one</p>
+            <h2 id="progressionTitle">Season Pass</h2>
+          </div>
+          <div class="season-layout">
+            <article class="daily-card season-summary-card">
+              <span class="kicker">Prize track</span>
+              <h3 id="seasonLevelTitle">Level 1</h3>
+              <p id="seasonProgressText">Earn XP from any cabinet to unlock rewards.</p>
+              <div class="mission-progress season-progress" aria-label="Season XP progress">
+                <span id="seasonProgressBar"></span>
+              </div>
+            </article>
+            <article class="daily-card season-summary-card">
+              <span class="kicker">Cabinet mastery</span>
+              <h3 id="masterySummaryTitle">0 mastered</h3>
+              <p>Play different games to level their cabinets and unlock long-term bragging rights.</p>
+            </article>
+          </div>
+          <div class="season-track" id="seasonTrack" aria-live="polite"></div>
+          <div class="mastery-grid" id="masteryGrid" aria-live="polite"></div>
         </section>
 
         <section class="screen tournament-screen" id="tournamentScreen" aria-labelledby="tournamentTitle">
@@ -486,7 +516,7 @@
         </section>
       </main>
     </div>
-    <script type="module" src="firebase.js?v=2026-06-10-1"></script>
-    <script src="app.js?v=2026-06-10-1"></script>
+    <script type="module" src="firebase.js?v=2026-06-10-2"></script>
+    <script src="app.js?v=2026-06-10-2"></script>
   </body>
 </html>
