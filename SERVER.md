@@ -11,6 +11,7 @@ It also stores each player's cloud profile in Firestore so coins, XP, skins, car
 - It rate-limits each signed-in user to one score submission every 5 seconds.
 - It writes accepted scores to `leaderboards/{gameId}/scores` with the Admin SDK.
 - The browser can read/write only its own `profiles/{uid}` document after Firebase Auth signs the player in anonymously.
+- Friend codes are stored in `friendCodes/{code}` as public profile cards so other players can add them to a friends board.
 
 ## Firebase console checklist
 

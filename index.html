@@ -17,7 +17,7 @@
       gtag("js", new Date());
       gtag("config", "G-710W0EF1Q2");
     </script>
-    <link rel="stylesheet" href="styles.css?v=2026-06-07-1" />
+    <link rel="stylesheet" href="styles.css?v=2026-06-10-1" />
   </head>
   <body>
     <div id="app" class="app-shell">
@@ -37,6 +37,10 @@
         <button class="rail-light" type="button" data-route="tournament" aria-label="Tournament" title="Tournament">
           <span class="rail-icon" aria-hidden="true">⚔</span>
           <span class="rail-label">Tourney</span>
+        </button>
+        <button class="rail-light" type="button" data-route="social" aria-label="Missions and Friends" title="Missions and Friends">
+          <span class="rail-icon" aria-hidden="true">◎</span>
+          <span class="rail-label">Social</span>
         </button>
         <span class="rail-divider"></span>
         <button class="rail-light" type="button" data-route="leaderboards" aria-label="Leaderboards" title="Leaderboards">
@@ -157,6 +161,7 @@
               <div class="quick-actions" aria-label="Main arcade actions">
                 <button class="secondary-button" id="dailyButton" type="button">Daily Challenge</button>
                 <button class="secondary-button" id="tournamentButton" type="button">Tournament</button>
+                <button class="secondary-button" id="socialButton" type="button">Missions & Friends</button>
                 <button class="secondary-button" id="saveProgressButton" type="button">Save Progress</button>
               </div>
               <p class="save-feedback" id="saveFeedback" aria-live="polite"></p>
@@ -266,6 +271,33 @@
             </article>
           </div>
           <div class="achievement-grid" id="achievementGrid" aria-live="polite"></div>
+        </section>
+
+        <section class="screen social-screen" id="socialScreen" aria-labelledby="socialTitle">
+          <div class="section-heading">
+            <p class="kicker">Comeback loop</p>
+            <h2 id="socialTitle">Missions & Friends</h2>
+          </div>
+          <div class="social-layout">
+            <article class="daily-card reward-card">
+              <span class="kicker">Daily reward</span>
+              <h3 id="dailyRewardTitle">Ready</h3>
+              <p id="dailyRewardStatus">Claim today’s arcade drop for coins and XP.</p>
+              <button class="primary-button compact" id="claimDailyRewardButton" type="button">Claim Daily Reward</button>
+            </article>
+            <article class="daily-card friend-card">
+              <span class="kicker">Friend code</span>
+              <h3 id="friendCodeValue">----</h3>
+              <p>Share this code so friends can add you to their arcade board.</p>
+              <div class="friend-code-form">
+                <input id="friendCodeInput" maxlength="12" type="text" placeholder="Enter friend code" aria-label="Friend code" />
+                <button class="secondary-button compact" id="addFriendButton" type="button">Add Friend</button>
+              </div>
+              <p class="save-feedback" id="friendFeedback" aria-live="polite"></p>
+            </article>
+          </div>
+          <div class="mission-grid" id="missionGrid" aria-live="polite"></div>
+          <div class="friends-board" id="friendsBoard" aria-live="polite"></div>
         </section>
 
         <section class="screen tournament-screen" id="tournamentScreen" aria-labelledby="tournamentTitle">
@@ -454,7 +486,7 @@
         </section>
       </main>
     </div>
-    <script type="module" src="firebase.js?v=2026-06-09-3"></script>
-    <script src="app.js?v=2026-06-09-3"></script>
+    <script type="module" src="firebase.js?v=2026-06-10-1"></script>
+    <script src="app.js?v=2026-06-10-1"></script>
   </body>
 </html>

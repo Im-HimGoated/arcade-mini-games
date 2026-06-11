@@ -6,6 +6,7 @@
     about: document.querySelector("#aboutScreen"),
     leaderboards: document.querySelector("#leaderboardScreen"),
     achievements: document.querySelector("#achievementsScreen"),
+    social: document.querySelector("#socialScreen"),
     tournament: document.querySelector("#tournamentScreen"),
     history: document.querySelector("#historyScreen"),
     settings: document.querySelector("#settingsScreen"),
@@ -52,6 +53,15 @@
   const leaderboardRows = document.querySelector("#leaderboardRows");
   const achievementCount = document.querySelector("#achievementCount");
   const achievementGrid = document.querySelector("#achievementGrid");
+  const dailyRewardTitle = document.querySelector("#dailyRewardTitle");
+  const dailyRewardStatus = document.querySelector("#dailyRewardStatus");
+  const claimDailyRewardButton = document.querySelector("#claimDailyRewardButton");
+  const friendCodeValue = document.querySelector("#friendCodeValue");
+  const friendCodeInput = document.querySelector("#friendCodeInput");
+  const addFriendButton = document.querySelector("#addFriendButton");
+  const friendFeedback = document.querySelector("#friendFeedback");
+  const missionGrid = document.querySelector("#missionGrid");
+  const friendsBoard = document.querySelector("#friendsBoard");
   const historyList = document.querySelector("#historyList");
   const tournamentForm = document.querySelector("#tournamentForm");
   const tournamentGameSelect = document.querySelector("#tournamentGameSelect");
@@ -126,6 +136,11 @@
     driftCars: ["starter"],
     driftBoosters: {},
     driftSensitivity: 100,
+    friendCode: "",
+    friends: [],
+    lastDailyReward: "",
+    rewardStreak: 0,
+    missions: {},
   };
 
   const avatarOptions = ["P1", "VX", "KO", "AI", "GG", "XP"];
@@ -279,6 +294,45 @@
       title: "Grid Mind",
       description: "Post a 200+ score in Neon Noughts.",
       icon: "XO",
+    },
+  ];
+
+  const missionDefinitions = [
+    {
+      id: "score-spark",
+      title: "Score Spark",
+      description: "Score 1,500 total points across any cabinets.",
+      target: 1500,
+      rewardCoins: 80,
+      rewardXp: 180,
+      progress: () => gameDefinitions.reduce((sum, game) => sum + getBestScore(game.id), 0),
+    },
+    {
+      id: "cabinet-tour",
+      title: "Cabinet Tour",
+      description: "Play 5 different games.",
+      target: 5,
+      rewardCoins: 90,
+      rewardXp: 200,
+      progress: () => getPlayedGameCount(),
+    },
+    {
+      id: "drift-fund",
+      title: "Drift Fund",
+      description: "Earn 250 coins for your garage.",
+      target: 250,
+      rewardCoins: 70,
+      rewardXp: 160,
+      progress: () => profile.coins,
+    },
+    {
+      id: "survival-clock",
+      title: "Survival Clock",
+      description: "Record a 45 second run in any game.",
+      target: 45,
+      rewardCoins: 65,
+      rewardXp: 150,
+      progress: () => gameDefinitions.reduce((best, game) => Math.max(best, getBestTime(game.id)), 0),
     },
   ];
 
@@ -689,10 +743,12 @@
       : ["neon"];
     const ownedDriftCars = Array.isArray(value.driftCars) && value.driftCars.length ? value.driftCars : ["starter"];
     const driftBoosters = typeof value.driftBoosters === "object" && value.driftBoosters ? value.driftBoosters : {};
+    const friends = Array.isArray(value.friends) ? value.friends : [];
     const normalizedBoosters = {};
     Object.keys(driftBoosters).forEach((id) => {
       normalizedBoosters[id] = Math.max(0, Math.floor(Number(driftBoosters[id]) || 0));
     });
+    const friendCode = cleanFriendCode(value.friendCode) || generateFriendCode(value.name);
     return {
       ...defaultProfile,
       ...value,
@@ -706,6 +762,20 @@
       driftCar: driftCars.some((car) => car.id === value.driftCar) && ownedDriftCars.includes(value.driftCar) ? value.driftCar : "starter",
       driftBoosters: normalizedBoosters,
       driftSensitivity: clamp(Number(value.driftSensitivity) || defaultProfile.driftSensitivity, 70, 140),
+      friendCode,
+      friends: friends
+        .map((friend) => ({
+          code: cleanFriendCode(friend.code),
+          name: cleanPlayerName(friend.name, "Friend"),
+          avatar: String(friend.avatar || "P2").slice(0, 3).toUpperCase(),
+          totalBest: Math.max(0, Math.floor(Number(friend.totalBest) || 0)),
+          level: Math.max(1, Math.floor(Number(friend.level) || 1)),
+          addedAt: friend.addedAt || new Date().toISOString(),
+        }))
+        .filter((friend) => friend.code && friend.code !== friendCode),
+      lastDailyReward: /^\d{4}-\d{2}-\d{2}$/.test(value.lastDailyReward || "") ? value.lastDailyReward : "",
+      rewardStreak: Math.max(0, Math.floor(Number(value.rewardStreak) || 0)),
+      missions: typeof value.missions === "object" && value.missions ? value.missions : {},
     };
   }
 
@@ -760,6 +830,7 @@
       recentPlays: loadJson("arcade-recent-plays", []),
       tournamentHistory: getTournamentHistory(),
       games: getLocalGameProgress(),
+      publicProfile: publicProfileSnapshot(),
       savedAt: new Date().toISOString(),
     };
   }
@@ -811,6 +882,7 @@
     renderGameCards();
     renderLeaderboards();
     renderAchievements();
+    renderSocialHub();
     renderRecentPlays();
     renderHistory();
     renderKeybinds();
@@ -833,6 +905,9 @@
     setCloudProfileStatus("Saving cloud profile...", "neutral");
     try {
       await window.arcadeCloud.saveProfile(getCloudProgressPayload());
+      if (window.arcadeCloud.registerFriendCode) {
+        await window.arcadeCloud.registerFriendCode(publicProfileSnapshot());
+      }
       const savedAt = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
       setCloudProfileStatus(`Cloud profile saved at ${savedAt}.`, "success");
       if (showMessage && saveFeedback) saveFeedback.textContent = `Cloud profile saved at ${savedAt}.`;
@@ -1196,6 +1271,7 @@
     renderGameCards();
     renderLeaderboards();
     renderAchievements();
+    renderSocialHub();
     const result = { gameId: game.definition.id, player: playerName, score, time, mode, coinReward, xpReward };
     saveRecentPlay(result);
     saveCloudRunResult(result);
@@ -1348,6 +1424,7 @@
       about: selectedAboutGame?.title ?? "About",
       leaderboards: "Leaderboards",
       achievements: "Achievements",
+      social: "Missions & Friends",
       tournament: "Tournament",
       history: "History",
       settings: "Settings",
@@ -1364,6 +1441,7 @@
     if (name === "daily") renderDailyChallenge();
     if (name === "leaderboards") renderLeaderboards();
     if (name === "achievements") renderAchievements();
+    if (name === "social") renderSocialHub();
     if (name === "tournament") renderTournament();
     if (name === "history") renderHistory();
     if (name === "settings") {
@@ -1570,6 +1648,201 @@
       ? `${result.player} beat today's ${challenge.label} goal with ${result.score} points and ${formatRunTime(result.time)}.`
       : `${result.player} logged ${result.score} points and ${formatRunTime(result.time)}. Try again for ${challenge.label}.`;
     renderDailyChallenge();
+  }
+
+  function dailyRewardValue() {
+    const streak = profile.lastDailyReward === previousDayKey() ? profile.rewardStreak + 1 : profile.lastDailyReward === todayKey() ? profile.rewardStreak : 1;
+    return {
+      streak,
+      coins: Math.min(260, 70 + streak * 15),
+      xp: Math.min(520, 150 + streak * 35),
+    };
+  }
+
+  function previousDayKey() {
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    return todayKey(date);
+  }
+
+  function claimDailyReward() {
+    if (profile.lastDailyReward === todayKey()) {
+      renderSocialHub("Daily reward already claimed.");
+      audio.beep(180, 0.08, "sawtooth");
+      return;
+    }
+    const reward = dailyRewardValue();
+    profile.rewardStreak = reward.streak;
+    profile.lastDailyReward = todayKey();
+    profile.coins += reward.coins;
+    profile.xp += reward.xp;
+    saveProfile();
+    renderSocialHub(`Claimed ${reward.coins} coins and ${reward.xp} XP.`);
+    audio.chord([520, 760, 980], 0.07, "triangle");
+  }
+
+  function getMissionState(id) {
+    return profile.missions?.[id] || {};
+  }
+
+  function claimMission(id) {
+    const mission = missionDefinitions.find((item) => item.id === id);
+    if (!mission) return;
+    const progress = Math.min(mission.target, mission.progress());
+    const state = getMissionState(id);
+    if (state.claimed || progress < mission.target) {
+      audio.beep(180, 0.08, "sawtooth");
+      return;
+    }
+    profile.missions = {
+      ...profile.missions,
+      [id]: {
+        claimed: true,
+        claimedAt: new Date().toISOString(),
+      },
+    };
+    profile.coins += mission.rewardCoins;
+    profile.xp += mission.rewardXp;
+    saveProfile();
+    renderSocialHub(`Mission reward claimed: ${mission.rewardCoins} coins.`);
+    audio.chord([640, 840, 1040], 0.06, "triangle");
+  }
+
+  function addFriendFromInput() {
+    const code = cleanFriendCode(friendCodeInput.value);
+    if (!code) {
+      setFriendFeedback("Enter a friend code first.", "warning");
+      return;
+    }
+    if (code === profile.friendCode) {
+      setFriendFeedback("That is your own friend code.", "warning");
+      return;
+    }
+    if (profile.friends.some((friend) => friend.code === code)) {
+      setFriendFeedback("That friend is already on your board.", "warning");
+      return;
+    }
+    const friend = {
+      code,
+      name: `Friend ${code.slice(-3)}`,
+      avatar: "P2",
+      totalBest: 0,
+      level: 1,
+      addedAt: new Date().toISOString(),
+    };
+    profile.friends = [...profile.friends, friend].slice(0, 12);
+    friendCodeInput.value = "";
+    saveProfile();
+    setFriendFeedback("Friend added. Cloud lookup will fill in their stats when available.", "success");
+    renderFriendsBoard();
+    loadCloudFriend(code);
+  }
+
+  function setFriendFeedback(message, tone = "neutral") {
+    if (!friendFeedback) return;
+    friendFeedback.textContent = message;
+    friendFeedback.dataset.tone = tone;
+  }
+
+  function updateFriend(friendData) {
+    if (!friendData?.code) return;
+    profile.friends = profile.friends.map((friend) => friend.code === friendData.code ? { ...friend, ...friendData } : friend);
+    saveProfile();
+    renderFriendsBoard();
+  }
+
+  function loadCloudFriend(code) {
+    if (!window.arcadeCloud?.findFriend) return;
+    window.arcadeCloud.findFriend(code)
+      .then((friend) => {
+        if (!friend) return;
+        updateFriend(friend);
+        setFriendFeedback(`${friend.name} synced to your friends board.`, "success");
+      })
+      .catch((error) => {
+        console.warn("Friend lookup failed.", error);
+      });
+  }
+
+  function renderSocialHub(message = "") {
+    renderDailyReward(message);
+    renderMissions();
+    renderFriendsBoard();
+  }
+
+  function renderDailyReward(message = "") {
+    const claimed = profile.lastDailyReward === todayKey();
+    const reward = dailyRewardValue();
+    dailyRewardTitle.textContent = claimed ? `Streak ${profile.rewardStreak}` : `${reward.coins} Coins`;
+    dailyRewardStatus.textContent = message || (claimed
+      ? "Today's reward is claimed. Come back tomorrow to keep the streak alive."
+      : `Claim ${reward.coins} coins and ${reward.xp} XP. Current streak: ${profile.rewardStreak}.`);
+    claimDailyRewardButton.disabled = claimed;
+    claimDailyRewardButton.textContent = claimed ? "Claimed Today" : "Claim Daily Reward";
+  }
+
+  function renderMissions() {
+    missionGrid.innerHTML = "";
+    missionDefinitions.forEach((mission) => {
+      const progress = Math.min(mission.target, mission.progress());
+      const percent = Math.round((progress / mission.target) * 100);
+      const state = getMissionState(mission.id);
+      const complete = progress >= mission.target;
+      const card = document.createElement("article");
+      card.className = `mission-card${complete ? " complete" : ""}${state.claimed ? " claimed" : ""}`;
+      card.innerHTML = `
+        <div>
+          <span class="kicker">${state.claimed ? "Claimed" : complete ? "Ready" : "Mission"}</span>
+          <h3>${mission.title}</h3>
+          <p>${mission.description}</p>
+        </div>
+        <div class="mission-progress" aria-label="${mission.title} progress">
+          <span style="width: ${percent}%"></span>
+        </div>
+        <div class="mission-footer">
+          <strong>${Math.floor(progress)}/${mission.target}</strong>
+          <button class="secondary-button compact" type="button" ${complete && !state.claimed ? "" : "disabled"}>
+            ${state.claimed ? "Claimed" : `Claim ${mission.rewardCoins}`}
+          </button>
+        </div>
+      `;
+      card.querySelector("button").addEventListener("click", () => claimMission(mission.id));
+      missionGrid.append(card);
+    });
+  }
+
+  function renderFriendsBoard() {
+    friendCodeValue.textContent = profile.friendCode;
+    const rows = [publicProfileSnapshot(), ...profile.friends]
+      .sort((a, b) => Number(b.totalBest || 0) - Number(a.totalBest || 0));
+    friendsBoard.innerHTML = `
+      <article class="leaderboard-row friends-title">
+        <div class="leaderboard-rank">◎</div>
+        <div>
+          <span class="kicker">Friends board</span>
+          <h3>${profile.friends.length ? `${profile.friends.length} friends connected` : "No friends yet"}</h3>
+          <p>Add a code to compare total best scores. Cloud lookup updates names when Firebase Auth is enabled.</p>
+        </div>
+      </article>
+      ${rows
+        .map(
+          (friend, index) => `
+            <article class="leaderboard-row friend-row">
+              <div class="leaderboard-rank">${index + 1}</div>
+              <div>
+                <span class="kicker">${friend.code === profile.friendCode ? "You" : friend.code}</span>
+                <h3>${friend.name}</h3>
+                <div class="leaderboard-metrics">
+                  <span><strong>${friend.totalBest || 0}</strong> Total best</span>
+                  <span><strong>${friend.level || 1}</strong> Level</span>
+                  <span><strong>${friend.favorite || "Pending"}</strong> Favorite</span>
+                </div>
+              </div>
+            </article>
+          `,
+        )
+        .join("")}
+    `;
   }
 
   function renderDailyChallenge() {
@@ -2031,6 +2304,45 @@
 
   function cleanPlayerName(value, fallback) {
     return String(value || "").trim().slice(0, 18) || fallback;
+  }
+
+  function cleanFriendCode(value) {
+    return String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+  }
+
+  function generateFriendCode(seed = "player") {
+    const base = cleanPlayerName(seed, "Player").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4) || "PLAY";
+    const saved = localStorage.getItem("arcade-friend-code");
+    if (saved) return cleanFriendCode(saved);
+    const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+    const code = cleanFriendCode(`${base}${suffix}`);
+    localStorage.setItem("arcade-friend-code", code);
+    return code;
+  }
+
+  function todayKey(date = new Date()) {
+    return date.toISOString().slice(0, 10);
+  }
+
+  function totalBestScoreValue() {
+    return gameDefinitions.reduce((sum, game) => sum + getBestScore(game.id), 0);
+  }
+
+  function publicProfileSnapshot() {
+    return {
+      code: profile.friendCode,
+      name: profile.name,
+      avatar: profile.avatar,
+      level: getProfileLevel(),
+      totalBest: totalBestScoreValue(),
+      favorite: favoriteGameTitle(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  function favoriteGameTitle() {
+    const mostPlayed = [...gameDefinitions].sort((a, b) => getPlayCount(b.id) - getPlayCount(a.id))[0];
+    return getPlayCount(mostPlayed.id) ? mostPlayed.title : "None";
   }
 
   function capitalize(value) {
@@ -6149,6 +6461,7 @@
       "#playButton": "games",
       "#dailyButton": "daily",
       "#tournamentButton": "tournament",
+      "#socialButton": "social",
       "#leaderboardButton": "leaderboards",
       "#achievementsButton": "achievements",
       "#historyButton": "history",
@@ -6168,6 +6481,7 @@
       },
       dailyButton: () => showScreen("daily"),
       tournamentButton: () => showScreen("tournament"),
+      socialButton: () => showScreen("social"),
       leaderboardButton: () => showScreen("leaderboards"),
       achievementsButton: () => showScreen("achievements"),
       historyButton: () => showScreen("history"),
@@ -6207,6 +6521,10 @@
     showScreen("tournament");
     audio.beep(560, 0.06, "square");
   });
+  wireClick("#socialButton", () => {
+    showScreen("social");
+    audio.beep(640, 0.06, "triangle");
+  });
   wireClick("#leaderboardButton", () => {
     showScreen("leaderboards");
     audio.beep(480, 0.06, "triangle");
@@ -6239,6 +6557,8 @@
     loadCloudProfile();
     audio.beep(520, 0.06, "triangle");
   });
+  wireClick("#claimDailyRewardButton", () => claimDailyReward());
+  wireClick("#addFriendButton", () => addFriendFromInput());
   gameSearch.addEventListener("input", renderGameCards);
   globalSearch.addEventListener("input", () => {
     gameSearch.value = globalSearch.value;
@@ -6401,6 +6721,7 @@
   renderDailyChallenge();
   renderLeaderboards();
   renderAchievements();
+  renderSocialHub();
   renderHistory();
   renderTournament();
   renderKeybinds();

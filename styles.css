@@ -692,7 +692,7 @@ body[data-screen="intro"] .app-shell {
 .quick-actions {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .save-feedback {
@@ -827,6 +827,14 @@ body[data-screen="intro"] .app-shell {
 .icon-button:hover,
 .dock-button:hover {
   transform: translateY(-2px);
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.45);
+  opacity: 0.55;
+  transform: none;
 }
 
 .hidden {
@@ -1652,7 +1660,10 @@ select:disabled {
 .leaderboard-layout,
 .tournament-layout,
 .achievement-summary,
-.daily-layout {
+.daily-layout,
+.social-layout,
+.mission-grid,
+.friends-board {
   display: grid;
   gap: 16px;
   margin: 0 auto;
@@ -1735,6 +1746,133 @@ select:disabled {
 .daily-layout {
   align-items: stretch;
   grid-template-columns: minmax(320px, 1.1fr) minmax(280px, 0.9fr);
+}
+
+.social-layout {
+  align-items: stretch;
+  grid-template-columns: minmax(300px, 0.9fr) minmax(320px, 1.1fr);
+  margin-bottom: 16px;
+}
+
+.mission-grid {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  margin-bottom: 16px;
+}
+
+.mission-card {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(52, 214, 255, 0.2), transparent 38%),
+    linear-gradient(180deg, rgba(24, 30, 48, 0.95), rgba(9, 13, 25, 0.96));
+  border: 1px solid rgba(177, 211, 255, 0.13);
+  border-radius: 8px;
+  display: grid;
+  grid-template-rows: minmax(116px, 1fr) auto auto;
+  gap: 14px;
+  min-height: 230px;
+  padding: 18px;
+}
+
+.mission-card.complete {
+  border-color: rgba(88, 242, 159, 0.42);
+  box-shadow: 0 20px 60px rgba(88, 242, 159, 0.08);
+}
+
+.mission-card.claimed {
+  opacity: 0.72;
+}
+
+.mission-card h3 {
+  font-size: 1.25rem;
+  line-height: 1.1;
+  margin: 6px 0;
+}
+
+.mission-card p,
+.friends-title p {
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.mission-progress {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.mission-progress span {
+  background: linear-gradient(90deg, var(--hot), var(--sun), var(--mint));
+  display: block;
+  height: 100%;
+}
+
+.mission-footer {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.reward-card,
+.friend-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 260px;
+}
+
+.reward-card h3,
+.friend-card h3 {
+  font-size: clamp(2.1rem, 7vw, 3.35rem);
+  letter-spacing: 0.02em;
+  line-height: 0.95;
+  margin-bottom: 16px;
+}
+
+.reward-card .primary-button {
+  margin-top: 18px;
+  width: fit-content;
+}
+
+.friend-code-form {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 16px;
+}
+
+.friend-code-form input {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  color: var(--text);
+  min-height: 42px;
+  outline: 0;
+  padding: 0 12px;
+  text-transform: uppercase;
+}
+
+#friendFeedback[data-tone="success"] {
+  color: var(--mint);
+}
+
+#friendFeedback[data-tone="warning"] {
+  color: var(--sun);
+}
+
+.friends-board {
+  gap: 10px;
+}
+
+.friends-title {
+  background:
+    linear-gradient(135deg, rgba(88, 242, 159, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(24, 30, 48, 0.96), rgba(9, 13, 25, 0.95));
+}
+
+.friend-row {
+  min-height: 112px;
 }
 
 .daily-card {
@@ -3159,7 +3297,13 @@ h2 {
   .leaderboard-layout,
   .tournament-layout,
   .achievement-summary,
-  .daily-layout {
+  .daily-layout,
+  .social-layout,
+  .mission-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .friend-code-form {
     grid-template-columns: 1fr;
   }
 

@@ -47,6 +47,8 @@ const cloudApi = {
   getScores,
   saveProfile,
   loadProfile,
+  registerFriendCode,
+  findFriend,
   getUserId: () => currentUser?.uid || null,
 };
 
@@ -115,4 +117,38 @@ async function loadProfile() {
   const profileRef = doc(db, "profiles", currentUser.uid);
   const snapshot = await getDoc(profileRef);
   return snapshot.exists() ? snapshot.data() : null;
+}
+
+async function registerFriendCode(publicProfile) {
+  await ready;
+  if (!currentUser || !publicProfile?.code) return null;
+  const codeRef = doc(db, "friendCodes", String(publicProfile.code).toUpperCase());
+  await setDoc(
+    codeRef,
+    {
+      ...publicProfile,
+      uid: currentUser.uid,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+  return { registered: true, code: publicProfile.code };
+}
+
+async function findFriend(code) {
+  await ready;
+  const cleanedCode = String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+  if (!cleanedCode) return null;
+  const codeRef = doc(db, "friendCodes", cleanedCode);
+  const snapshot = await getDoc(codeRef);
+  if (!snapshot.exists()) return null;
+  const data = snapshot.data();
+  return {
+    code: cleanedCode,
+    name: data.name || "Friend",
+    avatar: data.avatar || "P2",
+    level: Math.max(1, Math.floor(Number(data.level) || 1)),
+    totalBest: Math.max(0, Math.floor(Number(data.totalBest) || 0)),
+    favorite: data.favorite || "None",
+  };
 }
