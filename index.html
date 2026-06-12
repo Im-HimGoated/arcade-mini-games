@@ -17,9 +17,10 @@
       gtag("js", new Date());
       gtag("config", "G-HRNS0BXLV8");
     </script>
-    <link rel="stylesheet" href="styles.css?v=2026-06-12-4" />
+    <link rel="stylesheet" href="styles.css?v=2026-06-12-8" />
   </head>
   <body>
+    <div class="site-status-banner" id="siteStatusBanner" role="status" aria-live="polite"></div>
     <div id="app" class="app-shell">
       <aside class="side-rail" aria-label="Arcade shortcuts">
         <button class="rail-light active" type="button" data-route="intro" aria-label="Home" title="Home">
@@ -58,6 +59,10 @@
         <button class="rail-light" type="button" data-route="settings" aria-label="Settings" title="Settings">
           <span class="rail-icon" aria-hidden="true">⚙</span>
           <span class="rail-label">Settings</span>
+        </button>
+        <button class="rail-light" type="button" data-route="debug" aria-label="Debug and Support" title="Debug and Support">
+          <span class="rail-icon" aria-hidden="true">!</span>
+          <span class="rail-label">Debug</span>
         </button>
       </aside>
       <header class="topbar">
@@ -111,6 +116,7 @@
                 <div>
                   <button class="dock-button" id="settingsButton" type="button"><span aria-hidden="true">⚙</span> Settings</button>
                   <button class="dock-button" id="keybindButton" type="button"><span aria-hidden="true">⌨</span> Keybinds</button>
+                  <button class="dock-button" id="debugButton" type="button"><span aria-hidden="true">!</span> Debug</button>
                 </div>
               </article>
             </div>
@@ -208,6 +214,10 @@
               <button class="filter-tab" type="button" data-filter="Reflex" data-icon="⚡">Reflex</button>
               <button class="filter-tab" type="button" data-filter="Timing" data-icon="◷">Timing</button>
               <button class="filter-tab" type="button" data-filter="Strategy" data-icon="♟">Strategy</button>
+              <button class="filter-tab" type="button" data-filter="Puzzle" data-icon="▣">Puzzle</button>
+              <button class="filter-tab" type="button" data-filter="Sports" data-icon="●">Sports</button>
+              <button class="filter-tab" type="button" data-filter="Racing" data-icon="◈">Racing</button>
+              <button class="filter-tab" type="button" data-filter="Arcade" data-icon="★">Arcade</button>
             </div>
             <div class="play-level-picker" aria-label="Play level">
               <span>Play Level</span>
@@ -216,6 +226,8 @@
               <button class="level-chip" type="button" data-play-level="3">3</button>
             </div>
           </div>
+          <div class="collection-strip" id="collectionStrip" aria-label="Game collections"></div>
+          <aside class="game-detail-dock" id="gameDetailDock" aria-live="polite"></aside>
           <div class="game-grid" id="gameGrid"></div>
         </section>
 
@@ -436,6 +448,13 @@
               </span>
               <div class="skin-grid" id="skinGrid"></div>
             </article>
+            <article class="setting-row arcade-market">
+              <span>
+                <strong>Arcade market</strong>
+                <small>Buy titles and one-run tickets with season coins</small>
+              </span>
+              <div class="market-grid" id="arcadeMarket"></div>
+            </article>
             <article class="setting-row drift-garage">
               <span>
                 <strong>Drift Boss garage</strong>
@@ -482,6 +501,50 @@
           <div class="keybind-grid" id="keybindGrid"></div>
           <div class="footer-actions">
             <button class="secondary-button compact" id="resetKeysButton" type="button">Reset Defaults</button>
+          </div>
+        </section>
+
+        <section class="screen debug-screen" id="debugScreen" aria-labelledby="debugTitle">
+          <div class="section-heading">
+            <p class="kicker">Support terminal</p>
+            <h2 id="debugTitle">Debug & Status</h2>
+          </div>
+          <div class="debug-layout">
+            <article class="debug-card debug-status-card">
+              <span class="kicker">Website status</span>
+              <h3 id="debugStatusTitle">Live</h3>
+              <p id="debugStatusText">The arcade is ready. If a game breaks, send a report with the cabinet name and what happened.</p>
+              <div class="debug-actions">
+                <button class="secondary-button compact" id="toggleUpdateNoticeButton" type="button">Toggle Updating Notice</button>
+                <button class="secondary-button compact" id="clearReportsButton" type="button">Clear Reports</button>
+              </div>
+            </article>
+            <form class="debug-card debug-form" id="debugForm">
+              <label>
+                <span>Problem type</span>
+                <select id="debugType">
+                  <option value="Bug">Bug</option>
+                  <option value="Button">Button not working</option>
+                  <option value="Game">Game issue</option>
+                  <option value="Idea">Idea</option>
+                </select>
+              </label>
+              <label>
+                <span>Cabinet or screen</span>
+                <input id="debugArea" type="text" placeholder="Example: Doodle Road, Play screen" maxlength="60" />
+              </label>
+              <label>
+                <span>What happened?</span>
+                <textarea id="debugMessage" rows="5" placeholder="Describe what broke or what should change." maxlength="360"></textarea>
+              </label>
+              <button class="primary-button compact" type="submit">Submit Report</button>
+              <p class="save-feedback" id="debugFeedback" aria-live="polite"></p>
+            </form>
+            <article class="debug-card">
+              <span class="kicker">Report admin</span>
+              <h3 id="debugReportTitle">Recent reports</h3>
+              <div class="debug-report-list" id="debugReportList"></div>
+            </article>
           </div>
         </section>
 
@@ -540,7 +603,7 @@
         </section>
       </main>
     </div>
-    <script type="module" src="firebase.js?v=2026-06-12-4"></script>
-    <script src="app.js?v=2026-06-12-4"></script>
+    <script type="module" src="firebase.js?v=2026-06-12-8"></script>
+    <script src="app.js?v=2026-06-12-8"></script>
   </body>
 </html>

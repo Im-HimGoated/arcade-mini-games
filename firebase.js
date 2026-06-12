@@ -28,6 +28,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const functions = getFunctions(app);
 const submitScore = httpsCallable(functions, "submitScore");
+const reportIssue = httpsCallable(functions, "reportIssue");
 
 let currentUser = null;
 let resolveReady = null;
@@ -49,6 +50,7 @@ const cloudApi = {
   loadProfile,
   registerFriendCode,
   findFriend,
+  sendReport,
   getUserId: () => currentUser?.uid || null,
 };
 
@@ -151,4 +153,16 @@ async function findFriend(code) {
     totalBest: Math.max(0, Math.floor(Number(data.totalBest) || 0)),
     favorite: data.favorite || "None",
   };
+}
+
+async function sendReport(report) {
+  await ready;
+  if (!currentUser || !report?.message) return null;
+  return reportIssue({
+    type: String(report.type || "Bug").slice(0, 32),
+    area: String(report.area || "General").slice(0, 60),
+    message: String(report.message || "").slice(0, 360),
+    screen: String(report.screen || "unknown").slice(0, 32),
+    userAgent: String(report.userAgent || navigator.userAgent || "").slice(0, 180),
+  });
 }

@@ -12,6 +12,7 @@
     history: document.querySelector("#historyScreen"),
     settings: document.querySelector("#settingsScreen"),
     keybinds: document.querySelector("#keybindScreen"),
+    debug: document.querySelector("#debugScreen"),
     play: document.querySelector("#playScreen"),
   };
 
@@ -19,10 +20,13 @@
   const backButton = document.querySelector("#backButton");
   const muteButton = document.querySelector("#muteButton");
   const muteIcon = document.querySelector("#muteIcon");
+  const siteStatusBanner = document.querySelector("#siteStatusBanner");
   const globalSearch = document.querySelector("#globalSearch");
   const gameGrid = document.querySelector("#gameGrid");
   const gameSearch = document.querySelector("#gameSearch");
   const filterTabs = document.querySelector("#filterTabs");
+  const collectionStrip = document.querySelector("#collectionStrip");
+  const gameDetailDock = document.querySelector("#gameDetailDock");
   const playLevelButtons = document.querySelectorAll("[data-play-level]");
   const introCabinetCount = document.querySelector("#introCabinetCount");
   const totalBestScore = document.querySelector("#totalBestScore");
@@ -97,6 +101,7 @@
   const cloudLoadButton = document.querySelector("#cloudLoadButton");
   const avatarPicker = document.querySelector("#avatarPicker");
   const skinGrid = document.querySelector("#skinGrid");
+  const arcadeMarket = document.querySelector("#arcadeMarket");
   const driftShop = document.querySelector("#driftShop");
   const audioToggle = document.querySelector("#audioToggle");
   const musicToggle = document.querySelector("#musicToggle");
@@ -115,6 +120,17 @@
   const driftSensitivitySlider = document.querySelector("#driftSensitivitySlider");
   const driftSensitivityValue = document.querySelector("#driftSensitivityValue");
   const startDriftRunButton = document.querySelector("#startDriftRunButton");
+  const debugStatusTitle = document.querySelector("#debugStatusTitle");
+  const debugStatusText = document.querySelector("#debugStatusText");
+  const debugForm = document.querySelector("#debugForm");
+  const debugType = document.querySelector("#debugType");
+  const debugArea = document.querySelector("#debugArea");
+  const debugMessage = document.querySelector("#debugMessage");
+  const debugFeedback = document.querySelector("#debugFeedback");
+  const debugReportList = document.querySelector("#debugReportList");
+  const debugReportTitle = document.querySelector("#debugReportTitle");
+  const toggleUpdateNoticeButton = document.querySelector("#toggleUpdateNoticeButton");
+  const clearReportsButton = document.querySelector("#clearReportsButton");
   const gameCanvas = document.querySelector("#gameCanvas");
   const gameContext = gameCanvas.getContext("2d");
   const touchControls = document.querySelector("#touchControls");
@@ -161,6 +177,10 @@
     title: "rookie",
     friendChallenges: [],
     masteryRewards: {},
+    featuredRewards: {},
+    ownedTitles: [],
+    arcadeBoosters: {},
+    selectedArcadeBooster: "",
   };
 
   const avatarOptions = ["P1", "VX", "KO", "AI", "GG", "XP"];
@@ -172,6 +192,18 @@
     { id: "drift", title: "Drift Pilot", unlock: () => getMasteryForGame(gameDefinitions.find((game) => game.id === "driftboss")).level >= 4 },
     { id: "champ", title: "Tournament Champ", unlock: () => getAchievements().includes("tournament-win") },
     { id: "season", title: "Season Champion", unlock: () => getSeasonLevel() >= 10 },
+    { id: "coin-baron", title: "Coin Baron", unlock: () => profile.ownedTitles?.includes("coin-baron") },
+    { id: "snake-runner", title: "Snake Runner", unlock: () => profile.ownedTitles?.includes("snake-runner") },
+    { id: "doodle-architect", title: "Doodle Architect", unlock: () => profile.ownedTitles?.includes("doodle-architect") },
+  ];
+
+  const arcadeMarketItems = [
+    { id: "coinTicket", title: "Coin Ticket", type: "booster", icon: "$+", cost: 80, description: "Next finished run earns 45 bonus coins." },
+    { id: "xpTicket", title: "XP Ticket", type: "booster", icon: "XP", cost: 90, description: "Next finished run earns 90 bonus XP." },
+    { id: "comboSpark", title: "Combo Spark", type: "booster", icon: "x2", cost: 110, description: "Next run starts with a short x2 combo window." },
+    { id: "coin-baron", title: "Coin Baron", type: "title", icon: "$$", cost: 180, description: "Unlock the Coin Baron profile title." },
+    { id: "snake-runner", title: "Snake Runner", type: "title", icon: "SN", cost: 210, description: "Unlock a Byte Snake themed profile title." },
+    { id: "doodle-architect", title: "Doodle Architect", type: "title", icon: "DR", cost: 240, description: "Unlock a Doodle Road themed profile title." },
   ];
 
   const skinDefinitions = [
@@ -304,7 +336,7 @@
       id: "all-cabinets",
       title: "Arcade Passport",
       description: "Play every cabinet at least once.",
-      icon: "21",
+      icon: "30",
     },
     {
       id: "tournament-win",
@@ -653,6 +685,123 @@
       background: "linear-gradient(135deg, #081733, #21163a 58%, #10251c)",
     },
     {
+      id: "hoopsduel",
+      title: "Retro Hoops Duel",
+      subtitle: "2D street-court basket battle",
+      hook: "Cross over defenders, pass through lanes, and time jump shots in a compact retro basketball duel.",
+      rules: "Score buckets while the clock runs. Clean shots and steals add combo points; blocked shots waste possession time.",
+      controls: "Move with the directional keys. Press Action to shoot, pass, or steal when close.",
+      strategy: "Drive toward the paint, then release at the top of the jump. Passing opens cleaner shots as the defense speeds up.",
+      tag: "Sports",
+      accent: "#fb923c",
+      glow: "rgba(251, 146, 60, 0.72)",
+      background: "linear-gradient(135deg, #2d1606, #14243f 58%, #2b1738)",
+    },
+    {
+      id: "freethrow",
+      title: "Moving Hoop",
+      subtitle: "Free throws at a sliding rim",
+      hook: "Set aim and power while the hoop glides across the backboard. Clean releases turn into streak bonuses.",
+      rules: "Shoot free throws into a moving hoop. Swishes score more, rim hits still count, and misses break your streak.",
+      controls: "Use Left/Right to aim. Hold Action for power, release to shoot.",
+      strategy: "Lead the hoop slightly and keep power near the glowing sweet spot. Streaks matter more than risky full-power shots.",
+      tag: "Sports",
+      accent: "#f97316",
+      glow: "rgba(249, 115, 22, 0.72)",
+      background: "linear-gradient(135deg, #351507, #202d4f 58%, #25132f)",
+    },
+    {
+      id: "rallyrush",
+      title: "Rally Rush",
+      subtitle: "Top-down dirt track racing",
+      hook: "Slide through checkpoints, clip apexes, and keep speed through a curving rally course.",
+      rules: "Reach checkpoints and stay on the racing line. Off-road slides slow you down, but clean corners multiply score.",
+      controls: "Steer with Left/Right. Hold Action to accelerate and Down to brake.",
+      strategy: "Brake before turns, not during them. Smooth exits keep your checkpoint combo alive.",
+      tag: "Racing",
+      accent: "#facc15",
+      glow: "rgba(250, 204, 21, 0.72)",
+      background: "linear-gradient(135deg, #35270a, #183449 58%, #1d2510)",
+    },
+    {
+      id: "trafficrush",
+      title: "Turbo Traffic",
+      subtitle: "Highway overtake sprint",
+      hook: "Thread traffic, collect boost cans, and chain close overtakes without scraping the guardrail.",
+      rules: "Pass cars for points. Near-misses raise combo, collisions cost speed and end the run after too much damage.",
+      controls: "Use Left/Right to switch lanes. Hold Action for boost.",
+      strategy: "Boost after changing lanes, not before. Near-misses are safest when you already know the next lane is clear.",
+      tag: "Racing",
+      accent: "#38bdf8",
+      glow: "rgba(56, 189, 248, 0.72)",
+      background: "linear-gradient(135deg, #061f35, #232044 58%, #10251b)",
+    },
+    {
+      id: "archeryrange",
+      title: "Archery Range",
+      subtitle: "Windy bullseye challenge",
+      hook: "Draw the bow, read the wind, and land arrows on moving targets before they slide away.",
+      rules: "Hit targets for points. Bullseyes add streaks, edge hits still score, and missed arrows reset your aim bonus.",
+      controls: "Move aim with directional keys. Hold Action to draw, release to fire.",
+      strategy: "Aim into the wind and release before full draw when targets are close. Bullseye streaks are worth waiting for.",
+      tag: "Precision",
+      accent: "#84cc16",
+      glow: "rgba(132, 204, 22, 0.72)",
+      background: "linear-gradient(135deg, #13270d, #143047 58%, #2a1d12)",
+    },
+    {
+      id: "arrowstorm",
+      title: "Arrow Storm",
+      subtitle: "Arcade trick-shot archery",
+      hook: "Arc arrows over shields, pierce floating rings, and bank trick shots through crowded lanes.",
+      rules: "Hit marked targets while avoiding shield blocks. Ring shots curve for bonus points and reload harder patterns.",
+      controls: "Use Up/Down to angle. Hold Action for draw power, release to fire.",
+      strategy: "Use high arcs to clear blockers. Ring bonuses are easier when the target is falling into your arrow path.",
+      tag: "Precision",
+      accent: "#c084fc",
+      glow: "rgba(192, 132, 252, 0.72)",
+      background: "linear-gradient(135deg, #26133d, #132c3d 58%, #311825)",
+    },
+    {
+      id: "doodleroad",
+      title: "Doodle Road",
+      subtitle: "Draw bridges for a tiny stunt car",
+      hook: "Sketch roads, ramps, and bridges, then send the car across a broken doodle course without flipping.",
+      rules: "Draw ink lines before driving. The car rides your lines and terrain; reaching the flag reloads a tougher puzzle.",
+      controls: "Draw with mouse or touch. Keyboard: move the pencil with arrows, hold Action to draw, release and press Action again to drive.",
+      strategy: "Use gentle slopes and short bridge supports. Steep ramps launch the car, but landing flat keeps the run alive.",
+      tag: "Arcade",
+      accent: "#38bdf8",
+      glow: "rgba(56, 189, 248, 0.72)",
+      background: "linear-gradient(135deg, #f8fafc, #c7d2fe 58%, #dbeafe)",
+    },
+    {
+      id: "wordflux",
+      title: "Word Flux",
+      subtitle: "Wordle-style word cabinet",
+      hook: "Guess generated five-letter words, read the color feedback, and chain solves before the clock expires.",
+      rules: "Green letters are correct, gold letters are in the word, gray letters are misses. Six guesses per word.",
+      controls: "Type letters on a keyboard, or use arrows to pick a slot and cycle letters. Press Action or Enter to submit.",
+      strategy: "Open with words that test common letters. A fast solve reloads a new random word with a score bonus.",
+      tag: "Puzzle",
+      accent: "#22c55e",
+      glow: "rgba(34, 197, 94, 0.72)",
+      background: "linear-gradient(135deg, #052e16, #123047 58%, #1f2937)",
+    },
+    {
+      id: "bubblecannon",
+      title: "Bubble Cannon",
+      subtitle: "Pop color clusters before they drop",
+      hook: "Aim a cannon, fire colored bubbles, and clear matching clusters while the ceiling slowly pushes down.",
+      rules: "Three or more touching bubbles of the same color pop. Missed shots make the grid descend faster.",
+      controls: "Aim with Left/Right. Press Action to shoot.",
+      strategy: "Bank shots into side pockets and clear hanging groups before the bubble wall reaches the warning line.",
+      tag: "Arcade",
+      accent: "#f472b6",
+      glow: "rgba(244, 114, 182, 0.72)",
+      background: "linear-gradient(135deg, #301026, #10283d 58%, #1d1934)",
+    },
+    {
       id: "lockpick",
       title: "Vault Tumbler",
       subtitle: "Crack rotating neon locks",
@@ -674,6 +823,7 @@
   let selectedAboutGame = null;
   let activeGame = null;
   let activeFilter = "all";
+  let activeCollection = "all";
   let gameLoopId = 0;
   let lastFrameTime = 0;
   let listeningFor = null;
@@ -686,6 +836,16 @@
   let cloudSyncPaused = false;
   const pressed = new Set();
   const touchActionKeys = {};
+
+  const gameCollections = [
+    { id: "all", title: "All", icon: "▦", test: () => true },
+    { id: "quick", title: "Quick 60s", icon: "◷", test: (game) => ["Reflex", "Timing", "Survival"].includes(game.tag) },
+    { id: "brain", title: "Brain", icon: "▣", test: (game) => ["Strategy", "Puzzle"].includes(game.tag) },
+    { id: "cars", title: "Car Games", icon: "◈", test: (game) => ["driftboss", "rallyrush", "trafficrush", "doodleroad"].includes(game.id) },
+    { id: "sports", title: "Sports Skill", icon: "●", test: (game) => ["Sports", "Precision"].includes(game.tag) },
+    { id: "new", title: "New Cabinets", icon: "+", test: (game) => ["doodleroad", "wordflux", "bubblecannon", "hoopsduel", "freethrow", "rallyrush", "trafficrush", "archeryrange", "arrowstorm"].includes(game.id) },
+    { id: "hard", title: "Hard Mode", icon: "!", test: (game) => ["driftboss", "beatfoundry", "keeper", "arrowstorm", "lockpick", "orbitguard"].includes(game.id) },
+  ];
 
   const audio = {
     context: null,
@@ -731,6 +891,11 @@
         danger: () => this.chord([140, 90], 0.08, "sawtooth"),
         coin: () => this.chord([720, 900, 1080], 0.035, "triangle"),
         launch: () => this.chord([260, 440, 700], 0.05, "square"),
+        menu: () => this.chord([420, 560], 0.035, "triangle"),
+        reward: () => this.chord([620, 780, 980, 1240], 0.055, "triangle"),
+        puzzle: () => this.chord([330, 495, 660], 0.045, "sine"),
+        sport: () => this.chord([520, 740, 960], 0.04, "square"),
+        racing: () => this.chord([180, 360, 620], 0.055, "sawtooth"),
       };
       (map[name] || map.hit)();
     },
@@ -811,10 +976,15 @@
       : ["neon"];
     const ownedDriftCars = Array.isArray(value.driftCars) && value.driftCars.length ? value.driftCars : ["starter"];
     const driftBoosters = typeof value.driftBoosters === "object" && value.driftBoosters ? value.driftBoosters : {};
+    const arcadeBoosters = typeof value.arcadeBoosters === "object" && value.arcadeBoosters ? value.arcadeBoosters : {};
     const friends = Array.isArray(value.friends) ? value.friends : [];
     const normalizedBoosters = {};
     Object.keys(driftBoosters).forEach((id) => {
       normalizedBoosters[id] = Math.max(0, Math.floor(Number(driftBoosters[id]) || 0));
+    });
+    const normalizedArcadeBoosters = {};
+    Object.keys(arcadeBoosters).forEach((id) => {
+      normalizedArcadeBoosters[id] = Math.max(0, Math.floor(Number(arcadeBoosters[id]) || 0));
     });
     const friendCode = cleanFriendCode(value.friendCode) || generateFriendCode(value.name);
     return {
@@ -850,6 +1020,10 @@
       title: titleDefinitions.some((title) => title.id === value.title) ? value.title : defaultProfile.title,
       friendChallenges: Array.isArray(value.friendChallenges) ? value.friendChallenges.slice(0, 6) : [],
       masteryRewards: typeof value.masteryRewards === "object" && value.masteryRewards ? value.masteryRewards : {},
+      featuredRewards: typeof value.featuredRewards === "object" && value.featuredRewards ? value.featuredRewards : {},
+      ownedTitles: Array.isArray(value.ownedTitles) ? [...new Set(value.ownedTitles.map(String))] : [],
+      arcadeBoosters: normalizedArcadeBoosters,
+      selectedArcadeBooster: arcadeMarketItems.some((item) => item.type === "booster" && item.id === value.selectedArcadeBooster) ? value.selectedArcadeBooster : "",
     };
   }
 
@@ -859,6 +1033,7 @@
     applySkin();
     renderProfile();
     renderSkins();
+    renderArcadeMarket();
     renderDriftShop();
     if (syncCloud) scheduleCloudProfileSave();
   }
@@ -1244,6 +1419,96 @@
     });
   }
 
+  function getArcadeBoosterCount(id) {
+    return Math.max(0, Math.floor(Number(profile.arcadeBoosters?.[id]) || 0));
+  }
+
+  function renderArcadeMarket() {
+    if (!arcadeMarket) return;
+    arcadeMarket.innerHTML = `
+      <div class="drift-shop-header">
+        <span>Coin balance</span>
+        <strong>${profile.coins}</strong>
+        <small>${profile.selectedArcadeBooster ? `Next run: ${arcadeMarketItems.find((item) => item.id === profile.selectedArcadeBooster)?.title}` : "No ticket selected"}</small>
+      </div>
+      <div class="market-items">
+        ${arcadeMarketItems.map((item) => {
+          const isTitle = item.type === "title";
+          const ownedTitle = isTitle && profile.ownedTitles?.includes(item.id);
+          const ownedBoosters = !isTitle ? getArcadeBoosterCount(item.id) : 0;
+          const selected = profile.selectedArcadeBooster === item.id;
+          const action = isTitle
+            ? ownedTitle ? "Unlocked" : `${item.cost} coins`
+            : selected ? "Selected" : ownedBoosters ? `Use next · Owned ${ownedBoosters}` : `${item.cost} coins`;
+          return `
+            <button class="market-card${selected ? " selected" : ""}${ownedTitle ? " owned" : ""}" type="button" data-market-item="${item.id}">
+              <b>${item.icon}</b>
+              <strong>${item.title}</strong>
+              <small>${item.description}</small>
+              <em>${action}</em>
+            </button>
+          `;
+        }).join("")}
+      </div>
+    `;
+    arcadeMarket.querySelectorAll("[data-market-item]").forEach((button) => {
+      button.addEventListener("click", () => buyOrSelectMarketItem(button.dataset.marketItem));
+    });
+  }
+
+  function buyOrSelectMarketItem(id) {
+    const item = arcadeMarketItems.find((entry) => entry.id === id);
+    if (!item) return;
+    if (item.type === "title") {
+      if (profile.ownedTitles?.includes(item.id)) {
+        profile.title = item.id;
+        saveProfile();
+        audio.sfx("menu");
+        return;
+      }
+      if (profile.coins < item.cost) {
+        audio.beep(180, 0.08, "sawtooth");
+        return;
+      }
+      profile.coins -= item.cost;
+      profile.ownedTitles = [...new Set([...(profile.ownedTitles || []), item.id])];
+      profile.title = item.id;
+      saveProfile();
+      audio.sfx("reward");
+      return;
+    }
+    if (getArcadeBoosterCount(item.id) > 0) {
+      profile.selectedArcadeBooster = profile.selectedArcadeBooster === item.id ? "" : item.id;
+      saveProfile();
+      audio.sfx("menu");
+      return;
+    }
+    if (profile.coins < item.cost) {
+      audio.beep(180, 0.08, "sawtooth");
+      return;
+    }
+    profile.coins -= item.cost;
+    profile.arcadeBoosters[item.id] = getArcadeBoosterCount(item.id) + 1;
+    profile.selectedArcadeBooster = item.id;
+    saveProfile();
+    audio.sfx("reward");
+  }
+
+  function consumeSelectedArcadeBooster() {
+    const id = profile.selectedArcadeBooster;
+    const item = arcadeMarketItems.find((entry) => entry.type === "booster" && entry.id === id);
+    if (!item || getArcadeBoosterCount(id) <= 0) {
+      profile.selectedArcadeBooster = "";
+      saveProfile(false);
+      return null;
+    }
+    profile.arcadeBoosters[id] = getArcadeBoosterCount(id) - 1;
+    profile.selectedArcadeBooster = "";
+    saveProfile(false);
+    renderArcadeMarket();
+    return item;
+  }
+
   function activeDriftCar() {
     return driftCars.find((car) => car.id === profile.driftCar) || driftCars[0];
   }
@@ -1447,20 +1712,24 @@
     const time = Math.min(60, game.elapsed);
     const driftCoins = game.definition.id === "driftboss" ? Math.floor((game.trackCoins || 0) / 5) : 0;
     const baseCoinReward = Math.max(5, Math.floor(score / 220) + Math.floor(time / 15) + (mode === "Daily Challenge" ? 10 : 0));
-    const coinReward = Math.min(game.definition.id === "driftboss" ? 90 : 140, baseCoinReward + driftCoins);
-    const xpReward = Math.max(12, Math.floor(score / 12) + Math.floor(time * 1.5));
+    const booster = game.arcadeBooster;
+    const coinBonus = booster?.id === "coinTicket" ? 45 : 0;
+    const xpBonus = booster?.id === "xpTicket" ? 90 : 0;
+    const coinReward = Math.min(game.definition.id === "driftboss" ? 135 : 185, baseCoinReward + driftCoins + coinBonus);
+    const xpReward = Math.max(12, Math.floor(score / 12) + Math.floor(time * 1.5) + xpBonus);
     saveBestScore(game.definition.id, score);
     saveBestTime(game.definition.id, time);
     saveLeaderboardEntry(game.definition.id, { player: playerName, score, time, mode });
     checkRunAchievements({ gameId: game.definition.id, score, time, mode });
     addProgress({ coins: coinReward, xp: xpReward });
+    const featuredReward = claimFeaturedPlayReward(game.definition.id);
     const masteryReward = checkMasteryReward(game.definition);
     renderGameCards();
     renderLeaderboards();
     renderAchievements();
     renderSocialHub();
     renderProgression();
-    const result = { gameId: game.definition.id, player: playerName, score, time, mode, coinReward, xpReward, masteryReward };
+    const result = { gameId: game.definition.id, player: playerName, score, time, mode, coinReward, xpReward, masteryReward, featuredReward, booster };
     saveRecentPlay(result);
     saveCloudRunResult(result);
     renderRecentPlays();
@@ -1489,6 +1758,19 @@
     const played = getPlayedGameCount();
     if (played >= 5) unlockAchievement("five-cabinets");
     if (played >= gameDefinitions.length) unlockAchievement("all-cabinets");
+  }
+
+  function claimFeaturedPlayReward(gameId) {
+    const challenge = getDailyChallenge();
+    const key = todayKey();
+    if (gameId !== challenge.game.id || profile.featuredRewards?.[key]) return null;
+    const reward = { coins: 35, xp: 75, title: "Featured Play" };
+    profile.featuredRewards = { ...profile.featuredRewards, [key]: gameId };
+    profile.coins += reward.coins;
+    profile.xp += reward.xp;
+    saveProfile();
+    audio.sfx("reward");
+    return reward;
   }
 
   function checkTournamentAchievements(winner, mode) {
@@ -1566,6 +1848,96 @@
     scheduleCloudProfileSave();
   }
 
+  function getDebugReports() {
+    const reports = loadJson("arcade-debug-reports", []);
+    return Array.isArray(reports) ? reports : [];
+  }
+
+  function saveDebugReports(reports) {
+    localStorage.setItem("arcade-debug-reports", JSON.stringify(reports.slice(0, 8)));
+  }
+
+  function isUpdatingNoticeEnabled() {
+    return localStorage.getItem("arcade-site-updating") === "true";
+  }
+
+  function setUpdatingNotice(enabled) {
+    localStorage.setItem("arcade-site-updating", enabled ? "true" : "false");
+    renderDebugSystem();
+  }
+
+  function renderDebugSystem(message = "") {
+    const updating = isUpdatingNoticeEnabled();
+    if (siteStatusBanner) {
+      siteStatusBanner.classList.toggle("visible", updating);
+      siteStatusBanner.textContent = updating ? "Cool Arcade is being updated. Some games may change while you play." : "";
+    }
+    if (debugStatusTitle) debugStatusTitle.textContent = updating ? "Updating" : "Live";
+    if (debugStatusText) {
+      debugStatusText.textContent = updating
+        ? "The website is currently being updated. If something looks broken, submit a report and try again after the update finishes."
+        : "The arcade is ready. If a game breaks, send a report with the cabinet name and what happened.";
+    }
+    if (toggleUpdateNoticeButton) toggleUpdateNoticeButton.textContent = updating ? "Mark Website Live" : "Show Updating Notice";
+    if (debugFeedback && message) debugFeedback.textContent = message;
+    if (debugReportTitle) debugReportTitle.textContent = `Recent reports · ${getDebugReports().filter((report) => report.status !== "fixed").length} open`;
+    if (!debugReportList) return;
+    const reports = getDebugReports();
+    debugReportList.innerHTML = reports.length
+      ? reports.map((report, index) => `
+          <article class="debug-report${report.status === "fixed" ? " fixed" : ""}">
+            <strong>${escapeHtml(report.type)} · ${escapeHtml(report.area || "General")}</strong>
+            <p>${escapeHtml(report.message)}</p>
+            <span>${report.status === "fixed" ? "Fixed" : "Open"} · ${new Date(report.date).toLocaleString()}</span>
+            <div class="debug-report-actions">
+              <button class="secondary-button compact" type="button" data-report-fixed="${index}" ${report.status === "fixed" ? "disabled" : ""}>Mark Fixed</button>
+              <button class="secondary-button compact" type="button" data-report-delete="${index}">Delete</button>
+            </div>
+          </article>
+        `).join("")
+      : `<p class="empty-cabinets">No reports yet.</p>`;
+  }
+
+  function submitDebugReport(event) {
+    event.preventDefault();
+    const message = debugMessage.value.trim();
+    if (!message) {
+      renderDebugSystem("Add a short description before submitting.");
+      return;
+    }
+    const reports = getDebugReports();
+    const report = {
+      type: debugType.value,
+      area: debugArea.value.trim(),
+      message,
+      screen: currentScreen,
+      date: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      status: "open",
+    };
+    reports.unshift(report);
+    saveDebugReports(reports);
+    debugForm.reset();
+    audio.beep(760, 0.06, "triangle");
+    renderDebugSystem("Report saved on this device.");
+    if (window.arcadeCloud?.sendReport) {
+      window.arcadeCloud.sendReport(report)
+        .then((response) => {
+          if (response) renderDebugSystem("Report saved locally and sent to Firebase.");
+        })
+        .catch(() => renderDebugSystem("Report saved locally. Cloud report is not available yet."));
+    }
+  }
+
+  function updateDebugReport(index, action) {
+    const reports = getDebugReports();
+    if (!reports[index]) return;
+    if (action === "fixed") reports[index] = { ...reports[index], status: "fixed", fixedAt: new Date().toISOString() };
+    if (action === "delete") reports.splice(index, 1);
+    saveDebugReports(reports);
+    renderDebugSystem(action === "fixed" ? "Report marked fixed." : "Report deleted.");
+  }
+
   function applySettings() {
     settings.playLevel = normalizedPlayLevel(settings.playLevel);
     settings.autoCloudSync = settings.autoCloudSync !== false;
@@ -1625,6 +1997,7 @@
       history: "History",
       settings: "Settings",
       keybinds: "Keybinds",
+      debug: "Debug & Status",
       play: activeGame?.title ?? "Playing",
     };
     screenTitle.textContent = titleMap[name];
@@ -1641,9 +2014,11 @@
     if (name === "progression") renderProgression();
     if (name === "tournament") renderTournament();
     if (name === "history") renderHistory();
+    if (name === "debug") renderDebugSystem();
     if (name === "settings") {
       renderProfile();
       renderSkins();
+      renderArcadeMarket();
       renderDriftShop();
       renderCloudAccountStatus();
     }
@@ -1651,12 +2026,15 @@
   }
 
   function renderGameCards() {
+    renderCollections();
     gameGrid.innerHTML = "";
     const query = gameSearch.value.trim().toLowerCase();
+    const collection = activeCollectionDefinition();
     const visibleGames = gameDefinitions.filter((game) => {
       const matchesFilter = activeFilter === "all" || game.tag === activeFilter;
+      const matchesCollection = collection.test(game);
       const haystack = `${game.title} ${game.subtitle} ${game.hook} ${game.tag}`.toLowerCase();
-      return matchesFilter && haystack.includes(query);
+      return matchesFilter && matchesCollection && haystack.includes(query);
     });
 
     if (!visibleGames.length) {
@@ -1695,40 +2073,105 @@
       `;
       gameGrid.append(card);
     });
+    renderGameDetailDock(visibleGames[0] || null);
   }
 
   function resetGameBrowser() {
     activeFilter = "all";
+    activeCollection = "all";
     gameSearch.value = "";
     globalSearch.value = "";
     filterTabs.querySelectorAll(".filter-tab").forEach((tab) => {
       tab.classList.toggle("active", tab.dataset.filter === "all");
     });
+    renderCollections();
     renderGameCards();
+  }
+
+  function renderCollections() {
+    if (!collectionStrip) return;
+    collectionStrip.innerHTML = gameCollections
+      .map((collection) => {
+        const count = gameDefinitions.filter((game) => collection.test(game)).length;
+        return `
+          <button class="collection-chip${collection.id === activeCollection ? " active" : ""}" type="button" data-collection="${collection.id}">
+            <span>${collection.icon}</span>
+            <strong>${collection.title}</strong>
+            <em>${count}</em>
+          </button>
+        `;
+      })
+      .join("");
+  }
+
+  function activeCollectionDefinition() {
+    return gameCollections.find((collection) => collection.id === activeCollection) || gameCollections[0];
+  }
+
+  function renderGameDetailDock(game = null) {
+    if (!gameDetailDock) return;
+    const target = game || getDailyChallenge().game;
+    const mastery = getMasteryForGame(target);
+    const collection = activeCollectionDefinition();
+    gameDetailDock.style.setProperty("--preview-bg", target.background);
+    gameDetailDock.style.setProperty("--preview-accent", target.accent);
+    gameDetailDock.style.setProperty("--preview-glow", target.glow);
+    gameDetailDock.innerHTML = `
+      <div class="detail-preview game-preview" aria-hidden="true">
+        <span class="preview-score">Best ${getBestScore(target.id)}</span>
+        <span class="preview-line preview-line-a"></span>
+        <span class="preview-line preview-line-b"></span>
+        <span class="preview-token"></span>
+        <span class="preview-scene preview-${target.id}">${previewSceneFor(target.id)}</span>
+      </div>
+      <div class="detail-copy">
+        <span class="kicker">${collection.title} · ${target.tag}</span>
+        <h3>${target.title}</h3>
+        <p>${target.subtitle}</p>
+        <div class="leaderboard-metrics">
+          <span><strong>${mastery.level}</strong> Mastery</span>
+          <span><strong>${getBestScore(target.id)}</strong> Best</span>
+          <span><strong>${formatRunTime(getBestTime(target.id))}</strong> Time</span>
+        </div>
+        <div class="detail-actions">
+          <button class="primary-button compact" type="button" data-detail-play="${target.id}">Play</button>
+          <button class="secondary-button compact" type="button" data-detail-about="${target.id}">About</button>
+        </div>
+      </div>
+    `;
   }
 
   function previewSymbolFor(id) {
     const symbols = {
-      dodger: "DODGE",
-      popper: "LOCK",
-      runner: "RUN",
-      flap: "FLAP",
+      dodger: "RIFT",
+      popper: "TARGET",
+      runner: "LANE",
+      flap: "WINGS",
       tictactoe: "X/O",
-      tetris: "STACK",
+      tetris: "BLOCKS",
       twenty48: "2048",
       driftboss: "DRIFT",
       beatfoundry: "BEAT",
-      snake: "BYTE",
-      breaker: "BREAK",
-      pinball: "PIN",
-      river: "RAFT",
-      keeper: "SAVE",
-      memory: "PAIR",
-      asteroids: "ORE",
-      lunar: "LAND",
-      repair: "FIX",
-      cipher: "DIAL",
-      orbitguard: "ORBIT",
+      snake: "SNAKE",
+      breaker: "PADDLE",
+      pinball: "FLIPPER",
+      river: "RAPIDS",
+      keeper: "GOAL",
+      memory: "MATCH",
+      asteroids: "MINER",
+      lunar: "LANDER",
+      repair: "CIRCUIT",
+      cipher: "CODE",
+      orbitguard: "SHIELD",
+      hoopsduel: "COURT",
+      freethrow: "HOOP",
+      rallyrush: "RALLY",
+      trafficrush: "LANES",
+      archeryrange: "BULLSEYE",
+      arrowstorm: "TRICKSHOT",
+      doodleroad: "ROAD",
+      wordflux: "WORDLE",
+      bubblecannon: "BUBBLES",
       lockpick: "VAULT",
     };
     return symbols[id] || "PLAY";
@@ -1745,7 +2188,7 @@
       twenty48: `<i class="mini-tile a">2</i><i class="mini-tile b">4</i><i class="mini-tile c">8</i>`,
       driftboss: `<i class="mini-road"></i><i class="mini-car"></i><i class="mini-coin a"></i><i class="mini-coin b"></i>`,
       beatfoundry: `<i class="mini-dial"></i><i class="mini-pulse"></i><i class="mini-core a"></i><i class="mini-core b"></i>`,
-      snake: `<i class="mini-snake"></i><i class="mini-packet a"></i><i class="mini-portal"></i>`,
+      snake: `<i class="mini-snake-grid"></i><i class="mini-snake"></i><i class="mini-packet a"></i><i class="mini-uplink"></i><i class="mini-portal"></i>`,
       breaker: `<i class="mini-bricks"></i><i class="mini-ball"></i><i class="mini-paddle"></i>`,
       pinball: `<i class="mini-bumper a"></i><i class="mini-bumper b"></i><i class="mini-flipper a"></i><i class="mini-flipper b"></i>`,
       river: `<i class="mini-river"></i><i class="mini-raft"></i><i class="mini-gate"></i>`,
@@ -1756,6 +2199,15 @@
       repair: `<i class="mini-nodes"></i><i class="mini-cursor"></i>`,
       cipher: `<i class="mini-cipher a"></i><i class="mini-cipher b"></i><i class="mini-cipher c"></i>`,
       orbitguard: `<i class="mini-core-orbit"></i><i class="mini-shield"></i><i class="mini-meteor a"></i><i class="mini-meteor b"></i>`,
+      hoopsduel: `<i class="mini-court"></i><i class="mini-hoop"></i><i class="mini-baller a"></i><i class="mini-baller b"></i><i class="mini-ball basket"></i>`,
+      freethrow: `<i class="mini-backboard"></i><i class="mini-hoop moving"></i><i class="mini-arc"></i><i class="mini-ball basket shot"></i>`,
+      rallyrush: `<i class="mini-rally-road"></i><i class="mini-rally-car"></i><i class="mini-dust a"></i><i class="mini-dust b"></i>`,
+      trafficrush: `<i class="mini-highway"></i><i class="mini-traffic-car player"></i><i class="mini-traffic-car a"></i><i class="mini-traffic-car b"></i>`,
+      archeryrange: `<i class="mini-bow"></i><i class="mini-arrow"></i><i class="mini-archery-target"></i><i class="mini-wind"></i>`,
+      arrowstorm: `<i class="mini-archery-target storm"></i><i class="mini-shield-block"></i><i class="mini-arrow high"></i><i class="mini-ring-shot"></i>`,
+      doodleroad: `<i class="mini-pencil"></i><i class="mini-doodle-line"></i><i class="mini-doodle-car"></i><i class="mini-flag"></i>`,
+      wordflux: `<i class="mini-word-tile a">G</i><i class="mini-word-tile b">A</i><i class="mini-word-tile c">M</i><i class="mini-word-tile d">E</i>`,
+      bubblecannon: `<i class="mini-bubble a"></i><i class="mini-bubble b"></i><i class="mini-bubble c"></i><i class="mini-cannon"></i>`,
       lockpick: `<i class="mini-vault"></i><i class="mini-needle"></i><i class="mini-pin a"></i><i class="mini-pin b"></i>`,
     };
     return scenes[id] || `<i class="mini-player"></i>`;
@@ -1783,6 +2235,15 @@
       repair: "Patch nodes",
       cipher: "Align dials",
       orbitguard: "Block meteors",
+      hoopsduel: "Score buckets",
+      freethrow: "Sink shots",
+      rallyrush: "Clip apexes",
+      trafficrush: "Pass traffic",
+      archeryrange: "Hit bullseyes",
+      arrowstorm: "Arc shots",
+      doodleroad: "Draw roads",
+      wordflux: "Guess words",
+      bubblecannon: "Pop clusters",
       lockpick: "Crack vault",
     };
     return captions[id] || "Play run";
@@ -2215,6 +2676,7 @@
   function renderDailyChallenge() {
     const challenge = getDailyChallenge();
     const result = getDailyResult();
+    const featuredClaimed = profile.featuredRewards?.[todayKey()] === challenge.game.id;
     dailyCard.style.setProperty("--preview-accent", challenge.game.accent);
     dailyCard.style.setProperty("--preview-glow", challenge.game.glow);
     dailyCard.innerHTML = `
@@ -2224,12 +2686,13 @@
       <div class="leaderboard-metrics">
         <span><strong>${challenge.label}</strong> Goal</span>
         <span><strong>${result?.completed ? "Done" : "Open"}</strong> Status</span>
+        <span><strong>${featuredClaimed ? "Claimed" : "+35"}</strong> Featured</span>
         <span><strong>${result ? result.score : 0}</strong> Best daily</span>
       </div>
     `;
     if (!result) {
       dailyStatusTitle.textContent = "Ready";
-      dailyStatus.textContent = `Today's goal is ${challenge.label} in ${challenge.game.title}.`;
+      dailyStatus.textContent = `Today's goal is ${challenge.label} in ${challenge.game.title}. Featured play bonus: ${featuredClaimed ? "claimed" : "35 coins and 75 XP"}.`;
     } else if (result.completed) {
       dailyStatusTitle.textContent = "Complete";
       dailyStatus.textContent = `Cleared with ${result.score} points and ${formatRunTime(result.time)}.`;
@@ -2897,10 +3360,15 @@
     updateIntroDashboard();
     renderGameCards();
     activeGame = createGame(definition);
+    activeGame.arcadeBooster = consumeSelectedArcadeBooster();
+    if (activeGame.arcadeBooster?.id === "comboSpark") {
+      activeGame.combo = 2;
+      activeGame.comboTimer = 8;
+    }
     if (definition.id === "driftboss") renderDriftShop();
     playTitle.textContent = definition.title;
     const playerLabel = runContext?.player || profile.name;
-    gameSubtitle.textContent = `${definition.subtitle} · ${playerLabel} · ${playLevelName()}`;
+    gameSubtitle.textContent = `${definition.subtitle} · ${playerLabel} · ${playLevelName()}${activeGame.arcadeBooster ? ` · ${activeGame.arcadeBooster.title}` : ""}`;
     scoreValue.textContent = "0";
     levelValue.textContent = playLevelStart().toString();
     comboValue.textContent = "x1";
@@ -2963,6 +3431,15 @@
     if (definition.id === "repair") return createCircuitRepair(base);
     if (definition.id === "cipher") return createCipherChain(base);
     if (definition.id === "orbitguard") return createOrbitGuard(base);
+    if (definition.id === "hoopsduel") return createHoopsDuel(base);
+    if (definition.id === "freethrow") return createFreeThrow(base);
+    if (definition.id === "rallyrush") return createRallyRush(base);
+    if (definition.id === "trafficrush") return createTrafficRush(base);
+    if (definition.id === "archeryrange") return createArcheryRange(base);
+    if (definition.id === "arrowstorm") return createArrowStorm(base);
+    if (definition.id === "doodleroad") return createDoodleRoad(base);
+    if (definition.id === "wordflux") return createWordFlux(base);
+    if (definition.id === "bubblecannon") return createBubbleCannon(base);
     if (definition.id === "lockpick") return createVaultTumbler(base);
     return createRunner(base);
   }
@@ -4228,7 +4705,13 @@
             this.addScore(85 * banked + this.level * 12, gameCanvas.width / 2, 126, "Upload");
             this.cache = 0;
             this.decoys = Math.min(3, this.decoys + 1);
-            this.snake = this.snake.slice(0, Math.max(3, this.snake.length - Math.max(1, banked)));
+            const newLength = Math.max(3, this.snake.length - Math.max(1, banked));
+            this.snake = this.snake.slice(0, newLength);
+            grow = true;
+            if (this.pellet && this.snake.some((part) => part.x === this.pellet.x && part.y === this.pellet.y)) {
+              this.pellet = makeSnakePellet(this.cols, this.rows, this.snake, [this.uplink, this.exit, ...this.firewalls].filter(Boolean));
+              this.pellet.type = Math.random() < 0.18 ? "key" : "packet";
+            }
             if (this.contractBanked >= this.contract && !this.exit) {
               this.exit = makeSnakePellet(this.cols, this.rows, this.snake, [this.pellet, this.uplink, ...this.firewalls]);
               this.addScore(120 + this.level * 10, gameCanvas.width / 2, 162, "Exit open");
@@ -5144,6 +5627,1160 @@
     };
   }
 
+  function createHoopsDuel(base) {
+    return {
+      ...base,
+      player: { x: 250, y: 340 },
+      ball: { x: 250, y: 340, vx: 0, vy: 0, held: true },
+      hoop: { x: 760, y: 214 },
+      defenders: [{ x: 520, y: 326 }, { x: 620, y: 388 }],
+      shotCharge: 0,
+      buckets: 0,
+      steals: 0,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const speed = (210 + this.level * 7) * delta;
+        this.player.x = clamp(this.player.x + (Number(actionPressed("right")) - Number(actionPressed("left"))) * speed, 120, 820);
+        this.player.y = clamp(this.player.y + (Number(actionPressed("down")) - Number(actionPressed("up"))) * speed, 190, 450);
+        this.defenders.forEach((defender, index) => {
+          defender.x += (this.player.x - defender.x) * delta * (0.7 + this.level * 0.04 + index * 0.08);
+          defender.y += (this.player.y - defender.y) * delta * (0.55 + this.level * 0.035);
+        });
+        if (this.ball.held) {
+          this.ball.x = this.player.x + 18;
+          this.ball.y = this.player.y - 18;
+          if (actionPressed("action")) this.shotCharge = clamp(this.shotCharge + delta * 1.35, 0, 1.25);
+          else if (this.shotCharge > 0) {
+            const dx = this.hoop.x - this.ball.x;
+            const dy = this.hoop.y - this.ball.y;
+            const power = 420 + this.shotCharge * 310;
+            const distance = Math.hypot(dx, dy) || 1;
+            this.ball = { x: this.ball.x, y: this.ball.y, vx: (dx / distance) * power, vy: (dy / distance) * power - 130 * this.shotCharge, held: false };
+            this.shotCharge = 0;
+            audio.sfx("launch");
+          }
+          for (const defender of this.defenders) {
+            if (Math.hypot(defender.x - this.player.x, defender.y - this.player.y) < 42 && Math.random() < delta * (0.8 + this.level * 0.08)) {
+              this.steals += 1;
+              this.breakCombo();
+              this.player.x = 230;
+              this.player.y = 350;
+              audio.sfx("danger");
+            }
+          }
+        } else {
+          this.ball.vy += 420 * delta;
+          this.ball.x += this.ball.vx * delta;
+          this.ball.y += this.ball.vy * delta;
+          if (Math.hypot(this.ball.x - this.hoop.x, this.ball.y - this.hoop.y) < 34 && this.ball.vy > -90) {
+            this.buckets += 1;
+            this.pushCombo(2);
+            this.addScore(260 + this.level * 18, this.hoop.x, this.hoop.y - 38, "Bucket");
+            this.burst(this.hoop.x, this.hoop.y, "#fb923c", 22);
+            this.ball = { x: this.player.x, y: this.player.y, vx: 0, vy: 0, held: true };
+            audio.sfx("coin");
+          } else if (this.ball.x < 40 || this.ball.x > 920 || this.ball.y > 520) {
+            this.breakCombo();
+            this.ball = { x: this.player.x, y: this.player.y, vx: 0, vy: 0, held: true };
+          }
+        }
+        this.score += delta * (9 + this.level + this.buckets * 0.8);
+      },
+      draw(context) {
+        drawBasketballCourt(context, this);
+        drawBadge(context, `Buckets ${this.buckets}`, 24, 34, "#fb923c");
+        drawBadge(context, `Steals ${this.steals}`, 170, 34, "#34d6ff");
+        this.drawEffects(context);
+        this.drawEnd(context, "Final Buzzer");
+      },
+    };
+  }
+
+  function createFreeThrow(base) {
+    return {
+      ...base,
+      aim: 0,
+      power: 0,
+      charging: false,
+      hoopX: 560,
+      hoopDir: 1,
+      ball: null,
+      made: 0,
+      misses: 0,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        this.hoopX += this.hoopDir * (90 + this.level * 8) * delta;
+        if (this.hoopX < 430 || this.hoopX > 760) this.hoopDir *= -1;
+        this.aim = clamp(this.aim + (Number(actionPressed("right")) - Number(actionPressed("left"))) * delta * 1.25, -0.75, 0.75);
+        if (!this.ball && actionPressed("action")) {
+          this.charging = true;
+          this.power = (this.power + delta * 0.9) % 1.12;
+        } else if (!this.ball && this.charging) {
+          const force = 460 + this.power * 260;
+          this.ball = { x: 250, y: 432, vx: Math.sin(this.aim) * 240 + 210, vy: -force };
+          this.charging = false;
+          this.power = 0;
+          audio.sfx("launch");
+        }
+        if (this.ball) {
+          this.ball.vy += 720 * delta;
+          this.ball.x += this.ball.vx * delta;
+          this.ball.y += this.ball.vy * delta;
+          const rimY = 230;
+          if (Math.abs(this.ball.x - this.hoopX) < 31 && Math.abs(this.ball.y - rimY) < 28 && this.ball.vy > 0) {
+            const swish = Math.abs(this.ball.x - this.hoopX) < 13;
+            this.made += 1;
+            this.pushCombo(swish ? 2 : 1);
+            this.addScore(swish ? 230 + this.level * 15 : 150 + this.level * 10, this.hoopX, rimY - 36, swish ? "Swish" : "Make");
+            this.burst(this.hoopX, rimY, "#f97316", swish ? 24 : 14);
+            this.ball = null;
+            audio.sfx("coin");
+          } else if (this.ball.y > 540 || this.ball.x > 980) {
+            this.misses += 1;
+            this.breakCombo();
+            this.ball = null;
+            audio.sfx("danger");
+          }
+        }
+        this.score += delta * (4 + this.made * 0.7);
+      },
+      draw(context) {
+        drawFreeThrowCourt(context, this);
+        drawBadge(context, `Made ${this.made}`, 24, 34, "#f97316");
+        drawBadge(context, `Miss ${this.misses}`, 148, 34, "#ff5b5b");
+        this.drawEffects(context);
+        this.drawEnd(context, "Shootaround Done");
+      },
+    };
+  }
+
+  function createRallyRush(base) {
+    return {
+      ...base,
+      car: { x: 480, y: 398, vx: 0 },
+      distance: 0,
+      checkpoints: 0,
+      offroad: 0,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const accel = actionPressed("action") ? 1.35 : actionPressed("down") ? 0.62 : 1;
+        this.distance += delta * (180 + this.level * 12) * accel;
+        this.car.vx += (Number(actionPressed("right")) - Number(actionPressed("left"))) * delta * 680;
+        this.car.vx *= 0.9;
+        this.car.x += this.car.vx * delta;
+        const center = 480 + Math.sin(this.distance * 0.012) * 170 + Math.sin(this.distance * 0.028) * 54;
+        const roadWidth = Math.max(150, 245 - this.level * 5);
+        const off = Math.abs(this.car.x - center) > roadWidth / 2;
+        if (off) {
+          this.offroad += delta;
+          this.breakCombo();
+          this.car.x += (center - this.car.x) * delta * 0.7;
+        }
+        if (Math.floor(this.distance / 420) > this.checkpoints) {
+          this.checkpoints += 1;
+          this.pushCombo(off ? 0 : 1);
+          this.addScore(off ? 80 : 190 + this.level * 12, this.car.x, this.car.y - 48, off ? "Scrape" : "Apex");
+          this.burst(this.car.x, this.car.y, off ? "#ff5b5b" : "#facc15", 14);
+          audio.sfx(off ? "hit" : "coin");
+        }
+        this.score += delta * (16 + this.level * 2 + this.checkpoints);
+      },
+      draw(context) {
+        drawRallyTrack(context, this);
+        drawBadge(context, `Gate ${this.checkpoints}`, 24, 34, "#facc15");
+        drawBadge(context, `Slip ${this.offroad.toFixed(1)}s`, 150, 34, "#ff5b5b");
+        this.drawEffects(context);
+        this.drawEnd(context, "Finish Line");
+      },
+    };
+  }
+
+  function createTrafficRush(base) {
+    return {
+      ...base,
+      lane: 1,
+      cars: [],
+      spawn: 0.4,
+      passed: 0,
+      damage: 0,
+      laneWasDown: false,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const move = Number(actionPressed("right")) - Number(actionPressed("left"));
+        if (move && !this.laneWasDown) {
+          this.lane = clamp(this.lane + move, 0, 3);
+          audio.beep(420 + this.lane * 70, 0.025, "triangle");
+        }
+        this.laneWasDown = Boolean(move);
+        const speed = (190 + this.level * 12) * (actionPressed("action") ? 1.45 : 1);
+        this.spawn -= delta;
+        if (this.spawn <= 0) {
+          this.spawn = Math.max(0.28, random(0.6, 1.1) - this.level * 0.035);
+          this.cars.push({ lane: Math.floor(random(0, 4)), y: -80, speed: random(95, 155) + this.level * 8, color: ["#f97316", "#38bdf8", "#facc15", "#c084fc"][Math.floor(random(0, 4))] });
+        }
+        this.cars.forEach((car) => {
+          car.y += (car.speed + speed) * delta;
+          if (!car.passed && car.y > 430) {
+            car.passed = true;
+            this.passed += 1;
+            const close = Math.abs(car.lane - this.lane) === 1;
+            this.pushCombo(close ? 2 : 1);
+            this.addScore(close ? 120 + this.level * 8 : 70 + this.level * 5, 285 + car.lane * 130, 410, close ? "Near miss" : "Pass");
+          }
+          if (!car.hit && car.lane === this.lane && car.y > 340 && car.y < 430) {
+            car.hit = true;
+            this.damage += 1;
+            this.breakCombo();
+            this.flash = 0.18;
+            audio.sfx("danger");
+            if (this.damage >= 4) this.finish();
+          }
+        });
+        this.cars = this.cars.filter((car) => car.y < 620 && !car.hit);
+        this.score += delta * (14 + this.level * 2 + this.passed * 0.2);
+      },
+      draw(context) {
+        drawTrafficRoad(context, this);
+        drawBadge(context, `Pass ${this.passed}`, 24, 34, "#38bdf8");
+        drawBadge(context, `Damage ${this.damage}/4`, 146, 34, "#ff5b5b");
+        this.drawEffects(context);
+        if (this.flash) {
+          context.fillStyle = `rgba(255, 91, 91, ${this.flash * 2})`;
+          context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+        }
+        this.drawEnd(context, this.damage >= 4 ? "Wrecked" : "Traffic Cleared");
+      },
+    };
+  }
+
+  function createArcheryRange(base) {
+    return {
+      ...base,
+      aim: 0,
+      power: 0,
+      charging: false,
+      wind: random(-0.45, 0.45),
+      target: { x: 760, y: 250, vy: 80 },
+      arrow: null,
+      hits: 0,
+      misses: 0,
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        this.target.y += this.target.vy * delta;
+        if (this.target.y < 150 || this.target.y > 405) this.target.vy *= -1;
+        this.wind += Math.sin(this.elapsed * 0.7) * delta * 0.12;
+        this.wind = clamp(this.wind, -0.7, 0.7);
+        this.aim = clamp(this.aim + (Number(actionPressed("up")) - Number(actionPressed("down"))) * delta * 1.3, -0.75, 0.75);
+        if (!this.arrow && actionPressed("action")) {
+          this.charging = true;
+          this.power = clamp(this.power + delta * 0.8, 0, 1);
+        } else if (!this.arrow && this.charging) {
+          this.arrow = { x: 180, y: 350, vx: 520 + this.power * 260, vy: -Math.sin(this.aim + 0.42) * 520 - this.power * 120 };
+          this.power = 0;
+          this.charging = false;
+          audio.sfx("launch");
+        }
+        if (this.arrow) {
+          this.arrow.vx += this.wind * 120 * delta;
+          this.arrow.vy += 310 * delta;
+          this.arrow.x += this.arrow.vx * delta;
+          this.arrow.y += this.arrow.vy * delta;
+          const dist = Math.hypot(this.arrow.x - this.target.x, this.arrow.y - this.target.y);
+          if (dist < 55) {
+            const bull = dist < 18;
+            this.hits += 1;
+            this.pushCombo(bull ? 2 : 1);
+            this.addScore(bull ? 240 + this.level * 16 : 120 + this.level * 8, this.target.x, this.target.y - 40, bull ? "Bullseye" : "Hit");
+            this.burst(this.target.x, this.target.y, bull ? "#84cc16" : "#ffd166", bull ? 26 : 14);
+            this.arrow = null;
+            this.target = { x: random(690, 820), y: random(160, 390), vy: random(60, 120) * (Math.random() > 0.5 ? 1 : -1) };
+            audio.sfx("coin");
+          } else if (this.arrow.x > 960 || this.arrow.y > 540 || this.arrow.y < -40) {
+            this.misses += 1;
+            this.breakCombo();
+            this.arrow = null;
+            audio.sfx("danger");
+          }
+        }
+        this.score += delta * (5 + this.hits * 0.7);
+      },
+      draw(context) {
+        drawArcheryRange(context, this, false);
+        drawBadge(context, `Hits ${this.hits}`, 24, 34, "#84cc16");
+        drawBadge(context, `Wind ${this.wind > 0 ? ">" : "<"}`, 138, 34, "#34d6ff");
+        this.drawEffects(context);
+        this.drawEnd(context, "Range Closed");
+      },
+    };
+  }
+
+  function createArrowStorm(base) {
+    const game = createArcheryRange(base);
+    return {
+      ...game,
+      shields: [{ x: 540, y: 275, r: 44 }, { x: 650, y: 190, r: 34 }],
+      rings: [{ x: 440, y: 220, r: 28 }, { x: 610, y: 360, r: 24 }],
+      update(delta) {
+        game.update.call(this, delta);
+        if (this.over || !this.arrow) return;
+        for (const shield of this.shields) {
+          if (Math.hypot(this.arrow.x - shield.x, this.arrow.y - shield.y) < shield.r) {
+            this.misses += 1;
+            this.breakCombo();
+            this.burst(this.arrow.x, this.arrow.y, "#c084fc", 16);
+            this.arrow = null;
+            audio.sfx("danger");
+            return;
+          }
+        }
+        this.rings.forEach((ring) => {
+          if (!ring.used && Math.hypot(this.arrow.x - ring.x, this.arrow.y - ring.y) < ring.r) {
+            ring.used = true;
+            this.arrow.vx += 90;
+            this.arrow.vy -= 130;
+            this.pushCombo();
+            this.addScore(55 + this.level * 4, ring.x, ring.y, "Ring");
+            audio.beep(820, 0.035, "triangle");
+          }
+        });
+        if (this.rings.every((ring) => ring.used)) this.rings = [{ x: random(380, 520), y: random(170, 350), r: 26 }, { x: random(560, 690), y: random(160, 380), r: 24 }];
+      },
+      draw(context) {
+        drawArcheryRange(context, this, true);
+        drawBadge(context, `Tricks ${this.hits}`, 24, 34, "#c084fc");
+        drawBadge(context, `Miss ${this.misses}`, 150, 34, "#ff5b5b");
+        this.drawEffects(context);
+        this.drawEnd(context, "Storm Cleared");
+      },
+    };
+  }
+
+  function createDoodleRoad(base) {
+    const doodleLevels = [
+      { gapStart: 310, gapEnd: 455, finishX: 835, base: 426, wave: 18, ridge: 8, ink: 380, prompt: "Bridge the clean starter gap" },
+      { gapStart: 250, gapEnd: 430, finishX: 850, base: 414, wave: 28, ridge: 12, ink: 360, prompt: "Draw a soft landing ramp" },
+      { gapStart: 390, gapEnd: 585, finishX: 870, base: 438, wave: 18, ridge: 24, ink: 350, prompt: "Support the long middle break" },
+      { gapStart: 210, gapEnd: 330, finishX: 825, base: 402, wave: 38, ridge: 11, ink: 330, prompt: "Climb early, coast late" },
+      { gapStart: 470, gapEnd: 660, finishX: 890, base: 430, wave: 34, ridge: 17, ink: 340, prompt: "Keep the bridge shallow" },
+      { gapStart: 300, gapEnd: 520, finishX: 885, base: 420, wave: 42, ridge: 22, ink: 315, prompt: "Use one strong sweeping curve" },
+      { gapStart: 565, gapEnd: 735, finishX: 900, base: 440, wave: 24, ridge: 30, ink: 305, prompt: "Launch gently over the late pit" },
+      { gapStart: 230, gapEnd: 505, finishX: 915, base: 418, wave: 46, ridge: 18, ink: 290, prompt: "Final exam: long bridge, tiny ink" },
+    ];
+    const specFor = (level) => doodleLevels[(level - 1) % doodleLevels.length];
+    const terrain = (x, level = 1) => {
+      const spec = specFor(level);
+      return spec.base + Math.sin(x * 0.008 + level * 0.9) * spec.wave + Math.sin(x * 0.021 + level) * spec.ridge;
+    };
+    const makeLevel = (level) => ({ ...specFor(level), number: level });
+    return {
+      ...base,
+      puzzleLevel: 1,
+      mode: "draw",
+      ink: 360,
+      cursor: { x: 170, y: 350 },
+      car: { x: 120, y: 390, vx: 0, vy: 0, angle: 0, landed: false },
+      lines: [],
+      activeLine: null,
+      readyToDrive: false,
+      terrain,
+      puzzle: makeLevel(1),
+      resetPuzzle() {
+        this.mode = "draw";
+        this.puzzle = makeLevel(this.puzzleLevel);
+        this.ink = Math.max(190, this.puzzle.ink - Math.floor((this.puzzleLevel - 1) / doodleLevels.length) * 18);
+        this.cursor = { x: 170, y: 350 };
+        this.car = { x: 120, y: this.terrain(120, this.puzzleLevel) - 22, vx: 0, vy: 0, angle: 0, landed: false };
+        this.lines = [];
+        this.activeLine = null;
+        this.readyToDrive = false;
+      },
+      pointerDown(x, y) {
+        if (this.mode !== "draw" || this.over) return;
+        if (this.lines.length && y < 120) {
+          this.startDrive();
+          return;
+        }
+        this.activeLine = [{ x, y }];
+        this.lines.push(this.activeLine);
+        this.readyToDrive = false;
+      },
+      pointerMove(x, y) {
+        if (this.mode !== "draw" || !this.activeLine || this.ink <= 0) return;
+        const last = this.activeLine[this.activeLine.length - 1];
+        const step = distance(last.x, last.y, x, y);
+        if (step < 7) return;
+        const spend = Math.min(this.ink, step * 0.45);
+        this.ink -= spend;
+        this.activeLine.push({ x, y });
+      },
+      pointerUp() {
+        this.activeLine = null;
+        if (this.lines.length) this.readyToDrive = true;
+      },
+      handleKey(event) {
+        if (event.code === "Enter" || event.code === "KeyD") this.startDrive();
+        if (event.code === "Backspace") {
+          this.lines = [];
+          this.activeLine = null;
+          this.readyToDrive = false;
+          this.ink = Math.max(190, this.puzzle.ink - Math.floor((this.puzzleLevel - 1) / doodleLevels.length) * 18);
+        }
+      },
+      startDrive() {
+        if (this.mode === "drive") return;
+        this.mode = "drive";
+        this.activeLine = null;
+        this.car.vx = 125 + this.level * 5;
+        audio.sfx("launch");
+      },
+      supportAt(x, y) {
+        let best = null;
+        const ground = this.terrain(x, this.puzzleLevel);
+        const inGap = x > this.puzzle.gapStart && x < this.puzzle.gapEnd;
+        if (!inGap && Math.abs(y - ground) < 50) best = { y: ground, slope: (this.terrain(x + 6, this.puzzleLevel) - this.terrain(x - 6, this.puzzleLevel)) / 12 };
+        this.lines.forEach((line) => {
+          for (let i = 0; i < line.length - 1; i += 1) {
+            const a = line[i];
+            const b = line[i + 1];
+            const near = pointSegmentDistance(x, y, a.x, a.y, b.x, b.y);
+            if (near > 34) continue;
+            const t = clamp((x - a.x) / ((b.x - a.x) || 1), 0, 1);
+            const roadY = a.y + (b.y - a.y) * t;
+            if (y <= roadY + 34 && (!best || roadY < best.y + 40)) {
+              best = { y: roadY, slope: (b.y - a.y) / Math.max(1, b.x - a.x) };
+            }
+          }
+        });
+        return best;
+      },
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        if (this.mode === "draw") {
+          const move = 220 * delta;
+          this.cursor.x = clamp(this.cursor.x + (Number(actionPressed("right")) - Number(actionPressed("left"))) * move, 40, 920);
+          this.cursor.y = clamp(this.cursor.y + (Number(actionPressed("down")) - Number(actionPressed("up"))) * move, 80, 500);
+          const actionDown = actionPressed("action");
+          if (actionDown) {
+            if (!this.actionWasDown && this.readyToDrive && this.lines.length) this.startDrive();
+            else if (!this.activeLine && !this.readyToDrive) this.pointerDown(this.cursor.x, this.cursor.y);
+            else this.pointerMove(this.cursor.x, this.cursor.y);
+          } else if (this.activeLine) {
+            this.pointerUp();
+          }
+          this.actionWasDown = actionDown;
+          this.score += delta * 1.5;
+        } else {
+          this.car.vy += 620 * delta;
+          this.car.vx += 18 * delta;
+          this.car.x += this.car.vx * delta;
+          this.car.y += this.car.vy * delta;
+          const support = this.supportAt(this.car.x, this.car.y + 20);
+          if (support && this.car.vy >= -40) {
+            this.car.y = support.y - 22;
+            this.car.vy = Math.min(0, support.slope * 90);
+            this.car.angle += (clamp(support.slope, -0.7, 0.7) - this.car.angle) * 0.18;
+            this.car.vx = clamp(this.car.vx + (0.22 - Math.abs(support.slope)) * 42 * delta, 80, 270);
+          } else {
+            this.car.angle += this.car.vy * delta * 0.003;
+          }
+          if (Math.abs(this.car.angle) > 1.22 || this.car.y > 565) {
+            this.breakCombo();
+            this.addScore(10, this.car.x, 120, "Crash");
+            this.resetPuzzle();
+            audio.sfx("danger");
+          }
+          if (this.car.x > this.puzzle.finishX) {
+            this.puzzleLevel += 1;
+            this.pushCombo(2);
+            this.addScore(360 + this.level * 30 + this.ink, 780, 128, `Map ${((this.puzzleLevel - 1) % doodleLevels.length) + 1}`);
+            this.burst(830, 360, "#38bdf8", 28);
+            this.resetPuzzle();
+            audio.sfx("coin");
+          }
+        }
+      },
+      draw(context) {
+        drawDoodleRoad(context, this);
+        drawBadge(context, this.mode === "draw" ? "Draw" : "Drive", 24, 34, "#38bdf8");
+        drawBadge(context, `Ink ${Math.floor(this.ink)}`, 132, 34, "#111827");
+        this.drawEffects(context);
+        this.drawEnd(context, "Sketchbook Closed");
+      },
+    };
+  }
+
+  function createWordFlux(base) {
+    const words = ["BRAVE", "CRANE", "SPARK", "PIXEL", "DRIFT", "QUEST", "GHOST", "LASER", "VAULT", "RIVER", "ARROW", "BOOST", "TOKEN", "CROWN", "PLANE", "ROBOT", "MUSIC", "BRAIN", "FLAME", "SCORE"];
+    const pickWord = (previous = "") => {
+      let word = words[Math.floor(Math.random() * words.length)];
+      if (word === previous) word = words[(words.indexOf(word) + 7) % words.length];
+      return word;
+    };
+    return {
+      ...base,
+      words,
+      target: pickWord(),
+      guesses: [],
+      current: ["", "", "", "", ""],
+      cursor: 0,
+      solved: 0,
+      badGuesses: 0,
+      feedback: "",
+      nextWord() {
+        const previous = this.target;
+        this.target = pickWord(previous);
+        this.guesses = [];
+        this.current = ["", "", "", "", ""];
+        this.cursor = 0;
+        this.feedback = "";
+      },
+      handleKey(event) {
+        if (this.over) return;
+        if (/^Key[A-Z]$/.test(event.code)) {
+          this.current[this.cursor] = event.code.replace("Key", "");
+          this.cursor = clamp(this.cursor + 1, 0, 4);
+          audio.beep(540, 0.025, "triangle");
+        } else if (event.code === "Backspace") {
+          this.current[this.cursor] = "";
+          this.cursor = clamp(this.cursor - 1, 0, 4);
+        } else if (event.code === "Enter") {
+          this.submitGuess();
+        }
+      },
+      submitGuess() {
+        const guess = this.current.join("");
+        if (guess.length < 5 || this.current.some((letter) => !letter)) {
+          this.feedback = "Fill all tiles";
+          audio.sfx("danger");
+          return;
+        }
+        const marks = scoreWordGuess(guess, this.target);
+        this.guesses.push({ guess, marks });
+        if (guess === this.target) {
+          const bonus = Math.max(1, 7 - this.guesses.length);
+          this.solved += 1;
+          this.pushCombo(2);
+          this.addScore(160 * bonus + this.level * 25, gameCanvas.width / 2, 110, "Solved");
+          this.burst(480, 260, "#22c55e", 30);
+          this.nextWord();
+          audio.sfx("coin");
+        } else if (this.guesses.length >= 6) {
+          this.badGuesses += 1;
+          this.breakCombo();
+          this.feedback = `Word was ${this.target}`;
+          this.nextWord();
+          audio.sfx("danger");
+        } else {
+          this.current = ["", "", "", "", ""];
+          this.cursor = 0;
+        }
+      },
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        const horizontal = Number(actionPressed("right")) - Number(actionPressed("left"));
+        const vertical = Number(actionPressed("up")) - Number(actionPressed("down"));
+        if (!this.keyCooldown) this.keyCooldown = 0;
+        this.keyCooldown = Math.max(0, this.keyCooldown - delta);
+        if (this.keyCooldown <= 0 && horizontal) {
+          this.cursor = clamp(this.cursor + horizontal, 0, 4);
+          this.keyCooldown = 0.16;
+        }
+        if (this.keyCooldown <= 0 && vertical) {
+          const code = this.current[this.cursor]?.charCodeAt(0) || 64;
+          this.current[this.cursor] = String.fromCharCode(clamp(code + vertical, 65, 90));
+          this.keyCooldown = 0.12;
+        }
+        if (!this.actionWasDown && actionPressed("action")) this.submitGuess();
+        this.actionWasDown = actionPressed("action");
+        this.score += delta * (3 + this.solved);
+      },
+      draw(context) {
+        drawWordFlux(context, this);
+        drawBadge(context, `Solved ${this.solved}`, 24, 34, "#22c55e");
+        drawBadge(context, `Word ${this.target.length}`, 160, 34, "#ffd166");
+        this.drawEffects(context);
+        this.drawEnd(context, "Dictionary Closed");
+      },
+    };
+  }
+
+  function createBubbleCannon(base) {
+    const colors = ["#38bdf8", "#f472b6", "#facc15", "#22c55e"];
+    const makeRows = () => {
+      const bubbles = [];
+      for (let row = 0; row < 5; row += 1) {
+        for (let col = 0; col < 10; col += 1) {
+          bubbles.push({ row, col, color: colors[Math.floor(Math.random() * colors.length)], falling: false });
+        }
+      }
+      return bubbles;
+    };
+    return {
+      ...base,
+      colors,
+      bubbles: makeRows(),
+      angle: -Math.PI / 2,
+      shot: null,
+      nextColor: colors[0],
+      drops: 0,
+      popped: 0,
+      rowOffset: 0,
+      shotCount: 0,
+      bubblePosition(bubble) {
+        const size = 44;
+        const x = 250 + bubble.col * size + (bubble.row % 2 ? size / 2 : 0);
+        const y = 95 + bubble.row * 38 + this.rowOffset;
+        return { x, y };
+      },
+      fire() {
+        if (this.shot) return;
+        this.shot = {
+          x: 480,
+          y: 506,
+          vx: Math.cos(this.angle) * 520,
+          vy: Math.sin(this.angle) * 520,
+          color: this.nextColor,
+        };
+        this.nextColor = this.colors[Math.floor(Math.random() * this.colors.length)];
+        this.shotCount += 1;
+        audio.sfx("launch");
+      },
+      attachShot() {
+        if (!this.shot) return;
+        const row = clamp(Math.round((this.shot.y - 95 - this.rowOffset) / 38), 0, 9);
+        const col = clamp(Math.round((this.shot.x - 250 - (row % 2 ? 22 : 0)) / 44), 0, 9);
+        if (!this.bubbles.some((bubble) => bubble.row === row && bubble.col === col)) {
+          this.bubbles.push({ row, col, color: this.shot.color });
+        }
+        const target = this.bubbles.find((bubble) => bubble.row === row && bubble.col === col) || this.bubbles[this.bubbles.length - 1];
+        const cluster = this.findCluster(target);
+        if (cluster.length >= 3) {
+          cluster.forEach((bubble) => {
+            bubble.popped = true;
+            const pos = this.bubblePosition(bubble);
+            this.burst(pos.x, pos.y, bubble.color, 6);
+          });
+          this.bubbles = this.bubbles.filter((bubble) => !bubble.popped);
+          this.popped += cluster.length;
+          this.pushCombo();
+          this.addScore(90 * cluster.length + this.level * 12, this.shot.x, this.shot.y, "Pop");
+          audio.sfx("coin");
+        } else {
+          this.breakCombo();
+        }
+        if (this.shotCount % Math.max(3, 7 - Math.floor(this.level / 2)) === 0) this.rowOffset += 18;
+        this.shot = null;
+      },
+      findCluster(start) {
+        const key = (bubble) => `${bubble.row}:${bubble.col}`;
+        const seen = new Set();
+        const queue = [start];
+        const cluster = [];
+        while (queue.length) {
+          const bubble = queue.shift();
+          if (!bubble || seen.has(key(bubble)) || bubble.color !== start.color) continue;
+          seen.add(key(bubble));
+          cluster.push(bubble);
+          this.bubbles.forEach((candidate) => {
+            if (seen.has(key(candidate))) return;
+            const dr = Math.abs(candidate.row - bubble.row);
+            const dc = Math.abs(candidate.col - bubble.col);
+            if ((dr === 0 && dc === 1) || (dr === 1 && dc <= 1)) queue.push(candidate);
+          });
+        }
+        return cluster;
+      },
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        this.angle = clamp(this.angle + (Number(actionPressed("right")) - Number(actionPressed("left"))) * delta * 1.8, -2.7, -0.45);
+        if (!this.actionWasDown && actionPressed("action")) this.fire();
+        this.actionWasDown = actionPressed("action");
+        this.rowOffset += delta * (2.8 + this.level * 0.35);
+        if (this.shot) {
+          this.shot.x += this.shot.vx * delta;
+          this.shot.y += this.shot.vy * delta;
+          if (this.shot.x < 60 || this.shot.x > 900) this.shot.vx *= -1;
+          const hit = this.bubbles.some((bubble) => {
+            const pos = this.bubblePosition(bubble);
+            return distance(this.shot.x, this.shot.y, pos.x, pos.y) < 39;
+          });
+          if (hit || this.shot.y < 70) this.attachShot();
+        }
+        if (this.bubbles.some((bubble) => this.bubblePosition(bubble).y > 455)) {
+          this.drops += 1;
+          this.rowOffset = 0;
+          this.bubbles = makeRows();
+          this.breakCombo();
+          audio.sfx("danger");
+          if (this.drops >= 3) this.finish();
+        }
+        this.score += delta * (5 + this.popped * 0.05);
+      },
+      draw(context) {
+        drawBubbleCannon(context, this);
+        drawBadge(context, `Popped ${this.popped}`, 24, 34, "#f472b6");
+        drawBadge(context, `Drops ${this.drops}/3`, 174, 34, "#ff5b5b");
+        this.drawEffects(context);
+        this.drawEnd(context, "Bubbles Dropped");
+      },
+    };
+  }
+
+  function drawDoodleRoad(context, game) {
+    context.save();
+    const paper = context.createLinearGradient(0, 0, 0, gameCanvas.height);
+    paper.addColorStop(0, "#f8fafc");
+    paper.addColorStop(1, "#dbeafe");
+    context.fillStyle = paper;
+    context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+    context.strokeStyle = "rgba(59,130,246,0.16)";
+    context.lineWidth = 1;
+    for (let x = 0; x < gameCanvas.width; x += 48) {
+      context.beginPath();
+      context.moveTo(x, 0);
+      context.lineTo(x, gameCanvas.height);
+      context.stroke();
+    }
+    for (let y = 0; y < gameCanvas.height; y += 48) {
+      context.beginPath();
+      context.moveTo(0, y);
+      context.lineTo(gameCanvas.width, y);
+      context.stroke();
+    }
+    context.fillStyle = "#334155";
+    context.beginPath();
+    context.moveTo(0, gameCanvas.height);
+    for (let x = 0; x <= gameCanvas.width; x += 18) {
+      const inGap = x > game.puzzle.gapStart && x < game.puzzle.gapEnd;
+      context.lineTo(x, inGap ? gameCanvas.height + 20 : game.terrain(x, game.puzzleLevel));
+    }
+    context.lineTo(gameCanvas.width, gameCanvas.height);
+    context.fill();
+    context.fillStyle = "rgba(15,23,42,0.7)";
+    roundedRect(context, game.puzzle.gapStart, 430, game.puzzle.gapEnd - game.puzzle.gapStart, 90, 12);
+    context.fill();
+    game.lines.forEach((line) => {
+      context.strokeStyle = "#111827";
+      context.lineWidth = 9;
+      context.lineCap = "round";
+      context.lineJoin = "round";
+      context.beginPath();
+      line.forEach((point, index) => {
+        if (index) context.lineTo(point.x, point.y);
+        else context.moveTo(point.x, point.y);
+      });
+      context.stroke();
+      context.strokeStyle = "#38bdf8";
+      context.lineWidth = 4;
+      context.stroke();
+    });
+    context.fillStyle = "#22c55e";
+    context.fillRect(game.puzzle.finishX, game.terrain(game.puzzle.finishX, game.puzzleLevel) - 92, 8, 92);
+    context.fillStyle = "#f97316";
+    context.beginPath();
+    context.moveTo(game.puzzle.finishX + 8, game.terrain(game.puzzle.finishX, game.puzzleLevel) - 92);
+    context.lineTo(game.puzzle.finishX + 58, game.terrain(game.puzzle.finishX, game.puzzleLevel) - 72);
+    context.lineTo(game.puzzle.finishX + 8, game.terrain(game.puzzle.finishX, game.puzzleLevel) - 52);
+    context.fill();
+    drawDoodleCar(context, game.car.x, game.car.y, game.car.angle);
+    if (game.mode === "draw") {
+      context.strokeStyle = "#f59e0b";
+      context.lineWidth = 4;
+      context.beginPath();
+      context.arc(game.cursor.x, game.cursor.y, 13, 0, Math.PI * 2);
+      context.stroke();
+      drawText(context, game.puzzle.prompt || "Draw a bridge, then press Action to drive", 480, 94, "#111827", "900 22px system-ui", "center");
+      drawText(context, "Enter/D starts drive · Backspace clears ink", 480, 122, "#334155", "800 15px system-ui", "center");
+    } else {
+      drawText(context, "Drive mode", 480, 94, "#111827", "900 22px system-ui", "center");
+    }
+    context.restore();
+  }
+
+  function drawDoodleCar(context, x, y, angle) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(angle);
+    context.fillStyle = "#ef4444";
+    roundedRect(context, -26, -18, 52, 26, 8);
+    context.fill();
+    context.fillStyle = "#0f172a";
+    roundedRect(context, -10, -30, 26, 18, 6);
+    context.fill();
+    context.fillStyle = "#111827";
+    [-18, 18].forEach((wheel) => {
+      context.beginPath();
+      context.arc(wheel, 10, 9, 0, Math.PI * 2);
+      context.fill();
+    });
+    context.restore();
+  }
+
+  function drawWordFlux(context, game) {
+    context.save();
+    const gradient = context.createLinearGradient(0, 0, 0, gameCanvas.height);
+    gradient.addColorStop(0, "#052e16");
+    gradient.addColorStop(0.55, "#10233d");
+    gradient.addColorStop(1, "#050816");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+    drawText(context, "Guess the generated word", 480, 92, "#d1fae5", "900 25px system-ui", "center");
+    const startX = gameCanvas.width / 2 - 174;
+    const startY = 128;
+    const size = 58;
+    const gap = 10;
+    const rows = [...game.guesses, { guess: game.current.join("").padEnd(5, " "), marks: [] }];
+    for (let row = 0; row < 6; row += 1) {
+      const entry = rows[row] || { guess: "     ", marks: [] };
+      for (let col = 0; col < 5; col += 1) {
+        const x = startX + col * (size + gap);
+        const y = startY + row * (size + gap);
+        const mark = entry.marks[col];
+        const color = mark === "hit" ? "#22c55e" : mark === "near" ? "#eab308" : mark === "miss" ? "#475569" : "rgba(255,255,255,0.08)";
+        context.fillStyle = color;
+        context.strokeStyle = row === game.guesses.length && col === game.cursor ? "#38bdf8" : "rgba(255,255,255,0.25)";
+        context.lineWidth = 3;
+        roundedRect(context, x, y, size, size, 9);
+        context.fill();
+        context.stroke();
+        drawText(context, entry.guess[col]?.trim() || "", x + size / 2, y + 39, "#f8fafc", "1000 31px system-ui", "center");
+      }
+    }
+    drawText(context, game.feedback || "Keyboard or arrows + Action", 480, 548, "#f8fafc", "800 19px system-ui", "center");
+    context.restore();
+  }
+
+  function drawBubbleCannon(context, game) {
+    context.save();
+    const gradient = context.createLinearGradient(0, 0, 0, gameCanvas.height);
+    gradient.addColorStop(0, "#301026");
+    gradient.addColorStop(0.58, "#10283d");
+    gradient.addColorStop(1, "#050816");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+    context.strokeStyle = "rgba(255,255,255,0.18)";
+    context.lineWidth = 3;
+    context.beginPath();
+    context.moveTo(80, 462);
+    context.lineTo(880, 462);
+    context.stroke();
+    game.bubbles.forEach((bubble) => {
+      const pos = game.bubblePosition(bubble);
+      drawBubble(context, pos.x, pos.y, 19, bubble.color);
+    });
+    if (game.shot) drawBubble(context, game.shot.x, game.shot.y, 18, game.shot.color);
+    context.save();
+    context.translate(480, 514);
+    context.rotate(game.angle + Math.PI / 2);
+    context.fillStyle = "#e5e7eb";
+    roundedRect(context, -13, -70, 26, 82, 12);
+    context.fill();
+    context.restore();
+    drawBubble(context, 534, 518, 17, game.nextColor);
+    drawText(context, "Next", 534, 558, "#d6deff", "800 14px system-ui", "center");
+    context.restore();
+  }
+
+  function drawBubble(context, x, y, radius, color) {
+    context.save();
+    const bubble = context.createRadialGradient(x - radius * 0.35, y - radius * 0.35, 2, x, y, radius);
+    bubble.addColorStop(0, "#ffffff");
+    bubble.addColorStop(0.24, color);
+    bubble.addColorStop(1, "#111827");
+    context.fillStyle = bubble;
+    context.shadowColor = color;
+    context.shadowBlur = 16;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
+  }
+
+  function drawBasketballCourt(context, game) {
+    drawGameBackground(context, game.elapsed);
+    context.save();
+    const floor = context.createLinearGradient(0, 160, 0, 540);
+    floor.addColorStop(0, "#7c3f1d");
+    floor.addColorStop(1, "#2b1608");
+    context.fillStyle = floor;
+    context.fillRect(80, 150, 800, 340);
+    context.strokeStyle = "rgba(255,255,255,0.7)";
+    context.lineWidth = 4;
+    context.strokeRect(80, 150, 800, 340);
+    context.beginPath();
+    context.arc(480, 320, 72, 0, Math.PI * 2);
+    context.moveTo(760, 150);
+    context.lineTo(760, 490);
+    context.stroke();
+    drawHoop(context, game.hoop.x, game.hoop.y);
+    drawBaller(context, game.player.x, game.player.y, "#34d6ff", game.ball.held);
+    game.defenders.forEach((defender) => drawBaller(context, defender.x, defender.y, "#ff5b5b", false));
+    if (!game.ball.held) drawBall(context, game.ball.x, game.ball.y, 13, "#fb923c");
+    if (game.ball.held) {
+      context.strokeStyle = "#ffd166";
+      context.lineWidth = 6;
+      context.beginPath();
+      context.arc(game.player.x, game.player.y - 42, 26 + game.shotCharge * 18, -Math.PI * 0.8, -Math.PI * 0.2);
+      context.stroke();
+    }
+    context.restore();
+  }
+
+  function drawFreeThrowCourt(context, game) {
+    drawGameBackground(context, game.elapsed);
+    context.save();
+    context.fillStyle = "#1f2937";
+    context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+    context.fillStyle = "#733b19";
+    context.fillRect(90, 150, 780, 340);
+    context.strokeStyle = "rgba(255,255,255,0.55)";
+    context.lineWidth = 4;
+    context.strokeRect(90, 150, 780, 340);
+    context.beginPath();
+    context.arc(250, 432, 92, -Math.PI * 0.82, Math.PI * 0.1);
+    context.stroke();
+    drawHoop(context, game.hoopX, 230);
+    drawBaller(context, 215, 430, "#f97316", !game.ball);
+    context.strokeStyle = "#ffd166";
+    context.lineWidth = 5;
+    context.beginPath();
+    context.moveTo(250, 432);
+    context.lineTo(250 + Math.sin(game.aim) * 120 + 120, 432 - Math.cos(game.aim) * 120);
+    context.stroke();
+    if (game.charging) {
+      context.fillStyle = "rgba(255,255,255,0.14)";
+      roundedRect(context, 140, 470, 210, 14, 7);
+      context.fill();
+      context.fillStyle = "#f97316";
+      roundedRect(context, 140, 470, 210 * game.power, 14, 7);
+      context.fill();
+    }
+    if (game.ball) drawBall(context, game.ball.x, game.ball.y, 12, "#f97316");
+    context.restore();
+  }
+
+  function drawHoop(context, x, y) {
+    context.save();
+    context.fillStyle = "rgba(255,255,255,0.86)";
+    context.fillRect(x - 48, y - 54, 96, 58);
+    context.strokeStyle = "#f97316";
+    context.lineWidth = 6;
+    context.beginPath();
+    context.ellipse(x, y, 34, 10, 0, 0, Math.PI * 2);
+    context.stroke();
+    context.strokeStyle = "rgba(255,255,255,0.55)";
+    context.lineWidth = 2;
+    for (let i = -24; i <= 24; i += 12) {
+      context.beginPath();
+      context.moveTo(x + i, y + 6);
+      context.lineTo(x + i * 0.4, y + 42);
+      context.stroke();
+    }
+    context.restore();
+  }
+
+  function drawBaller(context, x, y, color, hasBall) {
+    context.save();
+    context.fillStyle = color;
+    context.shadowColor = color;
+    context.shadowBlur = 18;
+    context.beginPath();
+    context.arc(x, y - 34, 14, 0, Math.PI * 2);
+    context.fill();
+    roundedRect(context, x - 18, y - 20, 36, 44, 10);
+    context.fill();
+    context.strokeStyle = "#f5f7ff";
+    context.lineWidth = 5;
+    context.beginPath();
+    context.moveTo(x - 12, y + 22);
+    context.lineTo(x - 24, y + 48);
+    context.moveTo(x + 12, y + 22);
+    context.lineTo(x + 24, y + 48);
+    context.stroke();
+    if (hasBall) drawBall(context, x + 24, y - 20, 10, "#fb923c");
+    context.restore();
+  }
+
+  function drawBall(context, x, y, radius, color) {
+    context.save();
+    context.fillStyle = color;
+    context.strokeStyle = "rgba(5,6,12,0.55)";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+    context.restore();
+  }
+
+  function drawRallyTrack(context, game) {
+    context.save();
+    context.fillStyle = "#4d7c0f";
+    context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+    context.fillStyle = "#ca8a04";
+    context.beginPath();
+    for (let y = -80; y <= 620; y += 30) {
+      const d = game.distance + (540 - y);
+      const center = 480 + Math.sin(d * 0.012) * 170 + Math.sin(d * 0.028) * 54;
+      const width = Math.max(150, 245 - game.level * 5);
+      if (y === -80) context.moveTo(center - width, y);
+      else context.lineTo(center - width, y);
+    }
+    for (let y = 620; y >= -80; y -= 30) {
+      const d = game.distance + (540 - y);
+      const center = 480 + Math.sin(d * 0.012) * 170 + Math.sin(d * 0.028) * 54;
+      const width = Math.max(150, 245 - game.level * 5);
+      context.lineTo(center + width, y);
+    }
+    context.closePath();
+    context.fill();
+    context.strokeStyle = "rgba(255,255,255,0.35)";
+    context.lineWidth = 3;
+    for (let y = -40; y < 560; y += 86) {
+      context.beginPath();
+      context.moveTo(380, y + (game.distance % 86));
+      context.lineTo(580, y + 34 + (game.distance % 86));
+      context.stroke();
+    }
+    drawTopCar(context, game.car.x, game.car.y, "#facc15", game.car.vx * 0.002);
+    context.restore();
+  }
+
+  function drawTrafficRoad(context, game) {
+    context.save();
+    const road = context.createLinearGradient(0, 0, 0, 540);
+    road.addColorStop(0, "#1f2937");
+    road.addColorStop(1, "#05070e");
+    context.fillStyle = road;
+    context.fillRect(160, 0, 640, 540);
+    context.fillStyle = "#0f172a";
+    context.fillRect(0, 0, 160, 540);
+    context.fillRect(800, 0, 160, 540);
+    context.strokeStyle = "rgba(255,255,255,0.32)";
+    context.lineWidth = 3;
+    [320, 450, 580].forEach((x) => {
+      for (let y = -40; y < 580; y += 86) {
+        context.beginPath();
+        context.moveTo(x, y + ((game.elapsed * 240) % 86));
+        context.lineTo(x, y + 42 + ((game.elapsed * 240) % 86));
+        context.stroke();
+      }
+    });
+    game.cars.forEach((car) => drawTopCar(context, 255 + car.lane * 130, car.y, car.color, 0));
+    drawTopCar(context, 255 + game.lane * 130, 430, "#38bdf8", 0);
+    context.restore();
+  }
+
+  function drawTopCar(context, x, y, color, tilt = 0) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(tilt);
+    context.fillStyle = color;
+    context.shadowColor = color;
+    context.shadowBlur = 18;
+    roundedRect(context, -24, -42, 48, 84, 10);
+    context.fill();
+    context.fillStyle = "rgba(255,255,255,0.72)";
+    roundedRect(context, -16, -24, 32, 24, 6);
+    context.fill();
+    context.fillStyle = "rgba(5,6,12,0.6)";
+    context.fillRect(-28, -30, 6, 18);
+    context.fillRect(22, -30, 6, 18);
+    context.fillRect(-28, 16, 6, 18);
+    context.fillRect(22, 16, 6, 18);
+    context.restore();
+  }
+
+  function drawArcheryRange(context, game, storm = false) {
+    drawGameBackground(context, game.elapsed);
+    context.save();
+    context.fillStyle = storm ? "#1e1635" : "#173016";
+    context.fillRect(0, 280, 960, 260);
+    context.fillStyle = "#7c4a1d";
+    context.fillRect(146, 314, 16, 132);
+    context.strokeStyle = "#f5f7ff";
+    context.lineWidth = 6;
+    context.beginPath();
+    context.arc(162, 360, 42, -Math.PI / 2, Math.PI / 2);
+    context.stroke();
+    context.strokeStyle = "#ffd166";
+    context.lineWidth = 4;
+    context.beginPath();
+    context.moveTo(162, 360);
+    context.lineTo(162 + 112, 360 - Math.sin(game.aim + 0.42) * 112);
+    context.stroke();
+    drawArcheryTarget(context, game.target.x, game.target.y, 56);
+    if (storm) {
+      game.shields?.forEach((shield) => {
+        context.fillStyle = "rgba(192,132,252,0.22)";
+        context.strokeStyle = "#c084fc";
+        context.lineWidth = 5;
+        context.beginPath();
+        context.arc(shield.x, shield.y, shield.r, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+      });
+      game.rings?.forEach((ring) => {
+        context.strokeStyle = ring.used ? "rgba(255,255,255,0.2)" : "#ffd166";
+        context.lineWidth = 5;
+        context.beginPath();
+        context.arc(ring.x, ring.y, ring.r, 0, Math.PI * 2);
+        context.stroke();
+      });
+    }
+    context.fillStyle = game.wind > 0 ? "#34d6ff" : "#ff3d81";
+    context.fillRect(360, 84, Math.abs(game.wind) * 180, 8);
+    if (game.charging) {
+      context.fillStyle = "rgba(255,255,255,0.14)";
+      roundedRect(context, 96, 470, 220, 14, 7);
+      context.fill();
+      context.fillStyle = storm ? "#c084fc" : "#84cc16";
+      roundedRect(context, 96, 470, 220 * game.power, 14, 7);
+      context.fill();
+    }
+    if (game.arrow) drawArrow(context, game.arrow.x, game.arrow.y, Math.atan2(game.arrow.vy, game.arrow.vx), storm ? "#c084fc" : "#84cc16");
+    context.restore();
+  }
+
+  function drawArcheryTarget(context, x, y, radius) {
+    context.save();
+    ["#f8fafc", "#ef4444", "#f8fafc", "#2563eb", "#facc15"].forEach((color, index) => {
+      context.fillStyle = color;
+      context.beginPath();
+      context.arc(x, y, radius - index * 10, 0, Math.PI * 2);
+      context.fill();
+    });
+    context.restore();
+  }
+
+  function drawArrow(context, x, y, angle, color) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(angle);
+    context.strokeStyle = color;
+    context.lineWidth = 4;
+    context.beginPath();
+    context.moveTo(-28, 0);
+    context.lineTo(30, 0);
+    context.stroke();
+    context.fillStyle = color;
+    context.beginPath();
+    context.moveTo(38, 0);
+    context.lineTo(20, -9);
+    context.lineTo(20, 9);
+    context.closePath();
+    context.fill();
+    context.restore();
+  }
+
   function drawPinballTable(context, game) {
     context.save();
     context.fillStyle = "rgba(10, 12, 20, 0.78)";
@@ -5685,6 +7322,44 @@
 
   function distance(ax, ay, bx, by) {
     return Math.hypot(ax - bx, ay - by);
+  }
+
+  function pointSegmentDistance(px, py, ax, ay, bx, by) {
+    const dx = bx - ax;
+    const dy = by - ay;
+    const lengthSquared = dx * dx + dy * dy || 1;
+    const t = clamp(((px - ax) * dx + (py - ay) * dy) / lengthSquared, 0, 1);
+    return distance(px, py, ax + dx * t, ay + dy * t);
+  }
+
+  function scoreWordGuess(guess, target) {
+    const marks = Array(5).fill("miss");
+    const remaining = target.split("");
+    for (let i = 0; i < 5; i += 1) {
+      if (guess[i] === target[i]) {
+        marks[i] = "hit";
+        remaining[i] = "";
+      }
+    }
+    for (let i = 0; i < 5; i += 1) {
+      if (marks[i] === "hit") continue;
+      const index = remaining.indexOf(guess[i]);
+      if (index >= 0) {
+        marks[i] = "near";
+        remaining[index] = "";
+      }
+    }
+    return marks;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "\"": "&quot;",
+      "'": "&#39;",
+    })[char]);
   }
 
   function angleDelta(a, b) {
@@ -7057,6 +8732,7 @@
       "#historyButton": "history",
       "#settingsButton": "settings",
       "#keybindButton": "keybinds",
+      "#debugButton": "debug",
     };
     if (routes[selector]) showScreen(routes[selector]);
   }
@@ -7079,6 +8755,7 @@
       historyButton: () => showScreen("history"),
       settingsButton: () => showScreen("settings"),
       keybindButton: () => showScreen("keybinds"),
+      debugButton: () => showScreen("debug"),
       saveProgressButton: () => saveAllProgress(true),
       startDailyButton: () => startDailyChallenge(),
       nextTournamentRunButton: () => startNextTournamentRun(),
@@ -7145,6 +8822,10 @@
     audio.beep(620);
     showScreen("keybinds");
   });
+  wireClick("#debugButton", () => {
+    audio.beep(500, 0.06, "triangle");
+    showScreen("debug");
+  });
   wireClick("#saveProgressButton", () => {
     saveAllProgress(true);
     audio.beep(760, 0.06, "triangle");
@@ -7163,6 +8844,20 @@
   });
   wireClick("#claimDailyRewardButton", () => claimDailyReward());
   wireClick("#addFriendButton", () => addFriendFromInput());
+  if (debugForm) debugForm.addEventListener("submit", submitDebugReport);
+  if (debugReportList) {
+    debugReportList.addEventListener("click", (event) => {
+      const fixed = event.target.closest("[data-report-fixed]");
+      const deleted = event.target.closest("[data-report-delete]");
+      if (fixed) updateDebugReport(Number(fixed.dataset.reportFixed), "fixed");
+      if (deleted) updateDebugReport(Number(deleted.dataset.reportDelete), "delete");
+    });
+  }
+  wireClick("#toggleUpdateNoticeButton", () => setUpdatingNotice(!isUpdatingNoticeEnabled()));
+  wireClick("#clearReportsButton", () => {
+    saveDebugReports([]);
+    renderDebugSystem("Reports cleared.");
+  });
   gameGrid.addEventListener("click", (event) => {
     const button = event.target.closest("[data-action]");
     const card = button?.closest(".game-card");
@@ -7170,6 +8865,35 @@
     if (button.dataset.action === "play") startGame(card.dataset.game);
     if (button.dataset.action === "about") showAbout(card.dataset.game);
   });
+  gameGrid.addEventListener("pointerover", (event) => {
+    const card = event.target.closest(".game-card");
+    if (!card) return;
+    const game = gameDefinitions.find((definition) => definition.id === card.dataset.game);
+    if (game) renderGameDetailDock(game);
+  });
+  gameGrid.addEventListener("focusin", (event) => {
+    const card = event.target.closest(".game-card");
+    if (!card) return;
+    const game = gameDefinitions.find((definition) => definition.id === card.dataset.game);
+    if (game) renderGameDetailDock(game);
+  });
+  if (collectionStrip) {
+    collectionStrip.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-collection]");
+      if (!button) return;
+      activeCollection = button.dataset.collection;
+      renderGameCards();
+      audio.sfx("menu");
+    });
+  }
+  if (gameDetailDock) {
+    gameDetailDock.addEventListener("click", (event) => {
+      const play = event.target.closest("[data-detail-play]");
+      const about = event.target.closest("[data-detail-about]");
+      if (play) startGame(play.dataset.detailPlay);
+      if (about) showAbout(about.dataset.detailAbout);
+    });
+  }
   gameSearch.addEventListener("input", renderGameCards);
   globalSearch.addEventListener("input", () => {
     gameSearch.value = globalSearch.value;
@@ -7182,7 +8906,7 @@
     activeFilter = button.dataset.filter;
     filterTabs.querySelectorAll(".filter-tab").forEach((tab) => tab.classList.toggle("active", tab === button));
     renderGameCards();
-    audio.beep(420, 0.04, "triangle");
+    audio.sfx(button.dataset.filter === "Racing" ? "racing" : button.dataset.filter === "Sports" ? "sport" : button.dataset.filter === "Puzzle" ? "puzzle" : "menu");
   });
   playLevelButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -7266,6 +8990,37 @@
     showScreen("games");
   };
 
+  function canvasPointerPosition(event) {
+    const rect = gameCanvas.getBoundingClientRect();
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * gameCanvas.width,
+      y: ((event.clientY - rect.top) / rect.height) * gameCanvas.height,
+    };
+  }
+
+  gameCanvas.addEventListener("pointerdown", (event) => {
+    if (currentScreen !== "play" || !activeGame?.pointerDown) return;
+    event.preventDefault();
+    const point = canvasPointerPosition(event);
+    activeGame.pointerDown(point.x, point.y);
+    gameCanvas.setPointerCapture?.(event.pointerId);
+  });
+
+  gameCanvas.addEventListener("pointermove", (event) => {
+    if (currentScreen !== "play" || !activeGame?.pointerMove) return;
+    event.preventDefault();
+    const point = canvasPointerPosition(event);
+    activeGame.pointerMove(point.x, point.y);
+  });
+
+  ["pointerup", "pointercancel", "pointerleave"].forEach((type) => {
+    gameCanvas.addEventListener(type, (event) => {
+      if (currentScreen !== "play" || !activeGame?.pointerUp) return;
+      event.preventDefault();
+      activeGame.pointerUp();
+    });
+  });
+
   backButton.onclick = (event) => {
     event.preventDefault();
     audio.beep(300);
@@ -7328,6 +9083,7 @@
       if (game) startGame(game.id);
       return;
     }
+    if (currentScreen === "play" && activeGame?.handleKey) activeGame.handleKey(event);
     pressed.add(event.code);
     if (currentScreen === "play" && event.code === keybinds.pause) showScreen("games");
   });
@@ -7349,7 +9105,9 @@
   renderHistory();
   renderTournament();
   renderKeybinds();
+  renderDebugSystem();
   renderAvatarPicker();
+  renderArcadeMarket();
   applySkin();
   saveProfile(false);
   playerOneName.value = profile.name;

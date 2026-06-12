@@ -29,6 +29,15 @@ const GAME_IDS = new Set([
   "repair",
   "cipher",
   "orbitguard",
+  "hoopsduel",
+  "freethrow",
+  "rallyrush",
+  "trafficrush",
+  "archeryrange",
+  "arrowstorm",
+  "doodleroad",
+  "wordflux",
+  "bubblecannon",
   "lockpick",
 ]);
 
@@ -79,6 +88,28 @@ function validateScorePayload(data) {
   };
 }
 
+function cleanReportText(value, maxLength) {
+  return String(value || "")
+    .replace(/[<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function validateReportPayload(data) {
+  const type = cleanReportText(data?.type || "Bug", 32) || "Bug";
+  const area = cleanReportText(data?.area || "General", 60) || "General";
+  const message = cleanReportText(data?.message, 360);
+  const screen = cleanReportText(data?.screen || "unknown", 32) || "unknown";
+  const userAgent = cleanReportText(data?.userAgent || "", 180);
+
+  if (message.length < 6) {
+    throw new HttpsError("invalid-argument", "Report message is too short.");
+  }
+
+  return { type, area, message, screen, userAgent };
+}
+
 async function enforceRateLimit(uid) {
   const limitRef = db.collection("scoreRateLimits").doc(uid);
   const now = Date.now();
@@ -123,4 +154,22 @@ exports.submitScore = onCall({ region: "us-central1" }, async (request) => {
       player: entry.player,
     },
   };
+});
+
+exports.reportIssue = onCall({ region: "us-central1" }, async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError("unauthenticated", "Sign in is required to submit reports.");
+  }
+
+  const report = validateReportPayload(request.data);
+  await enforceRateLimit(`report-${request.auth.uid}`);
+
+  const reportRef = await db.collection("issueReports").add({
+    ...report,
+    uid: request.auth.uid,
+    status: "new",
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
+  return { id: reportRef.id, accepted: true };
 });
