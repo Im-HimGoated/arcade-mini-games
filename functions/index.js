@@ -32,7 +32,7 @@ const GAME_IDS = new Set([
   "lockpick",
 ]);
 
-const MODE_NAMES = new Set(["Solo", "Daily Challenge", "Tournament", "bot", "local"]);
+const MODE_NAMES = new Set(["Solo", "Daily Challenge", "Tournament", "Friend Challenge", "bot", "local"]);
 const MAX_SCORE_BY_GAME = {
   tictactoe: 8000,
   twenty48: 250000,

@@ -1542,6 +1542,14 @@ input[type="range"] {
   color: var(--sun);
 }
 
+#cloudAccountStatus[data-tone="success"] {
+  color: var(--mint);
+}
+
+#cloudAccountStatus[data-tone="warning"] {
+  color: var(--sun);
+}
+
 .cloud-profile-actions {
   display: grid;
   gap: 8px;
@@ -1551,6 +1559,49 @@ input[type="range"] {
 .cloud-profile-actions .secondary-button {
   min-height: 42px;
   padding-inline: 10px;
+}
+
+.cloud-account-card {
+  align-items: start;
+  display: grid;
+  grid-template-columns: minmax(180px, 0.85fr) minmax(0, 1.15fr);
+}
+
+.cloud-account-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.cloud-account-grid > div,
+.toggle-row {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(177, 211, 255, 0.12);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.cloud-account-grid span,
+.toggle-row span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cloud-account-grid strong {
+  color: var(--cool);
+  display: block;
+  font-size: 1rem;
+  margin-top: 6px;
+  word-break: break-all;
+}
+
+.toggle-row {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
 }
 
 .avatar-picker,
@@ -1831,8 +1882,13 @@ select:disabled {
 }
 
 .leaderboard-layout {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 18px;
+}
+
+.cloud-score-card .secondary-button {
+  margin-top: 14px;
+  width: 100%;
 }
 
 .scoreboard-card,
@@ -3560,6 +3616,7 @@ h2 {
   }
 
   .profile-editor,
+  .cloud-account-card,
   .skin-editor,
   .drift-garage {
     grid-template-columns: 1fr;

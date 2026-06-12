@@ -51,6 +51,9 @@
   const leaderboardTotal = document.querySelector("#leaderboardTotal");
   const leaderboardBestTime = document.querySelector("#leaderboardBestTime");
   const leaderboardFavorite = document.querySelector("#leaderboardFavorite");
+  const leaderboardCloudState = document.querySelector("#leaderboardCloudState");
+  const leaderboardCloudStatus = document.querySelector("#leaderboardCloudStatus");
+  const refreshLeaderboardsButton = document.querySelector("#refreshLeaderboardsButton");
   const leaderboardRows = document.querySelector("#leaderboardRows");
   const achievementCount = document.querySelector("#achievementCount");
   const achievementGrid = document.querySelector("#achievementGrid");
@@ -87,6 +90,9 @@
   const profileNameInput = document.querySelector("#profileNameInput");
   const profileTitleSelect = document.querySelector("#profileTitleSelect");
   const cloudProfileStatus = document.querySelector("#cloudProfileStatus");
+  const cloudAccountStatus = document.querySelector("#cloudAccountStatus");
+  const cloudAccountId = document.querySelector("#cloudAccountId");
+  const autoCloudSyncToggle = document.querySelector("#autoCloudSyncToggle");
   const cloudSaveButton = document.querySelector("#cloudSaveButton");
   const cloudLoadButton = document.querySelector("#cloudLoadButton");
   const avatarPicker = document.querySelector("#avatarPicker");
@@ -121,6 +127,7 @@
     volume: 70,
     reducedMotion: false,
     playLevel: 1,
+    autoCloudSync: true,
   };
 
   const levelInterval = 6.8;
@@ -153,6 +160,7 @@
     claimedSeasonRewards: [],
     title: "rookie",
     friendChallenges: [],
+    masteryRewards: {},
   };
 
   const avatarOptions = ["P1", "VX", "KO", "AI", "GG", "XP"];
@@ -296,7 +304,7 @@
       id: "all-cabinets",
       title: "Arcade Passport",
       description: "Play every cabinet at least once.",
-      icon: "15",
+      icon: "21",
     },
     {
       id: "tournament-win",
@@ -315,6 +323,24 @@
       title: "Grid Mind",
       description: "Post a 200+ score in Neon Noughts.",
       icon: "XO",
+    },
+    {
+      id: "cloud-seed",
+      title: "Global Signal",
+      description: "Submit a run to the cloud leaderboard.",
+      icon: "GL",
+    },
+    {
+      id: "friend-rival",
+      title: "Friendly Rival",
+      description: "Create or clear a friend challenge.",
+      icon: "FR",
+    },
+    {
+      id: "mastery-tier",
+      title: "Cabinet Regular",
+      description: "Unlock a mastery milestone reward.",
+      icon: "LV",
     },
   ];
 
@@ -823,6 +849,7 @@
         : [],
       title: titleDefinitions.some((title) => title.id === value.title) ? value.title : defaultProfile.title,
       friendChallenges: Array.isArray(value.friendChallenges) ? value.friendChallenges.slice(0, 6) : [],
+      masteryRewards: typeof value.masteryRewards === "object" && value.masteryRewards ? value.masteryRewards : {},
     };
   }
 
@@ -855,6 +882,25 @@
     if (!cloudProfileStatus) return;
     cloudProfileStatus.textContent = message;
     cloudProfileStatus.dataset.tone = tone;
+  }
+
+  function renderCloudAccountStatus(user = null, message = "") {
+    const uid = user?.uid || window.arcadeCloud?.getUserId?.() || "";
+    const cloudReady = Boolean(uid);
+    if (cloudAccountId) cloudAccountId.textContent = cloudReady ? `${uid.slice(0, 6)}...${uid.slice(-4)}` : "Local only";
+    if (cloudAccountStatus) {
+      cloudAccountStatus.textContent = message || (cloudReady
+        ? "Anonymous cloud profile is connected for saves, friends, and global scores."
+        : "Local progress works now. Enable Firebase Anonymous Auth for cloud sync.");
+      cloudAccountStatus.dataset.tone = cloudReady ? "success" : "warning";
+    }
+    if (leaderboardCloudState) leaderboardCloudState.textContent = cloudReady ? "Online" : "Local";
+    if (leaderboardCloudStatus) {
+      leaderboardCloudStatus.textContent = cloudReady
+        ? "Global scores are available. Your finished runs submit automatically."
+        : "Cloud leaderboards need Firebase Anonymous Auth before online scores can load.";
+    }
+    if (refreshLeaderboardsButton) refreshLeaderboardsButton.disabled = !window.arcadeCloud?.getScores;
   }
 
   function getLocalGameProgress() {
@@ -938,7 +984,7 @@
   }
 
   function scheduleCloudProfileSave() {
-    if (cloudSyncPaused || !window.arcadeCloud?.saveProfile) return;
+    if (cloudSyncPaused || !settings.autoCloudSync || !window.arcadeCloud?.saveProfile) return;
     window.clearTimeout(cloudSaveTimer);
     cloudSaveTimer = window.setTimeout(() => {
       saveCloudProfile(false);
@@ -1006,14 +1052,17 @@
       .then((user) => {
         if (user) {
           setCloudProfileStatus("Cloud sync ready. Save or load this profile from any device.", "success");
+          renderCloudAccountStatus(user);
           if (cloudSaveButton) cloudSaveButton.disabled = false;
           if (cloudLoadButton) cloudLoadButton.disabled = false;
           return;
         }
+        renderCloudAccountStatus(null);
         setCloudProfileStatus("Enable Anonymous Auth in Firebase to sync this profile.", "warning");
       })
       .catch((error) => {
         console.warn("Cloud profile setup failed.", error);
+        renderCloudAccountStatus(null, "Cloud sync is unavailable. Local progress is safe.");
         setCloudProfileStatus("Cloud sync is unavailable. Local progress is safe.", "warning");
       });
   }
@@ -1049,6 +1098,30 @@
     const level = clamp(1 + scorePoints + timePoints + playPoints, 1, 10);
     const nextTarget = level >= 10 ? "Maxed" : `${Math.max(0, level * 550 - score)} score or ${(level + 1) * 2} plays`;
     return { level, score, time, plays, nextTarget };
+  }
+
+  function masteryRewardFor(game, level) {
+    if (level >= 10) return { tier: "master", title: `${game.title} Master`, coins: 120, xp: 220 };
+    if (level >= 6) return { tier: "adept", title: `${game.title} Adept`, coins: 70, xp: 130 };
+    if (level >= 3) return { tier: "rookie", title: `${game.title} Regular`, coins: 35, xp: 70 };
+    return null;
+  }
+
+  function checkMasteryReward(game) {
+    const mastery = getMasteryForGame(game);
+    const reward = masteryRewardFor(game, mastery.level);
+    if (!reward) return null;
+    const key = `${game.id}-${reward.tier}`;
+    if (profile.masteryRewards?.[key]) return null;
+    profile.masteryRewards = {
+      ...profile.masteryRewards,
+      [key]: new Date().toISOString(),
+    };
+    profile.coins += reward.coins;
+    profile.xp += reward.xp;
+    saveProfile();
+    unlockAchievement("mastery-tier");
+    return reward;
   }
 
   function claimSeasonReward(level) {
@@ -1381,12 +1454,13 @@
     saveLeaderboardEntry(game.definition.id, { player: playerName, score, time, mode });
     checkRunAchievements({ gameId: game.definition.id, score, time, mode });
     addProgress({ coins: coinReward, xp: xpReward });
+    const masteryReward = checkMasteryReward(game.definition);
     renderGameCards();
     renderLeaderboards();
     renderAchievements();
     renderSocialHub();
     renderProgression();
-    const result = { gameId: game.definition.id, player: playerName, score, time, mode, coinReward, xpReward };
+    const result = { gameId: game.definition.id, player: playerName, score, time, mode, coinReward, xpReward, masteryReward };
     saveRecentPlay(result);
     saveCloudRunResult(result);
     renderRecentPlays();
@@ -1397,9 +1471,13 @@
 
   function saveCloudRunResult(result) {
     if (!window.arcadeCloud?.saveScore) return;
-    window.arcadeCloud.saveScore(result).catch((error) => {
-      console.warn("Cloud leaderboard save failed. Local leaderboard still works.", error);
-    });
+    window.arcadeCloud.saveScore(result)
+      .then((response) => {
+        if (response) unlockAchievement("cloud-seed");
+      })
+      .catch((error) => {
+        console.warn("Cloud leaderboard save failed. Local leaderboard still works.", error);
+      });
   }
 
   function checkRunAchievements(result) {
@@ -1490,9 +1568,11 @@
 
   function applySettings() {
     settings.playLevel = normalizedPlayLevel(settings.playLevel);
+    settings.autoCloudSync = settings.autoCloudSync !== false;
     audioToggle.checked = settings.audio;
     musicToggle.checked = settings.music;
     motionToggle.checked = settings.reducedMotion;
+    if (autoCloudSyncToggle) autoCloudSyncToggle.checked = settings.autoCloudSync;
     volumeSlider.value = settings.volume;
     volumeValue.textContent = `${settings.volume}%`;
     muteIcon.textContent = settings.audio ? "♪" : "x";
@@ -1565,6 +1645,7 @@
       renderProfile();
       renderSkins();
       renderDriftShop();
+      renderCloudAccountStatus();
     }
     audio.refresh();
   }
@@ -1928,6 +2009,7 @@
       challenge,
       ...profile.friendChallenges.filter((item) => item.id !== challenge.id),
     ].slice(0, 6);
+    unlockAchievement("friend-rival");
     saveProfile();
     renderFriendChallenges(`${friend.name} challenge created.`);
     audio.beep(720, 0.06, "triangle");
@@ -1953,6 +2035,7 @@
     if (completed) {
       profile.coins += 75;
       profile.xp += 180;
+      unlockAchievement("friend-rival");
       audio.sfx("bank");
     }
     saveProfile();
@@ -2251,6 +2334,7 @@
     leaderboardTotal.textContent = totalBest.toString();
     leaderboardBestTime.textContent = formatRunTime(bestTime);
     leaderboardFavorite.textContent = getPlayCount(mostPlayed.id) ? mostPlayed.title : "None";
+    renderCloudAccountStatus();
     leaderboardRows.innerHTML = "";
     gameDefinitions.forEach((game, index) => {
       const row = document.createElement("article");
@@ -2293,19 +2377,37 @@
   }
 
   function renderCloudLeaderboards() {
-    if (!window.arcadeCloud?.getScores) return;
-    gameDefinitions.forEach((game) => {
+    if (!window.arcadeCloud?.getScores) {
+      if (leaderboardCloudStatus) leaderboardCloudStatus.textContent = "Cloud score service is still loading. Local leaderboards are shown.";
+      return;
+    }
+    if (leaderboardCloudStatus) leaderboardCloudStatus.textContent = "Loading global scores...";
+    let loadedBoards = 0;
+    let failedBoards = 0;
+    const requests = gameDefinitions.map((game) => {
       const list = leaderboardRows.querySelector(`[data-cloud-board="${game.id}"]`);
-      if (!list) return;
-      window.arcadeCloud
+      if (!list) return Promise.resolve();
+      return window.arcadeCloud
         .getScores(game.id, 5)
         .then((entries) => {
           if (!entries?.length) return;
+          loadedBoards += 1;
           list.innerHTML = leaderboardEntryMarkup(entries, "Cloud");
         })
         .catch((error) => {
+          failedBoards += 1;
           console.warn(`Cloud leaderboard load failed for ${game.id}.`, error);
         });
+    });
+    Promise.allSettled(requests).then(() => {
+      if (!leaderboardCloudStatus) return;
+      if (loadedBoards) {
+        leaderboardCloudStatus.textContent = `Showing global scores for ${loadedBoards} cabinets. Local scores fill any empty boards.`;
+        return;
+      }
+      leaderboardCloudStatus.textContent = failedBoards
+        ? "Global scores could not load. Local leaderboards are still available."
+        : "No global scores yet. Finish a run to seed the cloud board.";
     });
   }
 
@@ -2665,6 +2767,8 @@
     if (!game) return;
     const mastery = getMasteryForGame(game);
     const estimatedReward = rewardEstimateFor(game);
+    const nextReward = masteryRewardFor(game, mastery.level + 1) || masteryRewardFor(game, mastery.level);
+    const challengeTarget = personalChallengeTarget(game);
     selectedAboutGame = game;
     aboutKicker.textContent = `${game.tag} cabinet`;
     aboutTitle.textContent = game.title;
@@ -2693,6 +2797,14 @@
       <section class="about-stat-card">
         <strong>Rewards</strong>
         <p>Typical run: ${estimatedReward.coins} coins / ${estimatedReward.xp} XP</p>
+      </section>
+      <section class="about-stat-card">
+        <strong>Unlock Path</strong>
+        <p>${nextReward ? `${nextReward.title}: ${nextReward.coins} coins at the next mastery tier` : "Max mastery reached"}</p>
+      </section>
+      <section class="about-stat-card">
+        <strong>Personal Challenge</strong>
+        <p>Beat ${challengeTarget} points to push your local and global rank.</p>
       </section>
       <section>
         <strong>Rules</strong>
@@ -2725,6 +2837,12 @@
       coins: Math.min(game.id === "driftboss" ? 90 : 140, Math.max(5, Math.floor(score / 220) + 4)),
       xp: Math.max(12, Math.floor(score / 12) + 45),
     };
+  }
+
+  function personalChallengeTarget(game) {
+    const best = getBestScore(game.id);
+    const base = { Survival: 650, Precision: 750, Reflex: 680, Timing: 620, Strategy: 580, Puzzle: 640 }[game.tag] || 620;
+    return Math.max(base, Math.ceil((best + 140) / 25) * 25);
   }
 
   function renderKeybinds() {
@@ -2994,7 +3112,10 @@
         context.fillStyle = "#ffd166";
         context.font = "800 22px system-ui";
         context.fillText(`Score ${Math.floor(this.score)} | Best ${best}`, gameCanvas.width / 2, 222);
-        const reward = this.result ? `+${this.result.coinReward} coins | +${this.result.xpReward} XP` : "Restart or quit from the cabinet controls";
+        const masteryBonus = this.result?.masteryReward
+          ? ` | Milestone: +${this.result.masteryReward.coins} coins`
+          : "";
+        const reward = this.result ? `+${this.result.coinReward} coins | +${this.result.xpReward} XP${masteryBonus}` : "Restart or quit from the cabinet controls";
         const rows = [
           reward,
           `Mastery Lv ${mastery.level} | Season Lv ${season.level} (${Math.round(season.progress * 100)}%)`,
@@ -7048,6 +7169,10 @@
     loadCloudProfile();
     audio.beep(520, 0.06, "triangle");
   });
+  wireClick("#refreshLeaderboardsButton", () => {
+    renderLeaderboards();
+    audio.beep(620, 0.05, "triangle");
+  });
   wireClick("#claimDailyRewardButton", () => claimDailyReward());
   wireClick("#addFriendButton", () => addFriendFromInput());
   gameGrid.addEventListener("click", (event) => {
@@ -7185,6 +7310,12 @@
   motionToggle.addEventListener("change", () => {
     settings.reducedMotion = motionToggle.checked;
     saveSettings();
+  });
+
+  autoCloudSyncToggle.addEventListener("change", () => {
+    settings.autoCloudSync = autoCloudSyncToggle.checked;
+    saveSettings();
+    if (settings.autoCloudSync) saveCloudProfile(false);
   });
 
   volumeSlider.addEventListener("input", () => {
