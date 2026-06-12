@@ -1004,6 +1004,7 @@ body[data-screen="intro"] .app-shell {
   height: 100%;
   min-height: inherit;
   overflow: hidden;
+  pointer-events: none;
   position: relative;
 }
 
@@ -1075,7 +1076,7 @@ body[data-screen="intro"] .app-shell {
 .preview-symbol,
 .preview-caption {
   position: absolute;
-  z-index: 2;
+  z-index: 5;
 }
 
 .preview-score {
@@ -1117,6 +1118,153 @@ body[data-screen="intro"] .app-shell {
   top: 50px;
 }
 
+.preview-scene {
+  inset: 0;
+  position: absolute;
+  z-index: 3;
+}
+
+.preview-scene i,
+.preview-scene b {
+  display: block;
+  position: absolute;
+}
+
+.preview-scene b {
+  color: #fff;
+  font-size: 2.2rem;
+  font-weight: 1000;
+  text-shadow: 0 0 18px var(--preview-glow);
+}
+
+.mini-player,
+.mini-runner,
+.mini-car,
+.mini-raft,
+.mini-keeper,
+.mini-ship,
+.mini-lander {
+  background: #f5f7ff;
+  border-radius: 8px;
+  box-shadow: 0 0 22px var(--preview-glow);
+  height: 22px;
+  width: 30px;
+}
+
+.mini-hazard,
+.mini-target,
+.mini-coin,
+.mini-packet,
+.mini-ball,
+.mini-bumper,
+.mini-asteroid,
+.mini-meteor,
+.mini-pin {
+  border-radius: 999px;
+}
+
+.mini-player { bottom: 26%; left: 48%; }
+.mini-hazard.a { background: var(--hot); height: 22px; left: 26%; top: 24%; width: 22px; }
+.mini-hazard.b { background: var(--sun); height: 16px; right: 20%; top: 34%; width: 16px; }
+.mini-ring { border: 4px solid var(--mint); border-radius: 999px; height: 44px; left: 19%; top: 44%; width: 44px; }
+
+.mini-crosshair { border: 3px solid #fff; border-radius: 999px; height: 58px; left: 35%; top: 28%; width: 58px; }
+.mini-crosshair::before,
+.mini-crosshair::after { background: #fff; content: ""; position: absolute; }
+.mini-crosshair::before { height: 3px; left: -14px; right: -14px; top: 27px; }
+.mini-crosshair::after { bottom: -14px; left: 27px; top: -14px; width: 3px; }
+.mini-target.a { background: var(--preview-accent); height: 30px; right: 22%; top: 24%; width: 30px; }
+.mini-target.b { background: rgba(255,255,255,0.36); height: 20px; left: 22%; bottom: 25%; width: 20px; }
+
+.mini-lanes { background: repeating-linear-gradient(90deg, transparent 0 30%, rgba(255,255,255,0.24) 31% 33%); inset: 26% 12%; }
+.mini-runner { bottom: 28%; left: 28%; transform: skewX(-12deg); }
+.mini-block.a { background: var(--hot); height: 28px; right: 28%; top: 31%; width: 24px; }
+.mini-block.b { background: var(--sun); bottom: 26%; height: 22px; right: 14%; width: 36px; }
+
+.mini-bird { background: var(--sun); border-radius: 999px; height: 34px; left: 28%; top: 42%; width: 34px; }
+.mini-bird::after { border: 10px solid transparent; border-left-color: var(--hot); content: ""; left: 28px; position: absolute; top: 7px; }
+.mini-pipe { background: var(--mint); border-radius: 7px; right: 22%; width: 34px; }
+.mini-pipe.a { height: 42%; top: 0; }
+.mini-pipe.b { bottom: 0; height: 32%; }
+
+.mini-grid.xo { background: linear-gradient(90deg, transparent 31%, #fff 32% 35%, transparent 36% 64%, #fff 65% 68%, transparent 69%), linear-gradient(0deg, transparent 31%, #fff 32% 35%, transparent 36% 64%, #fff 65% 68%, transparent 69%); height: 88px; left: 31%; top: 25%; width: 88px; }
+.preview-tictactoe b:first-of-type { left: 36%; top: 27%; }
+.preview-tictactoe b:last-of-type { right: 30%; bottom: 27%; }
+
+.mini-stack { background: var(--preview-accent); border: 2px solid rgba(255,255,255,0.5); height: 28px; width: 28px; }
+.mini-stack.a { bottom: 23%; left: 32%; box-shadow: 28px 0 0 var(--preview-accent), 56px 0 0 var(--preview-accent); }
+.mini-stack.b { bottom: calc(23% + 28px); left: 60%; }
+.mini-stack.c { bottom: calc(23% + 56px); left: 46%; }
+
+.mini-tile { align-items: center; background: rgba(255,255,255,0.18); border: 2px solid rgba(255,255,255,0.38); border-radius: 8px; color: #fff; display: flex !important; font-size: 1.1rem; font-weight: 1000; height: 42px; justify-content: center; width: 42px; }
+.mini-tile.a { left: 27%; top: 30%; }
+.mini-tile.b { left: 49%; top: 30%; }
+.mini-tile.c { left: 38%; top: 56%; }
+
+.mini-road { background: repeating-linear-gradient(90deg, #c9ff9a 0 12px, #8fd66e 13px 22px); height: 46px; left: 16%; top: 42%; transform: rotate(-18deg); width: 76%; }
+.mini-car { background: #f5f7ff; border-radius: 6px; height: 24px; left: 44%; top: 42%; transform: rotate(-18deg); width: 38px; }
+.mini-coin.a { background: var(--sun); height: 14px; left: 64%; top: 34%; width: 14px; }
+.mini-coin.b { background: var(--sun); height: 14px; left: 72%; top: 49%; width: 14px; }
+
+.mini-dial { border: 5px solid var(--preview-accent); border-radius: 999px; height: 80px; left: 33%; top: 24%; width: 80px; }
+.mini-pulse { background: #fff; height: 4px; left: 37%; top: 46%; transform: rotate(36deg); width: 74px; }
+.mini-core.a { background: var(--sun); border-radius: 8px; height: 22px; left: 23%; top: 31%; width: 22px; }
+.mini-core.b { background: var(--mint); border-radius: 8px; bottom: 27%; height: 22px; right: 22%; width: 22px; }
+
+.mini-snake { background: var(--mint); border-radius: 999px; height: 18px; left: 20%; top: 45%; width: 95px; box-shadow: 32px 22px 0 -2px var(--mint), 70px 22px 0 -5px var(--mint); }
+.mini-portal { border: 4px solid var(--hot); border-radius: 999px; height: 42px; right: 18%; top: 32%; width: 42px; }
+.mini-packet.a { background: var(--sun); height: 13px; left: 40%; top: 31%; width: 13px; }
+
+.mini-bricks { background: repeating-linear-gradient(90deg, var(--hot) 0 28px, var(--sun) 29px 57px, var(--cool) 58px 86px); height: 46px; left: 17%; top: 22%; width: 66%; }
+.mini-paddle { background: #fff; border-radius: 999px; bottom: 24%; height: 8px; left: 37%; width: 70px; }
+.mini-ball { background: #fff; height: 14px; left: 54%; top: 51%; width: 14px; }
+
+.mini-bumper.a { background: var(--sun); height: 38px; left: 28%; top: 27%; width: 38px; }
+.mini-bumper.b { background: var(--hot); height: 34px; right: 25%; top: 33%; width: 34px; }
+.mini-flipper { background: #fff; border-radius: 999px; bottom: 24%; height: 8px; width: 54px; }
+.mini-flipper.a { left: 28%; transform: rotate(22deg); }
+.mini-flipper.b { right: 28%; transform: rotate(-22deg); }
+
+.mini-river { background: linear-gradient(135deg, rgba(255,255,255,0.32), transparent), var(--cool); border-radius: 999px; height: 58px; left: 12%; top: 38%; transform: rotate(-12deg); width: 78%; }
+.mini-raft { background: #8b5a2b; height: 24px; left: 43%; top: 43%; transform: rotate(-12deg); width: 42px; }
+.mini-gate { border-left: 4px solid #fff; border-right: 4px solid #fff; height: 52px; right: 26%; top: 31%; width: 40px; }
+
+.mini-goal { border: 4px solid #fff; border-bottom: 0; height: 72px; left: 24%; top: 24%; width: 52%; }
+.mini-keeper { background: var(--preview-accent); bottom: 26%; height: 22px; left: 43%; width: 54px; }
+.mini-ball.soccer { background: #fff; height: 17px; right: 28%; top: 42%; width: 17px; }
+
+.mini-card { background: rgba(255,255,255,0.16); border: 2px solid rgba(255,255,255,0.44); border-radius: 8px; height: 54px; top: 32%; width: 38px; }
+.mini-card.a { left: 27%; }
+.mini-card.b { left: 44%; }
+.mini-card.c { left: 61%; }
+
+.mini-ship { clip-path: polygon(50% 0, 100% 100%, 50% 74%, 0 100%); left: 28%; top: 50%; }
+.mini-asteroid.a { background: #9ca3af; height: 34px; right: 26%; top: 26%; width: 34px; }
+.mini-asteroid.b { background: #64748b; bottom: 24%; height: 26px; right: 18%; width: 26px; }
+.mini-beam { background: var(--sun); height: 4px; left: 40%; top: 49%; transform: rotate(-22deg); width: 90px; }
+
+.mini-lander { background: #fff; clip-path: polygon(50% 0, 82% 55%, 100% 100%, 0 100%, 18% 55%); left: 42%; top: 34%; }
+.mini-pad { background: var(--mint); border-radius: 999px; bottom: 24%; height: 8px; left: 30%; width: 40%; }
+.mini-thrust { border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 34px solid var(--sun); left: 46%; top: 49%; }
+
+.mini-nodes { background: radial-gradient(circle at 20% 20%, var(--cool) 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, var(--sun) 0 8px, transparent 9px), radial-gradient(circle at 80% 80%, var(--hot) 0 8px, transparent 9px), linear-gradient(90deg, transparent 48%, rgba(255,255,255,0.26) 49% 51%, transparent 52%), linear-gradient(0deg, transparent 48%, rgba(255,255,255,0.26) 49% 51%, transparent 52%); height: 92px; left: 28%; top: 23%; width: 92px; }
+.mini-cursor { border: 3px solid #fff; border-radius: 8px; height: 34px; left: 41%; top: 39%; width: 34px; }
+
+.mini-cipher { border: 4px solid var(--preview-accent); border-radius: 999px; height: 42px; top: 36%; width: 42px; }
+.mini-cipher.a { left: 24%; }
+.mini-cipher.b { left: 43%; }
+.mini-cipher.c { left: 62%; }
+
+.mini-core-orbit { background: var(--sun); border-radius: 999px; height: 40px; left: 43%; top: 40%; width: 40px; }
+.mini-shield { border: 6px solid transparent; border-top-color: var(--cool); border-radius: 999px; height: 94px; left: 30%; top: 22%; width: 94px; }
+.mini-meteor.a { background: var(--hot); height: 18px; left: 22%; top: 28%; width: 18px; }
+.mini-meteor.b { background: var(--hot); bottom: 26%; height: 14px; right: 24%; width: 14px; }
+
+.mini-vault { border: 7px solid var(--preview-accent); border-radius: 999px; height: 86px; left: 33%; top: 27%; width: 86px; }
+.mini-needle { background: #fff; height: 4px; left: 47%; top: 48%; transform: rotate(-35deg); transform-origin: left center; width: 58px; }
+.mini-pin.a { background: var(--mint); height: 12px; left: 40%; top: 24%; width: 12px; }
+.mini-pin.b { background: var(--sun); bottom: 27%; height: 12px; right: 34%; width: 12px; }
+
 .game-card-body {
   background: linear-gradient(180deg, transparent, rgba(5, 6, 12, 0.78) 18%, rgba(5, 6, 12, 0.94));
   bottom: 0;
@@ -1126,7 +1274,7 @@ body[data-screen="intro"] .app-shell {
   padding: 54px 10px 10px;
   position: absolute;
   right: 0;
-  z-index: 3;
+  z-index: 8;
 }
 
 .game-card h3 {
@@ -1366,7 +1514,8 @@ input[type="range"] {
   width: 100%;
 }
 
-.profile-form input {
+.profile-form input,
+.profile-form select {
   background: rgba(255, 255, 255, 0.065);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1375,6 +1524,14 @@ input[type="range"] {
   outline: 0;
   padding: 0 12px;
   width: 100%;
+}
+
+.profile-form select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--cool) 50%), linear-gradient(135deg, var(--cool) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 19px, calc(100% - 12px) 19px;
+  background-repeat: no-repeat;
+  background-size: 6px 6px, 6px 6px;
 }
 
 #cloudProfileStatus[data-tone="success"] {
@@ -1935,6 +2092,13 @@ select:disabled {
 
 .friends-board {
   gap: 10px;
+}
+
+.friend-challenge-panel {
+  display: grid;
+  gap: 10px;
+  margin: 0 auto 16px;
+  max-width: 1120px;
 }
 
 .friends-title {

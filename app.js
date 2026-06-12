@@ -68,6 +68,7 @@
   const addFriendButton = document.querySelector("#addFriendButton");
   const friendFeedback = document.querySelector("#friendFeedback");
   const missionGrid = document.querySelector("#missionGrid");
+  const friendChallengePanel = document.querySelector("#friendChallengePanel");
   const friendsBoard = document.querySelector("#friendsBoard");
   const historyList = document.querySelector("#historyList");
   const tournamentForm = document.querySelector("#tournamentForm");
@@ -84,6 +85,7 @@
   const nextTournamentRunButton = document.querySelector("#nextTournamentRunButton");
   const keybindGrid = document.querySelector("#keybindGrid");
   const profileNameInput = document.querySelector("#profileNameInput");
+  const profileTitleSelect = document.querySelector("#profileTitleSelect");
   const cloudProfileStatus = document.querySelector("#cloudProfileStatus");
   const cloudSaveButton = document.querySelector("#cloudSaveButton");
   const cloudLoadButton = document.querySelector("#cloudLoadButton");
@@ -149,9 +151,20 @@
     rewardStreak: 0,
     missions: {},
     claimedSeasonRewards: [],
+    title: "rookie",
+    friendChallenges: [],
   };
 
   const avatarOptions = ["P1", "VX", "KO", "AI", "GG", "XP"];
+
+  const titleDefinitions = [
+    { id: "rookie", title: "Arcade Rookie", unlock: () => true },
+    { id: "daily", title: "Daily Grinder", unlock: () => profile.rewardStreak >= 2 || getDailyResult()?.completed },
+    { id: "vault", title: "Vault Cracker", unlock: () => getBestScore("lockpick") >= 450 || getPlayCount("lockpick") >= 2 },
+    { id: "drift", title: "Drift Pilot", unlock: () => getMasteryForGame(gameDefinitions.find((game) => game.id === "driftboss")).level >= 4 },
+    { id: "champ", title: "Tournament Champ", unlock: () => getAchievements().includes("tournament-win") },
+    { id: "season", title: "Season Champion", unlock: () => getSeasonLevel() >= 10 },
+  ];
 
   const skinDefinitions = [
     {
@@ -613,6 +626,19 @@
       glow: "rgba(96, 165, 250, 0.72)",
       background: "linear-gradient(135deg, #081733, #21163a 58%, #10251c)",
     },
+    {
+      id: "lockpick",
+      title: "Vault Tumbler",
+      subtitle: "Crack rotating neon locks",
+      hook: "Track the sweeping needle, hit each glowing tumbler window, and open vaults before the mechanism overheats.",
+      rules: "Press Action when the needle sits inside the active tumbler zone. Misses add strikes; opening a vault reloads a harder lock.",
+      controls: "Use Left/Right to slow or speed the needle. Press Action to lock the active tumbler.",
+      strategy: "Use Left to slow the needle near a pin, then release before the next tumbler so you do not arrive late.",
+      tag: "Puzzle",
+      accent: "#f59e0b",
+      glow: "rgba(245, 158, 11, 0.72)",
+      background: "linear-gradient(135deg, #2b1a08, #17233f 58%, #301326)",
+    },
   ];
 
   let settings = loadStored("arcade-settings", defaultSettings);
@@ -795,6 +821,8 @@
       claimedSeasonRewards: Array.isArray(value.claimedSeasonRewards)
         ? [...new Set(value.claimedSeasonRewards.map((level) => Math.max(0, Math.floor(Number(level) || 0))).filter(Boolean))]
         : [],
+      title: titleDefinitions.some((title) => title.id === value.title) ? value.title : defaultProfile.title,
+      friendChallenges: Array.isArray(value.friendChallenges) ? value.friendChallenges.slice(0, 6) : [],
     };
   }
 
@@ -1065,11 +1093,32 @@
     profileCoinsLabel.textContent = profile.coins.toString();
     profileXpLabel.textContent = profile.xp.toString();
     profileNameInput.value = profile.name;
+    renderProfileTitles();
     driftSensitivitySlider.value = profile.driftSensitivity;
     driftSensitivityValue.textContent = `${profile.driftSensitivity}%`;
     avatarPicker.querySelectorAll("button").forEach((button) => {
       button.classList.toggle("active", button.dataset.avatar === profile.avatar);
     });
+  }
+
+  function activeTitle() {
+    return titleDefinitions.find((title) => title.id === profile.title) || titleDefinitions[0];
+  }
+
+  function renderProfileTitles() {
+    if (!profileTitleSelect) return;
+    profileTitleSelect.innerHTML = titleDefinitions
+      .map((title) => {
+        const unlocked = title.unlock();
+        const selected = title.id === profile.title;
+        return `<option value="${title.id}" ${selected ? "selected" : ""} ${unlocked ? "" : "disabled"}>${title.title}${unlocked ? "" : " - locked"}</option>`;
+      })
+      .join("");
+    if (!activeTitle().unlock()) {
+      profile.title = "rookie";
+      profileTitleSelect.value = "rookie";
+    }
+    profileLevelLabel.textContent = `${activeTitle().title} · Level ${getProfileLevel()}`;
   }
 
   function renderAvatarPicker() {
@@ -1342,6 +1391,7 @@
     saveCloudRunResult(result);
     renderRecentPlays();
     checkDailyChallenge(result);
+    checkFriendChallenge(result);
     return result;
   }
 
@@ -1547,6 +1597,7 @@
           <span class="preview-line preview-line-a"></span>
           <span class="preview-line preview-line-b"></span>
           <span class="preview-token"></span>
+          <span class="preview-scene preview-${game.id}">${previewSceneFor(game.id)}</span>
           <strong class="preview-symbol">${previewSymbolFor(game.id)}</strong>
           <span class="preview-caption">${previewCaptionFor(game.id)}</span>
         </div>
@@ -1573,8 +1624,6 @@
           </div>
         </div>
       `;
-      card.querySelector('[data-action="play"]').addEventListener("click", () => startGame(game.id));
-      card.querySelector('[data-action="about"]').addEventListener("click", () => showAbout(game.id));
       gameGrid.append(card);
     });
   }
@@ -1611,8 +1660,36 @@
       repair: "FIX",
       cipher: "DIAL",
       orbitguard: "ORBIT",
+      lockpick: "VAULT",
     };
     return symbols[id] || "PLAY";
+  }
+
+  function previewSceneFor(id) {
+    const scenes = {
+      dodger: `<i class="mini-player"></i><i class="mini-hazard a"></i><i class="mini-hazard b"></i><i class="mini-ring"></i>`,
+      popper: `<i class="mini-crosshair"></i><i class="mini-target a"></i><i class="mini-target b"></i>`,
+      runner: `<i class="mini-lanes"></i><i class="mini-runner"></i><i class="mini-block a"></i><i class="mini-block b"></i>`,
+      flap: `<i class="mini-bird"></i><i class="mini-pipe a"></i><i class="mini-pipe b"></i>`,
+      tictactoe: `<i class="mini-grid xo"></i><b>X</b><b>O</b>`,
+      tetris: `<i class="mini-stack a"></i><i class="mini-stack b"></i><i class="mini-stack c"></i>`,
+      twenty48: `<i class="mini-tile a">2</i><i class="mini-tile b">4</i><i class="mini-tile c">8</i>`,
+      driftboss: `<i class="mini-road"></i><i class="mini-car"></i><i class="mini-coin a"></i><i class="mini-coin b"></i>`,
+      beatfoundry: `<i class="mini-dial"></i><i class="mini-pulse"></i><i class="mini-core a"></i><i class="mini-core b"></i>`,
+      snake: `<i class="mini-snake"></i><i class="mini-packet a"></i><i class="mini-portal"></i>`,
+      breaker: `<i class="mini-bricks"></i><i class="mini-ball"></i><i class="mini-paddle"></i>`,
+      pinball: `<i class="mini-bumper a"></i><i class="mini-bumper b"></i><i class="mini-flipper a"></i><i class="mini-flipper b"></i>`,
+      river: `<i class="mini-river"></i><i class="mini-raft"></i><i class="mini-gate"></i>`,
+      keeper: `<i class="mini-goal"></i><i class="mini-keeper"></i><i class="mini-ball soccer"></i>`,
+      memory: `<i class="mini-card a"></i><i class="mini-card b"></i><i class="mini-card c"></i>`,
+      asteroids: `<i class="mini-ship"></i><i class="mini-asteroid a"></i><i class="mini-asteroid b"></i><i class="mini-beam"></i>`,
+      lunar: `<i class="mini-lander"></i><i class="mini-pad"></i><i class="mini-thrust"></i>`,
+      repair: `<i class="mini-nodes"></i><i class="mini-cursor"></i>`,
+      cipher: `<i class="mini-cipher a"></i><i class="mini-cipher b"></i><i class="mini-cipher c"></i>`,
+      orbitguard: `<i class="mini-core-orbit"></i><i class="mini-shield"></i><i class="mini-meteor a"></i><i class="mini-meteor b"></i>`,
+      lockpick: `<i class="mini-vault"></i><i class="mini-needle"></i><i class="mini-pin a"></i><i class="mini-pin b"></i>`,
+    };
+    return scenes[id] || `<i class="mini-player"></i>`;
   }
 
   function previewCaptionFor(id) {
@@ -1637,6 +1714,7 @@
       repair: "Patch nodes",
       cipher: "Align dials",
       orbitguard: "Block meteors",
+      lockpick: "Crack vault",
     };
     return captions[id] || "Play run";
   }
@@ -1831,10 +1909,98 @@
       });
   }
 
+  function createFriendChallenge(code) {
+    const friend = profile.friends.find((item) => item.code === code);
+    if (!friend) return;
+    const game = getDailyGame();
+    const target = Math.max(350, getBestScore(game.id), Math.floor((friend.totalBest || totalBestScoreValue() || 1200) / 6));
+    const challenge = {
+      id: `${code}-${game.id}-${todayKey()}`,
+      code,
+      friendName: friend.name,
+      gameId: game.id,
+      gameTitle: game.title,
+      target,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    };
+    profile.friendChallenges = [
+      challenge,
+      ...profile.friendChallenges.filter((item) => item.id !== challenge.id),
+    ].slice(0, 6);
+    saveProfile();
+    renderFriendChallenges(`${friend.name} challenge created.`);
+    audio.beep(720, 0.06, "triangle");
+  }
+
+  function startFriendChallenge(id) {
+    const challenge = profile.friendChallenges.find((item) => item.id === id);
+    if (!challenge) return;
+    startGame(challenge.gameId, {
+      friendChallenge: challenge,
+      player: profile.name,
+      mode: "Friend Challenge",
+    });
+  }
+
+  function checkFriendChallenge(result) {
+    const challenge = activeRunContext?.friendChallenge;
+    if (!challenge) return;
+    const completed = result.gameId === challenge.gameId && result.score >= challenge.target;
+    profile.friendChallenges = profile.friendChallenges.map((item) => item.id === challenge.id
+      ? { ...item, completed, bestScore: Math.max(item.bestScore || 0, result.score), completedAt: completed ? new Date().toISOString() : item.completedAt }
+      : item);
+    if (completed) {
+      profile.coins += 75;
+      profile.xp += 180;
+      audio.sfx("bank");
+    }
+    saveProfile();
+    renderSocialHub(completed ? `Friend challenge cleared: ${challenge.friendName}.` : `Friend challenge best: ${result.score}/${challenge.target}.`);
+  }
+
   function renderSocialHub(message = "") {
     renderDailyReward(message);
     renderMissions();
+    renderFriendChallenges();
     renderFriendsBoard();
+  }
+
+  function renderFriendChallenges(message = "") {
+    if (!friendChallengePanel) return;
+    const challenges = profile.friendChallenges || [];
+    friendChallengePanel.innerHTML = `
+      <article class="leaderboard-row friends-title">
+        <div class="leaderboard-rank">VS</div>
+        <div>
+          <span class="kicker">Friend challenges</span>
+          <h3>${message || (challenges.length ? "Beat a friend's target" : "No active challenges")}</h3>
+          <p>${challenges.length ? "Start a challenge run and beat the target score for bonus coins and XP." : "Add a friend, then press Challenge on their row."}</p>
+        </div>
+      </article>
+      ${challenges
+        .map((challenge) => `
+          <article class="leaderboard-row friend-row">
+            <div class="leaderboard-rank">${challenge.completed ? "✓" : "!"}</div>
+            <div>
+              <span class="kicker">${challenge.friendName}</span>
+              <h3>${challenge.gameTitle}</h3>
+              <div class="leaderboard-metrics">
+                <span><strong>${challenge.target}</strong> Target</span>
+                <span><strong>${challenge.bestScore || 0}</strong> Your best</span>
+                <span><strong>${challenge.completed ? "Done" : "Open"}</strong> Status</span>
+              </div>
+            </div>
+            <button class="secondary-button compact" type="button" data-start-friend-challenge="${challenge.id}" ${challenge.completed ? "disabled" : ""}>
+              ${challenge.completed ? "Cleared" : "Start"}
+            </button>
+          </article>
+        `)
+        .join("")}
+    `;
+    friendChallengePanel.querySelectorAll("[data-start-friend-challenge]").forEach((button) => {
+      button.addEventListener("click", () => startFriendChallenge(button.dataset.startFriendChallenge));
+    });
   }
 
   function renderDailyReward(message = "") {
@@ -1905,11 +2071,15 @@
                   <span><strong>${friend.favorite || "Pending"}</strong> Favorite</span>
                 </div>
               </div>
+              ${friend.code === profile.friendCode ? "" : `<button class="secondary-button compact" type="button" data-challenge-friend="${friend.code}">Challenge</button>`}
             </article>
           `,
         )
         .join("")}
     `;
+    friendsBoard.querySelectorAll("[data-challenge-friend]").forEach((button) => {
+      button.addEventListener("click", () => createFriendChallenge(button.dataset.challengeFriend));
+    });
   }
 
   function renderProgression() {
@@ -2015,9 +2185,24 @@
     totalBestScore.textContent = totalBest.toString();
     favoriteCabinet.textContent = getPlayCount(mostPlayed.id) ? mostPlayed.title : "None";
     dailyChallenge.textContent = daily.game.title;
-    renderCabinetSpotlight(daily.game);
+    const feature = getFeaturedCabinet();
+    renderCabinetSpotlight(feature.game, feature.label);
     renderProfile();
     renderRecentPlays();
+  }
+
+  function getFeaturedCabinet() {
+    const daily = getDailyChallenge().game;
+    const newest = gameDefinitions.find((game) => game.id === "lockpick") || gameDefinitions[gameDefinitions.length - 1];
+    const mostPlayed = [...gameDefinitions].sort((a, b) => getPlayCount(b.id) - getPlayCount(a.id))[0] || daily;
+    const mastery = [...gameDefinitions].sort((a, b) => getMasteryForGame(b).level - getMasteryForGame(a).level)[0] || daily;
+    const features = [
+      { label: "Daily Challenge", game: daily },
+      { label: "Newest Cabinet", game: newest },
+      { label: getPlayCount(mostPlayed.id) ? "Most Played" : "Starter Pick", game: getPlayCount(mostPlayed.id) ? mostPlayed : newest },
+      { label: "Highest Mastery", game: mastery },
+    ];
+    return features[Math.floor(Date.now() / 7000) % features.length];
   }
 
   function renderRecentPlays() {
@@ -2045,12 +2230,12 @@
     });
   }
 
-  function renderCabinetSpotlight(game) {
+  function renderCabinetSpotlight(game, label = "Featured Cabinet") {
     cabinetSpotlight.style.setProperty("--preview-accent", game.accent);
     cabinetSpotlight.style.setProperty("--preview-glow", game.glow);
     cabinetSpotlight.innerHTML = `
       <div>
-        <span>Featured Cabinet</span>
+        <span>${label}</span>
         <strong>${game.title}</strong>
         <p>${game.subtitle}. ${game.strategy}</p>
       </div>
@@ -2478,6 +2663,8 @@
   function showAbout(id) {
     const game = gameDefinitions.find((definition) => definition.id === id);
     if (!game) return;
+    const mastery = getMasteryForGame(game);
+    const estimatedReward = rewardEstimateFor(game);
     selectedAboutGame = game;
     aboutKicker.textContent = `${game.tag} cabinet`;
     aboutTitle.textContent = game.title;
@@ -2485,7 +2672,28 @@
     aboutMarquee.style.setProperty("--preview-bg", game.background);
     aboutMarquee.style.setProperty("--preview-accent", game.accent);
     aboutMarquee.style.setProperty("--preview-glow", game.glow);
+    aboutMarquee.dataset.game = game.id;
+    aboutMarquee.innerHTML = `
+      <span class="preview-line preview-line-a"></span>
+      <span class="preview-line preview-line-b"></span>
+      <span class="preview-token"></span>
+      <span class="preview-scene preview-${game.id}">${previewSceneFor(game.id)}</span>
+      <strong class="preview-symbol">${previewSymbolFor(game.id)}</strong>
+      <span class="preview-caption">${previewCaptionFor(game.id)}</span>
+    `;
     aboutInfo.innerHTML = `
+      <section class="about-stat-card">
+        <strong>Difficulty</strong>
+        <p>${difficultyFor(game)} · ${playLevelName()}</p>
+      </section>
+      <section class="about-stat-card">
+        <strong>Mastery</strong>
+        <p>Level ${mastery.level} · ${mastery.nextTarget}</p>
+      </section>
+      <section class="about-stat-card">
+        <strong>Rewards</strong>
+        <p>Typical run: ${estimatedReward.coins} coins / ${estimatedReward.xp} XP</p>
+      </section>
       <section>
         <strong>Rules</strong>
         <p>${game.rules}</p>
@@ -2509,6 +2717,14 @@
     `;
     showScreen("about");
     audio.beep(420, 0.06, "triangle");
+  }
+
+  function rewardEstimateFor(game) {
+    const score = Math.max(320, getBestScore(game.id) || { Survival: 620, Precision: 720, Reflex: 640, Timing: 580, Strategy: 520, Puzzle: 560 }[game.tag] || 560);
+    return {
+      coins: Math.min(game.id === "driftboss" ? 90 : 140, Math.max(5, Math.floor(score / 220) + 4)),
+      xp: Math.max(12, Math.floor(score / 12) + 45),
+    };
   }
 
   function renderKeybinds() {
@@ -2641,6 +2857,7 @@
     if (definition.id === "repair") return createCircuitRepair(base);
     if (definition.id === "cipher") return createCipherChain(base);
     if (definition.id === "orbitguard") return createOrbitGuard(base);
+    if (definition.id === "lockpick") return createVaultTumbler(base);
     return createRunner(base);
   }
 
@@ -2756,22 +2973,108 @@
       drawEnd(context, label) {
         if (!this.over) return;
         const best = getBestScore(this.definition.id);
+        const mastery = getMasteryForGame(this.definition);
+        const season = getSeasonProgress();
+        const challenge = activeRunContext?.friendChallenge;
+        const challengeText = challenge
+          ? `${this.score >= challenge.target ? "Challenge cleared" : "Challenge target"}: ${challenge.target}`
+          : "Missions and season progress updated";
         context.fillStyle = "rgba(6, 7, 15, 0.82)";
         context.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
         context.strokeStyle = this.definition.accent;
-        context.lineWidth = 4;
-        context.strokeRect(270, 166, 420, 208);
+        context.lineWidth = 3;
+        roundedRect(context, 222, 118, 516, 314, 18);
+        context.fillStyle = "rgba(14, 19, 34, 0.92)";
+        context.fill();
+        context.stroke();
         context.fillStyle = "#f5f7ff";
-        context.font = "900 54px system-ui";
+        context.font = "900 46px system-ui";
         context.textAlign = "center";
-        context.fillText(label, gameCanvas.width / 2, gameCanvas.height / 2 - 18);
+        context.fillText(label, gameCanvas.width / 2, 180);
         context.fillStyle = "#ffd166";
         context.font = "800 22px system-ui";
-        context.fillText(`Score ${Math.floor(this.score)} | Best ${best}`, gameCanvas.width / 2, gameCanvas.height / 2 + 30);
-        context.fillStyle = "#a9b1ce";
-        context.font = "700 17px system-ui";
+        context.fillText(`Score ${Math.floor(this.score)} | Best ${best}`, gameCanvas.width / 2, 222);
         const reward = this.result ? `+${this.result.coinReward} coins | +${this.result.xpReward} XP` : "Restart or quit from the cabinet controls";
-        context.fillText(reward, gameCanvas.width / 2, gameCanvas.height / 2 + 68);
+        const rows = [
+          reward,
+          `Mastery Lv ${mastery.level} | Season Lv ${season.level} (${Math.round(season.progress * 100)}%)`,
+          challengeText,
+          "Replay, pick another cabinet, or check Missions for rewards",
+        ];
+        rows.forEach((row, index) => {
+          context.fillStyle = index === 0 ? "#58f29f" : index === 2 && challenge ? "#ffd166" : "#a9b1ce";
+          context.font = index === 0 ? "900 19px system-ui" : "800 17px system-ui";
+          context.fillText(row, gameCanvas.width / 2, 268 + index * 34);
+        });
+      },
+    };
+  }
+
+  function createVaultTumbler(base) {
+    return {
+      ...base,
+      angle: -Math.PI / 2,
+      needleSpeed: 2.1,
+      targetIndex: 0,
+      vaults: 0,
+      strikes: 0,
+      actionWasDown: false,
+      pins: [],
+      resetPins() {
+        const count = Math.min(5, 3 + Math.floor(this.level / 4));
+        const width = Math.max(0.2, 0.46 - this.level * 0.018);
+        this.pins = Array.from({ length: count }, (_, index) => ({
+          angle: -Math.PI + ((Math.PI * 2) / count) * index + random(-0.28, 0.28),
+          width,
+          locked: false,
+        })).sort((a, b) => a.angle - b.angle);
+        this.targetIndex = 0;
+      },
+      setup() {
+        this.resetPins();
+      },
+      update(delta) {
+        this.updateTimer(delta);
+        if (this.over) return;
+        if (!this.pins.length) this.resetPins();
+        const tune = Number(actionPressed("right")) - Number(actionPressed("left"));
+        this.needleSpeed = clamp(this.needleSpeed + tune * delta * 1.7, 1.2, 4.8 + this.level * 0.18);
+        this.angle += (this.needleSpeed + this.level * 0.12) * delta;
+        while (this.angle > Math.PI) this.angle -= Math.PI * 2;
+        const action = actionPressed("action");
+        if (action && !this.actionWasDown) {
+          const pin = this.pins[this.targetIndex];
+          const diff = Math.abs(angleDelta(this.angle, pin.angle));
+          if (pin && diff <= pin.width) {
+            pin.locked = true;
+            this.addScore(90 + this.level * 12, 480, 114, "Tumbler");
+            this.pushCombo(1);
+            this.burst(480 + Math.cos(pin.angle) * 130, 280 + Math.sin(pin.angle) * 130, this.definition.accent, 16);
+            audio.sfx("hit");
+            this.targetIndex += 1;
+            if (this.targetIndex >= this.pins.length) {
+              this.vaults += 1;
+              this.addScore(360 + this.level * 30, 480, 84, "Vault open");
+              this.flash = 0.2;
+              this.needleSpeed += 0.22;
+              this.resetPins();
+              audio.sfx("bank");
+            }
+          } else {
+            this.strikes += 1;
+            this.breakCombo();
+            this.flash = 0.16;
+            audio.sfx("danger");
+            if (this.strikes >= 6) this.finish();
+          }
+        }
+        this.actionWasDown = action;
+      },
+      draw(context) {
+        this.drawBase(context);
+        drawVaultTumbler(context, this);
+        this.drawEffects(context);
+        this.drawEnd(context, "Vault sealed");
       },
     };
   }
@@ -5275,6 +5578,10 @@
     return Math.hypot(ax - bx, ay - by);
   }
 
+  function angleDelta(a, b) {
+    return Math.atan2(Math.sin(a - b), Math.cos(a - b));
+  }
+
   function mineralColor(mineral) {
     return {
       iron: "#93c5fd",
@@ -6303,6 +6610,52 @@
     context.restore();
   }
 
+  function drawVaultTumbler(context, game) {
+    const cx = gameCanvas.width / 2;
+    const cy = gameCanvas.height / 2 + 8;
+    const radius = 138;
+    context.save();
+    context.strokeStyle = "rgba(255,255,255,0.16)";
+    context.lineWidth = 18;
+    context.beginPath();
+    context.arc(cx, cy, radius, 0, Math.PI * 2);
+    context.stroke();
+    game.pins.forEach((pin, index) => {
+      context.strokeStyle = pin.locked ? "#58f29f" : index === game.targetIndex ? game.definition.accent : "rgba(255,255,255,0.36)";
+      context.lineWidth = index === game.targetIndex ? 20 : 14;
+      context.shadowColor = context.strokeStyle;
+      context.shadowBlur = index === game.targetIndex ? 24 : 8;
+      context.beginPath();
+      context.arc(cx, cy, radius, pin.angle - pin.width, pin.angle + pin.width);
+      context.stroke();
+      const tx = cx + Math.cos(pin.angle) * (radius + 34);
+      const ty = cy + Math.sin(pin.angle) * (radius + 34);
+      drawText(context, pin.locked ? "LOCK" : `${index + 1}`, tx, ty + 5, pin.locked ? "#58f29f" : "#f5f7ff", "900 15px system-ui", "center");
+    });
+    const nx = cx + Math.cos(game.angle) * (radius + 4);
+    const ny = cy + Math.sin(game.angle) * (radius + 4);
+    context.strokeStyle = "#f5f7ff";
+    context.lineWidth = 5;
+    context.shadowColor = "#f5f7ff";
+    context.shadowBlur = 18;
+    context.beginPath();
+    context.moveTo(cx, cy);
+    context.lineTo(nx, ny);
+    context.stroke();
+    context.fillStyle = game.definition.accent;
+    context.beginPath();
+    context.arc(cx, cy, 28, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = "rgba(255,255,255,0.55)";
+    context.lineWidth = 3;
+    context.stroke();
+    context.shadowBlur = 0;
+    drawText(context, "VAULT TUMBLER", cx, 72, "#ffd166", "900 28px system-ui", "center");
+    drawText(context, `Vaults ${game.vaults} | Strikes ${game.strikes}/6 | Speed ${game.needleSpeed.toFixed(1)}`, cx, 108, "#a9b1ce", "800 17px system-ui", "center");
+    drawText(context, "Action when the needle crosses the active gold window", cx, gameCanvas.height - 48, "#f5f7ff", "800 17px system-ui", "center");
+    context.restore();
+  }
+
   function drawTarget(context, x, y, radius, color, progress, hp = 1) {
     context.save();
     context.strokeStyle = color;
@@ -6697,6 +7050,13 @@
   });
   wireClick("#claimDailyRewardButton", () => claimDailyReward());
   wireClick("#addFriendButton", () => addFriendFromInput());
+  gameGrid.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-action]");
+    const card = button?.closest(".game-card");
+    if (!button || !card) return;
+    if (button.dataset.action === "play") startGame(card.dataset.game);
+    if (button.dataset.action === "about") showAbout(card.dataset.game);
+  });
   gameSearch.addEventListener("input", renderGameCards);
   globalSearch.addEventListener("input", () => {
     gameSearch.value = globalSearch.value;
@@ -6728,6 +7088,13 @@
     profile.name = cleanPlayerName(profileNameInput.value, defaultProfile.name);
     playerOneName.value = profile.name;
     saveProfile();
+  });
+  profileTitleSelect.addEventListener("change", () => {
+    const nextTitle = titleDefinitions.find((title) => title.id === profileTitleSelect.value);
+    if (!nextTitle?.unlock()) return;
+    profile.title = nextTitle.id;
+    saveProfile();
+    audio.beep(680, 0.06, "triangle");
   });
   driftSensitivitySlider.addEventListener("input", () => {
     profile.driftSensitivity = Number(driftSensitivitySlider.value);
@@ -6870,5 +7237,8 @@
   applySettings();
   initializeCloudProfileStatus();
   showScreen("intro");
+  window.setInterval(() => {
+    if (currentScreen === "intro") updateIntroDashboard();
+  }, 7000);
   runAttractMode();
 })();

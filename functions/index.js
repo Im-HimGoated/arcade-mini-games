@@ -29,6 +29,7 @@ const GAME_IDS = new Set([
   "repair",
   "cipher",
   "orbitguard",
+  "lockpick",
 ]);
 
 const MODE_NAMES = new Set(["Solo", "Daily Challenge", "Tournament", "bot", "local"]);
