@@ -1684,20 +1684,8 @@
         </div>
         <div class="game-card-body">
           <div>
-            <p class="kicker">${game.tag} cabinet</p>
+            <p class="kicker">${game.tag}</p>
             <h3>${game.title}</h3>
-            <p>${game.subtitle}</p>
-            <small class="game-hook">${game.hook}</small>
-          </div>
-          <div class="cabinet-readout" aria-label="${game.title} cabinet stats">
-            <span><strong>${getBestScore(game.id)}</strong> Best</span>
-            <span><strong>${formatRunTime(getBestTime(game.id))}</strong> Time</span>
-            <span><strong>${difficultyFor(game)}</strong> Heat</span>
-          </div>
-          <div class="card-meta">
-            <span>${game.tag}</span>
-            <span>${game.controls.split(".")[0]}</span>
-            <span>60s run</span>
           </div>
           <div class="card-actions">
             <button class="primary-button compact" type="button" data-action="play">Play</button>
