@@ -29,6 +29,8 @@ const db = getFirestore(app);
 const functions = getFunctions(app);
 const submitScore = httpsCallable(functions, "submitScore");
 const reportIssue = httpsCallable(functions, "reportIssue");
+const getDailyChallengeCall = httpsCallable(functions, "getDailyChallenge");
+const trackEventCall = httpsCallable(functions, "trackEvent");
 
 let currentUser = null;
 let resolveReady = null;
@@ -51,6 +53,8 @@ const cloudApi = {
   registerFriendCode,
   findFriend,
   sendReport,
+  getDailyChallenge,
+  trackEvent,
   getUserId: () => currentUser?.uid || null,
 };
 
@@ -164,5 +168,26 @@ async function sendReport(report) {
     message: String(report.message || "").slice(0, 360),
     screen: String(report.screen || "unknown").slice(0, 32),
     userAgent: String(report.userAgent || navigator.userAgent || "").slice(0, 180),
+  });
+}
+
+async function getDailyChallenge() {
+  await ready;
+  if (!currentUser) return null;
+  const response = await getDailyChallengeCall({});
+  return response.data || null;
+}
+
+async function trackEvent(event, payload = {}) {
+  await ready;
+  if (!currentUser || !event) return null;
+  return trackEventCall({
+    event: String(event).slice(0, 40),
+    gameId: String(payload.gameId || "").slice(0, 32),
+    screen: String(payload.screen || "").slice(0, 32),
+    mode: String(payload.mode || "").slice(0, 32),
+    score: Math.floor(Number(payload.score) || 0),
+    time: Math.max(0, Number(payload.time) || 0),
+    playLevel: Math.max(1, Math.min(3, Math.floor(Number(payload.playLevel) || 1))),
   });
 }

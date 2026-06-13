@@ -1121,6 +1121,12 @@ body[data-screen="intro"] .app-shell {
   margin-top: 4px;
 }
 
+.favorite-detail-button.active {
+  background: rgba(255, 209, 102, 0.16);
+  border-color: rgba(255, 209, 102, 0.46);
+  color: #ffe59b;
+}
+
 .game-grid {
   display: grid;
   gap: 14px;
@@ -1150,6 +1156,43 @@ body[data-screen="intro"] .app-shell {
     0 24px 56px rgba(0, 0, 0, 0.42),
     0 0 0 2px color-mix(in srgb, var(--preview-accent), transparent 35%);
   transform: translateY(-4px);
+}
+
+.favorite-button {
+  align-items: center;
+  background: rgba(8, 10, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+  color: #f5f7ff;
+  display: inline-flex;
+  font-size: 1.12rem;
+  font-weight: 1000;
+  height: 40px;
+  justify-content: center;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+  width: 40px;
+  z-index: 3;
+}
+
+.favorite-button:hover,
+.favorite-button:focus-visible {
+  border-color: var(--preview-accent);
+  color: #ffd166;
+  transform: translateY(-2px) scale(1.04);
+}
+
+.favorite-button.active {
+  background: linear-gradient(135deg, rgba(255, 209, 102, 0.98), rgba(255, 115, 102, 0.96));
+  border-color: rgba(255, 255, 255, 0.58);
+  color: #151018;
 }
 
 .game-card:nth-child(1),
@@ -1579,6 +1622,50 @@ body[data-screen="intro"] .app-shell {
 .mini-traffic-car.player { background: linear-gradient(180deg, #34d6ff, #0e7490); bottom: 18%; left: 44%; }
 .mini-traffic-car.a { background: linear-gradient(180deg, #ffd166, #b45309); left: 32%; top: 25%; transform: scale(0.72); }
 .mini-traffic-car.b { background: linear-gradient(180deg, #ff5b5b, #991b1b); right: 28%; top: 42%; transform: scale(0.82); }
+
+.mini-exit-sign {
+  background: rgba(88,242,159,0.18);
+  border: 3px solid #58f29f;
+  border-radius: 9px;
+  box-shadow: 0 0 22px rgba(88,242,159,0.7);
+  height: 32px;
+  right: 25%;
+  top: 17%;
+  width: 68px;
+}
+
+.mini-exit-sign::before {
+  color: #d9ffe8;
+  content: "EXIT";
+  font-size: 13px;
+  font-weight: 1000;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-cargo-box {
+  background: linear-gradient(135deg, #ffd166, #b45309);
+  border: 2px solid rgba(255,255,255,0.78);
+  border-radius: 6px;
+  box-shadow: 0 0 18px rgba(255,209,102,0.58);
+  height: 24px;
+  width: 24px;
+}
+
+.mini-cargo-box::before {
+  background: rgba(5,7,14,0.35);
+  content: "";
+  height: 3px;
+  left: 0;
+  position: absolute;
+  top: 10px;
+  width: 100%;
+}
+
+.mini-cargo-box.a { left: 57%; top: 43%; }
+.mini-cargo-box.b { background: linear-gradient(135deg, #58f29f, #15803d); left: 39%; top: 56%; }
 
 .mini-bow {
   border: 5px solid #d97706;

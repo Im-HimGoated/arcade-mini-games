@@ -181,6 +181,7 @@
     ownedTitles: [],
     arcadeBoosters: {},
     selectedArcadeBooster: "",
+    favoriteGames: [],
   };
 
   const avatarOptions = ["P1", "VX", "KO", "AI", "GG", "XP"];
@@ -726,11 +727,11 @@
     {
       id: "trafficrush",
       title: "Turbo Traffic",
-      subtitle: "Highway overtake sprint",
-      hook: "Thread traffic, collect boost cans, and chain close overtakes without scraping the guardrail.",
-      rules: "Pass cars for points. Near-misses raise combo, collisions cost speed and end the run after too much damage.",
-      controls: "Use Left/Right to switch lanes. Hold Action for boost.",
-      strategy: "Boost after changing lanes, not before. Near-misses are safest when you already know the next lane is clear.",
+      subtitle: "Highway courier route",
+      hook: "Grab cargo crates, read the exit signs, and deliver packages through the correct lane before the route expires.",
+      rules: "Collect cargo, then enter glowing exit lanes to deliver. Boost builds heat, crashes damage the van, and full cargo makes exits worth more.",
+      controls: "Use Left/Right to switch lanes. Hold Action to boost, but release before the heat meter overloads.",
+      strategy: "Do not chase every crate. Load two or three packages, move early toward the marked exit, then boost only on clear road.",
       tag: "Racing",
       accent: "#38bdf8",
       glow: "rgba(56, 189, 248, 0.72)",
@@ -834,11 +835,13 @@
   let tournament = createTournamentState();
   let cloudSaveTimer = 0;
   let cloudSyncPaused = false;
+  let cloudDailyChallenge = null;
   const pressed = new Set();
   const touchActionKeys = {};
 
   const gameCollections = [
     { id: "all", title: "All", icon: "▦", test: () => true },
+    { id: "favorites", title: "Favorites", icon: "★", test: (game) => isFavoriteGame(game.id) },
     { id: "quick", title: "Quick 60s", icon: "◷", test: (game) => ["Reflex", "Timing", "Survival"].includes(game.tag) },
     { id: "brain", title: "Brain", icon: "▣", test: (game) => ["Strategy", "Puzzle"].includes(game.tag) },
     { id: "cars", title: "Car Games", icon: "◈", test: (game) => ["driftboss", "rallyrush", "trafficrush", "doodleroad"].includes(game.id) },
@@ -1024,6 +1027,9 @@
       ownedTitles: Array.isArray(value.ownedTitles) ? [...new Set(value.ownedTitles.map(String))] : [],
       arcadeBoosters: normalizedArcadeBoosters,
       selectedArcadeBooster: arcadeMarketItems.some((item) => item.type === "booster" && item.id === value.selectedArcadeBooster) ? value.selectedArcadeBooster : "",
+      favoriteGames: Array.isArray(value.favoriteGames)
+        ? [...new Set(value.favoriteGames.map(String).filter((id) => gameDefinitions.some((game) => game.id === id)))]
+        : [],
     };
   }
 
@@ -1240,6 +1246,101 @@
         renderCloudAccountStatus(null, "Cloud sync is unavailable. Local progress is safe.");
         setCloudProfileStatus("Cloud sync is unavailable. Local progress is safe.", "warning");
       });
+  }
+
+  function trackAnalyticsEvent(event, payload = {}) {
+    if (typeof window.gtag === "function") {
+      window.gtag("event", event, {
+        game_id: payload.gameId || "",
+        screen_name: payload.screen || "",
+        mode: payload.mode || "",
+        score: Math.floor(Number(payload.score) || 0),
+        play_level: normalizedPlayLevel(payload.playLevel || settings.playLevel),
+      });
+    }
+    if (!window.arcadeCloud?.trackEvent) return;
+    window.arcadeCloud.trackEvent(event, {
+      ...payload,
+      playLevel: normalizedPlayLevel(payload.playLevel || settings.playLevel),
+    }).catch((error) => {
+      console.warn("Cloud analytics event failed.", error);
+    });
+  }
+
+  function localDailyChallenge() {
+    const daySeed = Math.floor(Date.now() / 86_400_000);
+    const game = gameDefinitions[daySeed % gameDefinitions.length];
+    const scoreBase = {
+      Survival: 520,
+      Precision: 620,
+      Reflex: 560,
+      Timing: 500,
+      Strategy: 460,
+    }[game.tag] || 500;
+    const scoreTarget = scoreBase + (daySeed % 5) * 70;
+    const timeTarget = 35 + (daySeed % 4) * 5;
+    const useTime = daySeed % 3 === 0;
+    return {
+      key: getDailyKey(),
+      game,
+      type: useTime ? "time" : "score",
+      target: useTime ? timeTarget : scoreTarget,
+      label: useTime ? `Survive ${timeTarget}s` : `Score ${scoreTarget}`,
+      source: "local",
+    };
+  }
+
+  function normalizeCloudDailyChallenge(value) {
+    if (!value || typeof value !== "object") return null;
+    const game = gameDefinitions.find((definition) => definition.id === value.gameId);
+    if (!game) return null;
+    const type = value.type === "time" ? "time" : "score";
+    const target = Math.max(1, Math.floor(Number(value.target) || (type === "time" ? 40 : 650)));
+    return {
+      key: String(value.key || getDailyKey()).slice(0, 12),
+      game,
+      type,
+      target,
+      label: String(value.label || (type === "time" ? `Survive ${target}s` : `Score ${target}`)).slice(0, 40),
+      source: "cloud",
+    };
+  }
+
+  async function loadCloudDailyChallenge() {
+    if (!window.arcadeCloud?.getDailyChallenge) return null;
+    try {
+      const daily = normalizeCloudDailyChallenge(await window.arcadeCloud.getDailyChallenge());
+      if (!daily) return null;
+      cloudDailyChallenge = daily;
+      localStorage.setItem("arcade-cloud-daily", JSON.stringify({
+        key: daily.key,
+        gameId: daily.game.id,
+        type: daily.type,
+        target: daily.target,
+        label: daily.label,
+      }));
+      trackAnalyticsEvent("daily_loaded", { gameId: daily.game.id, screen: currentScreen });
+      renderDailyChallenge();
+      updateIntroDashboard();
+      return daily;
+    } catch (error) {
+      console.warn("Cloud daily challenge failed. Local daily challenge is active.", error);
+      return null;
+    }
+  }
+
+  function initializeDailyChallengeSync() {
+    const cached = loadJson("arcade-cloud-daily", null);
+    if (cached?.key === getDailyKey()) {
+      cloudDailyChallenge = normalizeCloudDailyChallenge(cached);
+    }
+    renderDailyChallenge();
+    updateIntroDashboard();
+    if (!window.arcadeCloud?.ready) {
+      window.addEventListener("arcade-cloud-ready", initializeDailyChallengeSync, { once: true });
+      return;
+    }
+    window.arcadeCloud.ready.then(() => loadCloudDailyChallenge()).catch(() => {});
   }
 
   function getProfileLevel() {
@@ -1474,12 +1575,14 @@
       profile.ownedTitles = [...new Set([...(profile.ownedTitles || []), item.id])];
       profile.title = item.id;
       saveProfile();
+      trackAnalyticsEvent("shop_action", { screen: "settings", mode: "buy_title" });
       audio.sfx("reward");
       return;
     }
     if (getArcadeBoosterCount(item.id) > 0) {
       profile.selectedArcadeBooster = profile.selectedArcadeBooster === item.id ? "" : item.id;
       saveProfile();
+      trackAnalyticsEvent("shop_action", { screen: "settings", mode: "select_booster" });
       audio.sfx("menu");
       return;
     }
@@ -1491,6 +1594,7 @@
     profile.arcadeBoosters[item.id] = getArcadeBoosterCount(item.id) + 1;
     profile.selectedArcadeBooster = item.id;
     saveProfile();
+    trackAnalyticsEvent("shop_action", { screen: "settings", mode: "buy_booster" });
     audio.sfx("reward");
   }
 
@@ -1604,9 +1708,11 @@
           }
           profile.coins -= car.cost;
           profile.driftCars.push(car.id);
+          trackAnalyticsEvent("shop_action", { gameId: "driftboss", screen: currentScreen, mode: "buy_car" });
         }
         profile.driftCar = car.id;
         saveProfile();
+        trackAnalyticsEvent("shop_action", { gameId: "driftboss", screen: currentScreen, mode: "equip_car" });
         audio.beep(620, 0.06, "triangle");
       });
     });
@@ -1617,6 +1723,7 @@
         if (isStartShop && getBoosterCount(booster.id) > 0) {
           selectedDriftBoosters[booster.id] = !selectedDriftBoosters[booster.id];
           renderDriftShop();
+          trackAnalyticsEvent("shop_action", { gameId: "driftboss", screen: currentScreen, mode: "select_drift_booster" });
           audio.beep(selectedDriftBoosters[booster.id] ? 820 : 360, 0.05, "triangle");
           return;
         }
@@ -1627,6 +1734,7 @@
         profile.coins -= booster.cost;
         profile.driftBoosters[booster.id] = getBoosterCount(booster.id) + 1;
         saveProfile();
+        trackAnalyticsEvent("shop_action", { gameId: "driftboss", screen: currentScreen, mode: "buy_drift_booster" });
         audio.beep(720, 0.06, "square");
       });
     });
@@ -1732,6 +1840,7 @@
     const result = { gameId: game.definition.id, player: playerName, score, time, mode, coinReward, xpReward, masteryReward, featuredReward, booster };
     saveRecentPlay(result);
     saveCloudRunResult(result);
+    trackAnalyticsEvent("run_complete", result);
     renderRecentPlays();
     checkDailyChallenge(result);
     checkFriendChallenge(result);
@@ -2022,7 +2131,27 @@
       renderDriftShop();
       renderCloudAccountStatus();
     }
+    trackAnalyticsEvent("screen_view", { screen: name });
     audio.refresh();
+  }
+
+  function isFavoriteGame(id) {
+    return profile.favoriteGames.includes(id);
+  }
+
+  function toggleFavoriteGame(id) {
+    const game = gameDefinitions.find((definition) => definition.id === id);
+    if (!game) return;
+    const favorite = isFavoriteGame(id);
+    profile.favoriteGames = favorite
+      ? profile.favoriteGames.filter((gameId) => gameId !== id)
+      : [...profile.favoriteGames, id];
+    saveProfile();
+    renderCollections();
+    renderGameCards();
+    renderGameDetailDock(game);
+    audio.beep(favorite ? 260 : 760, 0.055, favorite ? "sawtooth" : "triangle");
+    trackAnalyticsEvent("shop_action", { gameId: id, screen: currentScreen, mode: favorite ? "unfavorite_game" : "favorite_game" });
   }
 
   function renderGameCards() {
@@ -2038,12 +2167,13 @@
     });
 
     if (!visibleGames.length) {
-      gameGrid.innerHTML = `<div class="empty-cabinets">No cabinets match that search.</div>`;
+      gameGrid.innerHTML = `<div class="empty-cabinets">${activeCollection === "favorites" ? "No favorites yet. Tap the star on a cabinet to save it here." : "No cabinets match that search."}</div>`;
       return;
     }
 
     visibleGames.forEach((game, index) => {
       const card = document.createElement("article");
+      const favorite = isFavoriteGame(game.id);
       card.className = "game-card";
       card.dataset.game = game.id;
       card.style.setProperty("--preview-bg", game.background);
@@ -2051,6 +2181,9 @@
       card.style.setProperty("--preview-glow", game.glow);
       card.style.setProperty("--stagger", `${index * 55}ms`);
       card.innerHTML = `
+        <button class="favorite-button${favorite ? " active" : ""}" type="button" data-action="favorite" aria-label="${favorite ? `Remove ${game.title} from favorites` : `Add ${game.title} to favorites`}" title="${favorite ? "Saved favorite" : "Save favorite"}">
+          <span aria-hidden="true">${favorite ? "★" : "☆"}</span>
+        </button>
         <div class="game-preview" aria-hidden="true">
           <span class="preview-score">Best ${getBestScore(game.id)}</span>
           <span class="preview-line preview-line-a"></span>
@@ -2113,6 +2246,7 @@
     const target = game || getDailyChallenge().game;
     const mastery = getMasteryForGame(target);
     const collection = activeCollectionDefinition();
+    const favorite = isFavoriteGame(target.id);
     gameDetailDock.style.setProperty("--preview-bg", target.background);
     gameDetailDock.style.setProperty("--preview-accent", target.accent);
     gameDetailDock.style.setProperty("--preview-glow", target.glow);
@@ -2136,6 +2270,9 @@
         <div class="detail-actions">
           <button class="primary-button compact" type="button" data-detail-play="${target.id}">Play</button>
           <button class="secondary-button compact" type="button" data-detail-about="${target.id}">About</button>
+          <button class="secondary-button compact favorite-detail-button${favorite ? " active" : ""}" type="button" data-detail-favorite="${target.id}">
+            <span aria-hidden="true">${favorite ? "★" : "☆"}</span> ${favorite ? "Saved" : "Favorite"}
+          </button>
         </div>
       </div>
     `;
@@ -2202,7 +2339,7 @@
       hoopsduel: `<i class="mini-court"></i><i class="mini-hoop"></i><i class="mini-baller a"></i><i class="mini-baller b"></i><i class="mini-ball basket"></i>`,
       freethrow: `<i class="mini-backboard"></i><i class="mini-hoop moving"></i><i class="mini-arc"></i><i class="mini-ball basket shot"></i>`,
       rallyrush: `<i class="mini-rally-road"></i><i class="mini-rally-car"></i><i class="mini-dust a"></i><i class="mini-dust b"></i>`,
-      trafficrush: `<i class="mini-highway"></i><i class="mini-traffic-car player"></i><i class="mini-traffic-car a"></i><i class="mini-traffic-car b"></i>`,
+      trafficrush: `<i class="mini-highway"></i><i class="mini-exit-sign"></i><i class="mini-cargo-box a"></i><i class="mini-cargo-box b"></i><i class="mini-traffic-car player"></i><i class="mini-traffic-car a"></i>`,
       archeryrange: `<i class="mini-bow"></i><i class="mini-arrow"></i><i class="mini-archery-target"></i><i class="mini-wind"></i>`,
       arrowstorm: `<i class="mini-archery-target storm"></i><i class="mini-shield-block"></i><i class="mini-arrow high"></i><i class="mini-ring-shot"></i>`,
       doodleroad: `<i class="mini-pencil"></i><i class="mini-doodle-line"></i><i class="mini-doodle-car"></i><i class="mini-flag"></i>`,
@@ -2238,7 +2375,7 @@
       hoopsduel: "Score buckets",
       freethrow: "Sink shots",
       rallyrush: "Clip apexes",
-      trafficrush: "Pass traffic",
+      trafficrush: "Deliver cargo",
       archeryrange: "Hit bullseyes",
       arrowstorm: "Arc shots",
       doodleroad: "Draw roads",
@@ -2262,8 +2399,7 @@
   }
 
   function getDailyGame() {
-    const daySeed = Math.floor(Date.now() / 86_400_000);
-    return gameDefinitions[daySeed % gameDefinitions.length];
+    return getDailyChallenge().game;
   }
 
   function getDailyKey() {
@@ -2271,25 +2407,7 @@
   }
 
   function getDailyChallenge() {
-    const daySeed = Math.floor(Date.now() / 86_400_000);
-    const game = gameDefinitions[daySeed % gameDefinitions.length];
-    const scoreBase = {
-      Survival: 520,
-      Precision: 620,
-      Reflex: 560,
-      Timing: 500,
-      Strategy: 460,
-    }[game.tag] || 500;
-    const scoreTarget = scoreBase + (daySeed % 5) * 70;
-    const timeTarget = 35 + (daySeed % 4) * 5;
-    const useTime = daySeed % 3 === 0;
-    return {
-      key: getDailyKey(),
-      game,
-      type: useTime ? "time" : "score",
-      target: useTime ? timeTarget : scoreTarget,
-      label: useTime ? `Survive ${timeTarget}s` : `Score ${scoreTarget}`,
-    };
+    return cloudDailyChallenge?.key === getDailyKey() ? cloudDailyChallenge : localDailyChallenge();
   }
 
   function getDailyResult() {
@@ -2408,6 +2526,7 @@
     profile.friends = [...profile.friends, friend].slice(0, 12);
     friendCodeInput.value = "";
     saveProfile();
+    trackAnalyticsEvent("friend_action", { screen: "social", mode: "add_friend" });
     setFriendFeedback("Friend added. Cloud lookup will fill in their stats when available.", "success");
     renderFriendsBoard();
     loadCloudFriend(code);
@@ -2460,6 +2579,7 @@
     ].slice(0, 6);
     unlockAchievement("friend-rival");
     saveProfile();
+    trackAnalyticsEvent("friend_action", { gameId: game.id, screen: "social", mode: "create_challenge" });
     renderFriendChallenges(`${friend.name} challenge created.`);
     audio.beep(720, 0.06, "triangle");
   }
@@ -2467,6 +2587,7 @@
   function startFriendChallenge(id) {
     const challenge = profile.friendChallenges.find((item) => item.id === id);
     if (!challenge) return;
+    trackAnalyticsEvent("friend_action", { gameId: challenge.gameId, screen: "social", mode: "start_challenge" });
     startGame(challenge.gameId, {
       friendChallenge: challenge,
       player: profile.name,
@@ -3357,6 +3478,11 @@
     activeRunContext = runContext;
     recordPlay(definition.id);
     markRecentlyPlayed(definition.id, runContext?.mode || "Solo");
+    trackAnalyticsEvent("game_start", {
+      gameId: definition.id,
+      mode: runContext?.mode || "Solo",
+      screen: currentScreen,
+    });
     updateIntroDashboard();
     renderGameCards();
     activeGame = createGame(definition);
@@ -5802,10 +5928,18 @@
     return {
       ...base,
       lane: 1,
-      cars: [],
-      spawn: 0.4,
-      passed: 0,
+      traffic: [],
+      packages: [],
+      exits: [],
+      trafficSpawn: 0.4,
+      packageSpawn: 0.9,
+      exitSpawn: 2.4,
+      cargo: 0,
+      delivered: 0,
+      routeStreak: 0,
       damage: 0,
+      heat: 0,
+      overheated: 0,
       laneWasDown: false,
       update(delta) {
         this.updateTimer(delta);
@@ -5816,37 +5950,109 @@
           audio.beep(420 + this.lane * 70, 0.025, "triangle");
         }
         this.laneWasDown = Boolean(move);
-        const speed = (190 + this.level * 12) * (actionPressed("action") ? 1.45 : 1);
-        this.spawn -= delta;
-        if (this.spawn <= 0) {
-          this.spawn = Math.max(0.28, random(0.6, 1.1) - this.level * 0.035);
-          this.cars.push({ lane: Math.floor(random(0, 4)), y: -80, speed: random(95, 155) + this.level * 8, color: ["#f97316", "#38bdf8", "#facc15", "#c084fc"][Math.floor(random(0, 4))] });
+        const boosting = actionPressed("action") && this.overheated <= 0;
+        this.heat = clamp(this.heat + (boosting ? delta * 0.36 : -delta * 0.28), 0, 1);
+        if (this.heat >= 1) {
+          this.overheated = 1.1;
+          this.heat = 0.62;
+          this.breakCombo();
+          this.flash = 0.16;
+          audio.sfx("danger");
         }
-        this.cars.forEach((car) => {
+        this.overheated = Math.max(0, this.overheated - delta);
+        const speed = (185 + this.level * 14) * (boosting ? 1.52 : this.overheated > 0 ? 0.74 : 1);
+        this.trafficSpawn -= delta;
+        this.packageSpawn -= delta;
+        this.exitSpawn -= delta;
+        if (this.trafficSpawn <= 0) {
+          this.trafficSpawn = Math.max(0.24, random(0.55, 0.95) - this.level * 0.028);
+          this.traffic.push({
+            lane: Math.floor(random(0, 4)),
+            y: -90,
+            speed: random(70, 135) + this.level * 7,
+            color: ["#f97316", "#ef4444", "#facc15", "#c084fc", "#22c55e"][Math.floor(random(0, 5))],
+          });
+        }
+        if (this.packageSpawn <= 0) {
+          this.packageSpawn = Math.max(0.85, random(1.35, 2.05) - this.level * 0.025);
+          this.packages.push({
+            lane: Math.floor(random(0, 4)),
+            y: -70,
+            value: 90 + this.level * 10 + Math.floor(random(0, 3)) * 35,
+            color: ["#ffd166", "#58f29f", "#34d6ff"][Math.floor(random(0, 3))],
+          });
+        }
+        if (this.exitSpawn <= 0) {
+          this.exitSpawn = Math.max(2.05, random(3.0, 4.3) - this.level * 0.04);
+          this.exits.push({
+            lane: Math.floor(random(0, 4)),
+            y: -112,
+            used: false,
+          });
+        }
+        this.traffic.forEach((car) => {
           car.y += (car.speed + speed) * delta;
-          if (!car.passed && car.y > 430) {
-            car.passed = true;
-            this.passed += 1;
-            const close = Math.abs(car.lane - this.lane) === 1;
-            this.pushCombo(close ? 2 : 1);
-            this.addScore(close ? 120 + this.level * 8 : 70 + this.level * 5, 285 + car.lane * 130, 410, close ? "Near miss" : "Pass");
-          }
-          if (!car.hit && car.lane === this.lane && car.y > 340 && car.y < 430) {
+          if (!car.hit && car.lane === this.lane && car.y > 350 && car.y < 440) {
             car.hit = true;
             this.damage += 1;
+            this.routeStreak = 0;
             this.breakCombo();
             this.flash = 0.18;
+            this.burst(255 + car.lane * 130, 410, "#ff5b5b", 18);
             audio.sfx("danger");
             if (this.damage >= 4) this.finish();
           }
         });
-        this.cars = this.cars.filter((car) => car.y < 620 && !car.hit);
-        this.score += delta * (14 + this.level * 2 + this.passed * 0.2);
+        this.packages.forEach((pack) => {
+          pack.y += speed * delta;
+          if (!pack.collected && pack.lane === this.lane && pack.y > 380 && pack.y < 456) {
+            pack.collected = true;
+            if (this.cargo < 3) {
+              this.cargo += 1;
+              this.addScore(pack.value, 255 + pack.lane * 130, 390, "Pickup");
+            } else {
+              this.addScore(Math.floor(pack.value * 0.45), 255 + pack.lane * 130, 390, "Overflow");
+            }
+            this.burst(255 + pack.lane * 130, 410, pack.color, 14);
+            audio.sfx("coin");
+          }
+        });
+        this.exits.forEach((exit) => {
+          exit.y += speed * delta;
+          const inGate = exit.y > 360 && exit.y < 470;
+          if (!exit.used && inGate && exit.lane === this.lane) {
+            exit.used = true;
+            if (this.cargo > 0) {
+              const fullLoad = this.cargo >= 3;
+              this.routeStreak += 1;
+              this.delivered += this.cargo;
+              this.pushCombo(fullLoad ? 3 : 2);
+              this.addScore((210 + this.level * 18 + this.routeStreak * 30) * this.cargo, 255 + exit.lane * 130, 350, fullLoad ? "Route bonus" : "Delivery");
+              this.burst(255 + exit.lane * 130, 390, fullLoad ? "#58f29f" : "#34d6ff", fullLoad ? 28 : 18);
+              this.cargo = 0;
+              audio.sfx("bank");
+            } else {
+              this.addScore(35, 255 + exit.lane * 130, 350, "Empty exit");
+              audio.beep(260, 0.04, "sawtooth");
+            }
+          } else if (!exit.used && exit.y > 500 && this.cargo > 0) {
+            exit.used = true;
+            this.routeStreak = 0;
+            this.breakCombo();
+            this.messages.push({ x: 480, y: 150, text: "Missed exit", age: 0, life: 0.9 });
+          }
+        });
+        this.traffic = this.traffic.filter((car) => car.y < 640 && !car.hit);
+        this.packages = this.packages.filter((pack) => pack.y < 620 && !pack.collected);
+        this.exits = this.exits.filter((exit) => exit.y < 650);
+        this.score += delta * (10 + this.level * 1.7 + this.delivered * 0.28 + this.routeStreak);
       },
       draw(context) {
         drawTrafficRoad(context, this);
-        drawBadge(context, `Pass ${this.passed}`, 24, 34, "#38bdf8");
-        drawBadge(context, `Damage ${this.damage}/4`, 146, 34, "#ff5b5b");
+        drawBadge(context, `Cargo ${this.cargo}/3`, 24, 34, "#ffd166");
+        drawBadge(context, `Drop ${this.delivered}`, 150, 34, "#58f29f");
+        drawBadge(context, `Damage ${this.damage}/4`, 284, 34, "#ff5b5b");
+        drawBadge(context, `Heat ${Math.round(this.heat * 100)}%`, 460, 34, this.overheated > 0 ? "#ff5b5b" : "#38bdf8");
         this.drawEffects(context);
         if (this.flash) {
           context.fillStyle = `rgba(255, 91, 91, ${this.flash * 2})`;
@@ -6674,8 +6880,88 @@
         context.stroke();
       }
     });
-    game.cars.forEach((car) => drawTopCar(context, 255 + car.lane * 130, car.y, car.color, 0));
-    drawTopCar(context, 255 + game.lane * 130, 430, "#38bdf8", 0);
+    game.exits.forEach((exit) => {
+      const x = 255 + exit.lane * 130;
+      context.fillStyle = exit.used ? "rgba(88,242,159,0.16)" : "rgba(88,242,159,0.32)";
+      context.strokeStyle = exit.used ? "rgba(88,242,159,0.28)" : "#58f29f";
+      context.lineWidth = 3;
+      context.shadowColor = "#58f29f";
+      context.shadowBlur = exit.used ? 0 : 18;
+      roundedRect(context, x - 48, exit.y - 22, 96, 44, 12);
+      context.fill();
+      context.stroke();
+      drawText(context, "EXIT", x, exit.y + 7, "#d9ffe8", "1000 18px system-ui", "center");
+    });
+    game.packages.forEach((pack) => {
+      const x = 255 + pack.lane * 130;
+      context.fillStyle = pack.color;
+      context.strokeStyle = "rgba(255,255,255,0.72)";
+      context.shadowColor = pack.color;
+      context.shadowBlur = 14;
+      roundedRect(context, x - 18, pack.y - 18, 36, 36, 7);
+      context.fill();
+      context.stroke();
+      context.strokeStyle = "rgba(5,7,14,0.6)";
+      context.lineWidth = 3;
+      context.beginPath();
+      context.moveTo(x - 18, pack.y);
+      context.lineTo(x + 18, pack.y);
+      context.moveTo(x, pack.y - 18);
+      context.lineTo(x, pack.y + 18);
+      context.stroke();
+    });
+    game.traffic.forEach((car) => drawTopCar(context, 255 + car.lane * 130, car.y, car.color, 0));
+    drawCourierVan(context, 255 + game.lane * 130, 430, game.cargo, game.heat, game.overheated > 0);
+    context.fillStyle = "rgba(15,23,42,0.88)";
+    context.strokeStyle = "rgba(52,214,255,0.42)";
+    context.shadowBlur = 0;
+    roundedRect(context, 810, 28, 118, 96, 16);
+    context.fill();
+    context.stroke();
+    const nextExit = game.exits.find((exit) => !exit.used && exit.y < 430);
+    drawText(context, "GPS EXIT", 869, 56, "#a9b1ce", "900 13px system-ui", "center");
+    drawText(context, nextExit ? `LANE ${nextExit.lane + 1}` : "SCANNING", 869, 88, nextExit ? "#58f29f" : "#ffd166", "1000 21px system-ui", "center");
+    const heatWidth = 96 * clamp(game.heat, 0, 1);
+    context.fillStyle = "rgba(255,255,255,0.14)";
+    roundedRect(context, 822, 104, 96, 8, 999);
+    context.fill();
+    context.fillStyle = game.overheated > 0 ? "#ff5b5b" : "#34d6ff";
+    roundedRect(context, 822, 104, heatWidth, 8, 999);
+    context.fill();
+    context.restore();
+  }
+
+  function drawCourierVan(context, x, y, cargo, heat, overheated) {
+    context.save();
+    context.translate(x, y);
+    context.fillStyle = overheated ? "#ff5b5b" : "#38bdf8";
+    context.shadowColor = overheated ? "#ff5b5b" : "#38bdf8";
+    context.shadowBlur = 20;
+    roundedRect(context, -28, -46, 56, 92, 11);
+    context.fill();
+    context.fillStyle = "#f8fafc";
+    roundedRect(context, -18, -26, 36, 24, 6);
+    context.fill();
+    context.fillStyle = "#0f172a";
+    roundedRect(context, -20, 8, 40, 24, 5);
+    context.fill();
+    context.fillStyle = "#ffd166";
+    for (let i = 0; i < cargo; i += 1) {
+      roundedRect(context, -17 + i * 13, 12, 10, 12, 2);
+      context.fill();
+    }
+    context.fillStyle = `rgba(255, 209, 102, ${0.18 + heat * 0.5})`;
+    context.beginPath();
+    context.moveTo(-18, 48);
+    context.lineTo(0, 70 + heat * 22);
+    context.lineTo(18, 48);
+    context.closePath();
+    context.fill();
+    context.fillStyle = "rgba(5,6,12,0.68)";
+    context.fillRect(-32, -32, 7, 20);
+    context.fillRect(25, -32, 7, 20);
+    context.fillRect(-32, 16, 7, 20);
+    context.fillRect(25, 16, 7, 20);
     context.restore();
   }
 
@@ -8864,6 +9150,7 @@
     if (!button || !card) return;
     if (button.dataset.action === "play") startGame(card.dataset.game);
     if (button.dataset.action === "about") showAbout(card.dataset.game);
+    if (button.dataset.action === "favorite") toggleFavoriteGame(card.dataset.game);
   });
   gameGrid.addEventListener("pointerover", (event) => {
     const card = event.target.closest(".game-card");
@@ -8890,8 +9177,10 @@
     gameDetailDock.addEventListener("click", (event) => {
       const play = event.target.closest("[data-detail-play]");
       const about = event.target.closest("[data-detail-about]");
+      const favorite = event.target.closest("[data-detail-favorite]");
       if (play) startGame(play.dataset.detailPlay);
       if (about) showAbout(about.dataset.detailAbout);
+      if (favorite) toggleFavoriteGame(favorite.dataset.detailFavorite);
     });
   }
   gameSearch.addEventListener("input", renderGameCards);
@@ -9097,8 +9386,6 @@
   populateTournamentGames();
   renderGameCards();
   introCabinetCount.textContent = gameDefinitions.length.toString();
-  updateIntroDashboard();
-  renderDailyChallenge();
   renderLeaderboards();
   renderAchievements();
   renderSocialHub();
@@ -9113,6 +9400,7 @@
   playerOneName.value = profile.name;
   applySettings();
   initializeCloudProfileStatus();
+  initializeDailyChallengeSync();
   showScreen("intro");
   window.setInterval(() => {
     if (currentScreen === "intro") updateIntroDashboard();
