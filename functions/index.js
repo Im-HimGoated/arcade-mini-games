@@ -31,6 +31,7 @@ const GAME_ID_LIST = [
   "orbitguard",
   "hoopsduel",
   "freethrow",
+  "baseball",
   "rallyrush",
   "trafficrush",
   "archeryrange",

@@ -1571,6 +1571,64 @@ body[data-screen="intro"] .app-shell {
 .mini-ball.basket.shot { animation: shotPreviewArc 2.4s ease-in-out infinite; left: 28%; top: 55%; }
 .mini-arc { border: 3px dashed rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.6) transparent transparent transparent; border-radius: 999px; height: 88px; left: 25%; top: 29%; transform: rotate(-11deg); width: 142px; }
 
+.mini-diamond {
+  background:
+    linear-gradient(45deg, transparent 0 44%, rgba(255,255,255,0.74) 45% 55%, transparent 56%),
+    linear-gradient(-45deg, transparent 0 44%, rgba(255,255,255,0.74) 45% 55%, transparent 56%),
+    linear-gradient(135deg, #b77935, #7c3f1d);
+  height: 92px;
+  left: 27%;
+  top: 31%;
+  transform: rotate(45deg);
+  width: 92px;
+}
+
+.mini-bat {
+  background: linear-gradient(90deg, #78350f, #fbbf24 42%, #78350f);
+  border-radius: 999px;
+  height: 10px;
+  left: 21%;
+  top: 57%;
+  transform: rotate(-38deg);
+  width: 112px;
+}
+
+.mini-baseball-ball {
+  background: #f8fafc;
+  border: 2px solid #dc2626;
+  border-radius: 999px;
+  box-shadow: 0 0 20px rgba(255,255,255,0.68);
+  height: 22px;
+  left: 47%;
+  top: 36%;
+  width: 22px;
+}
+
+.mini-baseball-ball::before,
+.mini-baseball-ball::after {
+  border: 2px solid #dc2626;
+  border-left: 0;
+  border-radius: 999px;
+  content: "";
+  height: 15px;
+  position: absolute;
+  top: 2px;
+  width: 8px;
+}
+
+.mini-baseball-ball::before { left: 3px; }
+.mini-baseball-ball::after { right: 3px; transform: rotate(180deg); }
+
+.mini-outfield-target {
+  background:
+    radial-gradient(circle, #ef4444 0 15%, #ffd166 16% 32%, #22c55e 33% 50%, rgba(255,255,255,0.52) 51% 70%, transparent 71%);
+  border-radius: 999px;
+  height: 74px;
+  right: 17%;
+  top: 18%;
+  width: 74px;
+}
+
 .mini-rally-road {
   background:
     linear-gradient(90deg, transparent 0 46%, rgba(255,255,255,0.9) 47% 50%, transparent 51%),
@@ -3191,6 +3249,27 @@ textarea,
   flex-wrap: wrap;
 }
 
+.hud-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.hud-actions .secondary-button {
+  min-height: 42px;
+  padding-inline: 14px;
+  white-space: nowrap;
+}
+
+#restartTopButton {
+  background:
+    linear-gradient(135deg, rgba(255, 209, 102, 0.2), transparent 38%),
+    rgba(255, 209, 102, 0.08);
+  border-color: rgba(255, 209, 102, 0.36);
+  color: #ffe59b;
+}
+
 .hud-stats span {
   background: linear-gradient(180deg, rgba(24, 30, 48, 0.92), rgba(11, 15, 28, 0.92));
   border: 1px solid rgba(255, 255, 255, 0.11);
@@ -4702,6 +4781,17 @@ h2 {
     gap: 6px;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     width: 100%;
+  }
+
+  .hud-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .hud-actions .secondary-button {
+    min-height: 40px;
+    padding-inline: 8px;
   }
 
   .hud-stats span {

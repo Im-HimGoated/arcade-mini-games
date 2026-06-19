@@ -115,6 +115,7 @@
   const comboValue = document.querySelector("#comboValue");
   const bestValue = document.querySelector("#bestValue");
   const timeValue = document.querySelector("#timeValue");
+  const nextGameButton = document.querySelector("#nextGameButton");
   const driftStartOverlay = document.querySelector("#driftStartOverlay");
   const driftStartShop = document.querySelector("#driftStartShop");
   const driftSensitivitySlider = document.querySelector("#driftSensitivitySlider");
@@ -690,9 +691,9 @@
       title: "Retro Hoops Duel",
       subtitle: "2D street-court basket battle",
       hook: "Cross over defenders, pass through lanes, and time jump shots in a compact retro basketball duel.",
-      rules: "Score buckets while the clock runs. Clean shots and steals add combo points; blocked shots waste possession time.",
-      controls: "Move with the directional keys. Press Action to shoot, pass, or steal when close.",
-      strategy: "Drive toward the paint, then release at the top of the jump. Passing opens cleaner shots as the defense speeds up.",
+      rules: "Choose Quick Match or Tournament, score more buckets than the AI, and charge SuperShot for guaranteed highlight dunks.",
+      controls: "Move with WASD or arrows. X/L/B/Action shoots or steals. S blocks. Double-tap direction or Shift dashes. K/Z uses SuperShot.",
+      strategy: "Drive into the paint, block defenders off your path, then spend SuperShot only when the meter is full.",
       tag: "Sports",
       accent: "#fb923c",
       glow: "rgba(251, 146, 60, 0.72)",
@@ -710,6 +711,19 @@
       accent: "#f97316",
       glow: "rgba(249, 115, 22, 0.72)",
       background: "linear-gradient(135deg, #351507, #202d4f 58%, #25132f)",
+    },
+    {
+      id: "baseball",
+      title: "Bottom Ninth Baseball",
+      subtitle: "Browser batting with two modes",
+      hook: "Step into the box, read the pitch, and click where you want to swing. Win a walk-off comeback or aim for outfield targets.",
+      rules: "Bottom of the Ninth starts down four with three outs left. Arcade mode gives ten pitches and scores target accuracy in the outfield.",
+      controls: "Click or tap to swing. Lower clicks launch higher. Press S to steal when runners are on base in Bottom 9th.",
+      strategy: "Wait until the pitch reaches the plate. AI runners advance after contact while fielders catch flies and throw grounders to bases.",
+      tag: "Sports",
+      accent: "#22c55e",
+      glow: "rgba(34, 197, 94, 0.72)",
+      background: "linear-gradient(135deg, #173018, #17405d 58%, #4a240c)",
     },
     {
       id: "rallyrush",
@@ -740,11 +754,11 @@
     {
       id: "archeryrange",
       title: "Archery Range",
-      subtitle: "Windy bullseye challenge",
-      hook: "Draw the bow, read the wind, and land arrows on moving targets before they slide away.",
-      rules: "Hit targets for points. Bullseyes add streaks, edge hits still score, and missed arrows reset your aim bonus.",
-      controls: "Move aim with directional keys. Hold Action to draw, release to fire.",
-      strategy: "Aim into the wind and release before full draw when targets are close. Bullseye streaks are worth waiting for.",
+      subtitle: "World tour bow challenge",
+      hook: "Enter archery tournaments around the world, read the wind, and release clean shots on moving bullseyes.",
+      rules: "Win each tournament to unlock the next stop, or play Challenge mode against a stream of moving targets.",
+      controls: "Hold the left mouse button or touch to aim. Release to fire your arrow.",
+      strategy: "Aim into the wind, draw long enough for power, and release before the target reaches the edge.",
       tag: "Precision",
       accent: "#84cc16",
       glow: "rgba(132, 204, 22, 0.72)",
@@ -846,7 +860,7 @@
     { id: "brain", title: "Brain", icon: "▣", test: (game) => ["Strategy", "Puzzle"].includes(game.tag) },
     { id: "cars", title: "Car Games", icon: "◈", test: (game) => ["driftboss", "rallyrush", "trafficrush", "doodleroad"].includes(game.id) },
     { id: "sports", title: "Sports Skill", icon: "●", test: (game) => ["Sports", "Precision"].includes(game.tag) },
-    { id: "new", title: "New Cabinets", icon: "+", test: (game) => ["doodleroad", "wordflux", "bubblecannon", "hoopsduel", "freethrow", "rallyrush", "trafficrush", "archeryrange", "arrowstorm"].includes(game.id) },
+    { id: "new", title: "New Cabinets", icon: "+", test: (game) => ["baseball", "doodleroad", "wordflux", "bubblecannon", "hoopsduel", "freethrow", "rallyrush", "trafficrush", "archeryrange", "arrowstorm"].includes(game.id) },
     { id: "hard", title: "Hard Mode", icon: "!", test: (game) => ["driftboss", "beatfoundry", "keeper", "arrowstorm", "lockpick", "orbitguard"].includes(game.id) },
   ];
 
@@ -2302,6 +2316,7 @@
       orbitguard: "SHIELD",
       hoopsduel: "COURT",
       freethrow: "HOOP",
+      baseball: "BATTER",
       rallyrush: "RALLY",
       trafficrush: "LANES",
       archeryrange: "BULLSEYE",
@@ -2338,6 +2353,7 @@
       orbitguard: `<i class="mini-core-orbit"></i><i class="mini-shield"></i><i class="mini-meteor a"></i><i class="mini-meteor b"></i>`,
       hoopsduel: `<i class="mini-court"></i><i class="mini-hoop"></i><i class="mini-baller a"></i><i class="mini-baller b"></i><i class="mini-ball basket"></i>`,
       freethrow: `<i class="mini-backboard"></i><i class="mini-hoop moving"></i><i class="mini-arc"></i><i class="mini-ball basket shot"></i>`,
+      baseball: `<i class="mini-diamond"></i><i class="mini-bat"></i><i class="mini-baseball-ball"></i><i class="mini-outfield-target"></i>`,
       rallyrush: `<i class="mini-rally-road"></i><i class="mini-rally-car"></i><i class="mini-dust a"></i><i class="mini-dust b"></i>`,
       trafficrush: `<i class="mini-highway"></i><i class="mini-exit-sign"></i><i class="mini-cargo-box a"></i><i class="mini-cargo-box b"></i><i class="mini-traffic-car player"></i><i class="mini-traffic-car a"></i>`,
       archeryrange: `<i class="mini-bow"></i><i class="mini-arrow"></i><i class="mini-archery-target"></i><i class="mini-wind"></i>`,
@@ -2374,6 +2390,7 @@
       orbitguard: "Block meteors",
       hoopsduel: "Score buckets",
       freethrow: "Sink shots",
+      baseball: "Swing away",
       rallyrush: "Clip apexes",
       trafficrush: "Deliver cargo",
       archeryrange: "Hit bullseyes",
@@ -3458,6 +3475,26 @@
     return pressed.has(keybinds[action]) || Boolean(touchActionKeys[action]);
   }
 
+  function nextRecommendedGame(current = activeGame?.definition) {
+    if (!current) return getDailyChallenge().game;
+    const sameTag = gameDefinitions.filter((game) => game.id !== current.id && game.tag === current.tag);
+    const favorites = gameDefinitions.filter((game) => game.id !== current.id && isFavoriteGame(game.id));
+    const fallback = gameDefinitions.filter((game) => game.id !== current.id);
+    const pool = sameTag.length ? sameTag : favorites.length ? favorites : fallback;
+    const seed = getPlayCount(current.id) + Math.floor(Date.now() / 60_000);
+    return pool[seed % pool.length] || gameDefinitions[0];
+  }
+
+  function restartCurrentGame() {
+    if (!activeGame) return;
+    startGame(activeGame.definition.id, activeRunContext ? { ...activeRunContext } : null);
+  }
+
+  function startNextRecommendedGame() {
+    const next = nextRecommendedGame();
+    startGame(next.id);
+  }
+
   function setTouchAction(action, isDown, button = null) {
     touchActionKeys[action] = isDown;
     if (button) button.classList.toggle("touch-active", isDown);
@@ -3495,6 +3532,7 @@
     playTitle.textContent = definition.title;
     const playerLabel = runContext?.player || profile.name;
     gameSubtitle.textContent = `${definition.subtitle} · ${playerLabel} · ${playLevelName()}${activeGame.arcadeBooster ? ` · ${activeGame.arcadeBooster.title}` : ""}`;
+    if (nextGameButton) nextGameButton.textContent = `Next: ${nextRecommendedGame(definition).title}`;
     scoreValue.textContent = "0";
     levelValue.textContent = playLevelStart().toString();
     comboValue.textContent = "x1";
@@ -3538,36 +3576,39 @@
 
   function createGame(definition) {
     const base = createBaseGame(definition);
-    if (definition.id === "dodger") return createDodger(base);
-    if (definition.id === "popper") return createPopper(base);
-    if (definition.id === "flap") return createFlap(base);
-    if (definition.id === "tictactoe") return createTicTacToe(base);
-    if (definition.id === "tetris") return createTetris(base);
-    if (definition.id === "twenty48") return createTwenty48(base);
-    if (definition.id === "driftboss") return createDriftBoss(base);
-    if (definition.id === "beatfoundry") return createBeatFoundry(base);
-    if (definition.id === "snake") return createSnake(base);
-    if (definition.id === "breaker") return createBreaker(base);
-    if (definition.id === "pinball") return createPinball(base);
-    if (definition.id === "river") return createRiverRush(base);
-    if (definition.id === "keeper") return createKeeper(base);
-    if (definition.id === "memory") return createMemoryMatch(base);
-    if (definition.id === "asteroids") return createAsteroids(base);
-    if (definition.id === "lunar") return createLunarDock(base);
-    if (definition.id === "repair") return createCircuitRepair(base);
-    if (definition.id === "cipher") return createCipherChain(base);
-    if (definition.id === "orbitguard") return createOrbitGuard(base);
-    if (definition.id === "hoopsduel") return createHoopsDuel(base);
-    if (definition.id === "freethrow") return createFreeThrow(base);
-    if (definition.id === "rallyrush") return createRallyRush(base);
-    if (definition.id === "trafficrush") return createTrafficRush(base);
-    if (definition.id === "archeryrange") return createArcheryRange(base);
-    if (definition.id === "arrowstorm") return createArrowStorm(base);
-    if (definition.id === "doodleroad") return createDoodleRoad(base);
-    if (definition.id === "wordflux") return createWordFlux(base);
-    if (definition.id === "bubblecannon") return createBubbleCannon(base);
-    if (definition.id === "lockpick") return createVaultTumbler(base);
-    return createRunner(base);
+    let game;
+    if (definition.id === "dodger") game = createDodger(base);
+    else if (definition.id === "popper") game = createPopper(base);
+    else if (definition.id === "flap") game = createFlap(base);
+    else if (definition.id === "tictactoe") game = createTicTacToe(base);
+    else if (definition.id === "tetris") game = createTetris(base);
+    else if (definition.id === "twenty48") game = createTwenty48(base);
+    else if (definition.id === "driftboss") game = createDriftBoss(base);
+    else if (definition.id === "beatfoundry") game = createBeatFoundry(base);
+    else if (definition.id === "snake") game = createSnake(base);
+    else if (definition.id === "breaker") game = createBreaker(base);
+    else if (definition.id === "pinball") game = createPinball(base);
+    else if (definition.id === "river") game = createRiverRush(base);
+    else if (definition.id === "keeper") game = createKeeper(base);
+    else if (definition.id === "memory") game = createMemoryMatch(base);
+    else if (definition.id === "asteroids") game = createAsteroids(base);
+    else if (definition.id === "lunar") game = createLunarDock(base);
+    else if (definition.id === "repair") game = createCircuitRepair(base);
+    else if (definition.id === "cipher") game = createCipherChain(base);
+    else if (definition.id === "orbitguard") game = createOrbitGuard(base);
+    else if (definition.id === "hoopsduel") game = createHoopsDuel(base);
+    else if (definition.id === "freethrow") game = createFreeThrow(base);
+    else if (definition.id === "baseball") game = createBaseball(base);
+    else if (definition.id === "rallyrush") game = createRallyRush(base);
+    else if (definition.id === "trafficrush") game = createTrafficRush(base);
+    else if (definition.id === "archeryrange") game = createArcheryRange(base);
+    else if (definition.id === "arrowstorm") game = createArrowStorm(base);
+    else if (definition.id === "doodleroad") game = createDoodleRoad(base);
+    else if (definition.id === "wordflux") game = createWordFlux(base);
+    else if (definition.id === "bubblecannon") game = createBubbleCannon(base);
+    else if (definition.id === "lockpick") game = createVaultTumbler(base);
+    else game = createRunner(base);
+    return withGameTutorial(game);
   }
 
   function createBaseGame(definition) {
@@ -3711,13 +3752,76 @@
           reward,
           `Mastery Lv ${mastery.level} | Season Lv ${season.level} (${Math.round(season.progress * 100)}%)`,
           challengeText,
-          "Replay, pick another cabinet, or check Missions for rewards",
+          "Use the top Restart button, press R, or try the recommended next game",
         ];
         rows.forEach((row, index) => {
           context.fillStyle = index === 0 ? "#58f29f" : index === 2 && challenge ? "#ffd166" : "#a9b1ce";
           context.font = index === 0 ? "900 19px system-ui" : "800 17px system-ui";
           context.fillText(row, gameCanvas.width / 2, 268 + index * 34);
         });
+      },
+    };
+  }
+
+  const tutorialGameIds = new Set([
+    "hoopsduel",
+    "freethrow",
+    "baseball",
+    "rallyrush",
+    "trafficrush",
+    "archeryrange",
+    "arrowstorm",
+    "doodleroad",
+    "wordflux",
+    "bubblecannon",
+    "lockpick",
+  ]);
+
+  function withGameTutorial(game) {
+    if (!tutorialGameIds.has(game.definition.id)) return game;
+    const originalUpdate = game.update?.bind(game);
+    const originalDraw = game.draw?.bind(game);
+    const originalPointerDown = game.pointerDown?.bind(game);
+    const originalHandleKey = game.handleKey?.bind(game);
+    return {
+      ...game,
+      tutorialActive: true,
+      tutorialButton: { x: 360, y: 446, w: 240, h: 52 },
+      update(delta) {
+        if (this.tutorialActive) {
+          this.updateEffects(delta);
+          return;
+        }
+        originalUpdate?.(delta);
+      },
+      draw(context) {
+        originalDraw?.(context);
+        if (this.tutorialActive) drawGameTutorial(context, this);
+      },
+      pointerDown(x, y) {
+        if (this.tutorialActive) {
+          const button = this.tutorialButton;
+          if (x >= button.x && x <= button.x + button.w && y >= button.y && y <= button.y + button.h) {
+            this.tutorialActive = false;
+            audio.sfx("menu");
+          } else if (this.definition.id === "doodleroad") {
+            this.tutorialActive = false;
+            audio.sfx("menu");
+            originalPointerDown?.(x, y);
+          }
+          return;
+        }
+        originalPointerDown?.(x, y);
+      },
+      handleKey(event) {
+        if (this.tutorialActive) {
+          if (event.code === "Enter" || event.code === "Space") {
+            this.tutorialActive = false;
+            audio.sfx("menu");
+          }
+          return;
+        }
+        originalHandleKey?.(event);
       },
     };
   }
@@ -5754,8 +5858,35 @@
   }
 
   function createHoopsDuel(base) {
+    const teams = [
+      { id: "meteors", name: "Metro Meteors", short: "MET", color: "#38bdf8", trim: "#f8fafc", skill: 0.92, logo: "comet" },
+      { id: "vipers", name: "Venice Vipers", short: "VIP", color: "#22c55e", trim: "#052e16", skill: 0.96, logo: "fang" },
+      { id: "blaze", name: "Brooklyn Blaze", short: "BLA", color: "#fb923c", trim: "#431407", skill: 1.0, logo: "flame" },
+      { id: "royals", name: "Rim Royals", short: "RYL", color: "#a78bfa", trim: "#24123d", skill: 1.04, logo: "crown" },
+      { id: "titans", name: "Tampa Titans", short: "TTN", color: "#ef4444", trim: "#450a0a", skill: 1.08, logo: "shield" },
+      { id: "stars", name: "Southside Stars", short: "STR", color: "#facc15", trim: "#422006", skill: 1.12, logo: "star" },
+      { id: "waves", name: "Westside Waves", short: "WAV", color: "#06b6d4", trim: "#083344", skill: 1.16, logo: "wave" },
+      { id: "stallions", name: "Steel Stallions", short: "STL", color: "#94a3b8", trim: "#111827", skill: 1.2, logo: "horse" },
+      { id: "panthers", name: "Pacific Panthers", short: "PAN", color: "#e879f9", trim: "#3b0764", skill: 1.24, logo: "claw" },
+      { id: "knights", name: "North Knights", short: "KNT", color: "#60a5fa", trim: "#0f172a", skill: 1.28, logo: "bolt" },
+      { id: "clovers", name: "Clover City", short: "CLV", color: "#4ade80", trim: "#14532d", skill: 1.32, logo: "clover" },
+      { id: "rockets", name: "River Rockets", short: "RKT", color: "#f43f5e", trim: "#4c0519", skill: 1.36, logo: "rocket" },
+      { id: "wolves", name: "Winter Wolves", short: "WLF", color: "#67e8f9", trim: "#164e63", skill: 1.4, logo: "moon" },
+      { id: "thunder", name: "Texas Thunder", short: "THD", color: "#f97316", trim: "#1e293b", skill: 1.44, logo: "storm" },
+      { id: "orbit", name: "Orlando Orbit", short: "ORB", color: "#818cf8", trim: "#1e1b4b", skill: 1.48, logo: "orbit" },
+      { id: "nyc", name: "New York Netjets", short: "NYJ", color: "#0ea5e9", trim: "#f97316", skill: 1.52, logo: "tower" },
+    ];
+    const baseFinish = base.finish;
     return {
       ...base,
+      setup: true,
+      setupStep: "home",
+      mode: "",
+      teams,
+      selectedTeam: teams[0],
+      opponent: teams[2],
+      bracket: [],
+      roundIndex: 0,
       player: { x: 250, y: 340 },
       ball: { x: 250, y: 340, vx: 0, vy: 0, held: true },
       hoop: { x: 760, y: 214 },
@@ -5763,12 +5894,157 @@
       shotCharge: 0,
       buckets: 0,
       steals: 0,
+      playerScore: 0,
+      opponentScore: 0,
+      aiTimer: 2.4,
+      matchPause: 0,
+      lastMatchWon: false,
+      overtime: false,
+      pendingStart: null,
+      superMeter: 0,
+      superFlash: 0,
+      dashTimer: 0,
+      lastDashTap: { KeyA: -10, KeyD: -10, ArrowLeft: -10, ArrowRight: -10 },
+      message: "Choose Quick Match or Tournament",
+      homeButtons: [
+        { id: "quick", label: "Quick Match", x: 186, y: 372, w: 258, h: 62 },
+        { id: "tournament", label: "Tournament", x: 516, y: 372, w: 258, h: 62 },
+      ],
+      instructionButton: { id: "start", label: "Start Match", x: 360, y: 454, w: 240, h: 54 },
+      teamButtons: teams.map((team, index) => ({
+        id: team.id,
+        label: team.short,
+        x: 82 + (index % 4) * 204,
+        y: 178 + Math.floor(index / 4) * 68,
+        w: 176,
+        h: 54,
+      })),
+      buildBracket(selected) {
+        const pool = teams.filter((team) => team.id !== selected.id);
+        const seed = Math.floor((selected.skill * 1000) % pool.length);
+        return [pool[(seed + 2) % pool.length], pool[(seed + 7) % pool.length], pool[(seed + 11) % pool.length]].map((team, index) => ({ ...team, skill: team.skill + index * 0.08 }));
+      },
+      startQuickMatch() {
+        this.mode = "quick";
+        this.selectedTeam = teams[Math.floor(random(0, teams.length))] || teams[0];
+        const opponents = teams.filter((team) => team.id !== this.selectedTeam.id);
+        this.opponent = opponents[Math.floor(random(0, opponents.length))] || teams[1];
+        this.pendingStart = "quick";
+        this.setupStep = "instructions";
+        this.message = `${this.selectedTeam.short} vs ${this.opponent.short}`;
+      },
+      confirmStart() {
+        this.setup = false;
+        this.startMatch();
+      },
+      startTournament(team = this.selectedTeam) {
+        this.mode = "tournament";
+        this.selectedTeam = team;
+        this.bracket = this.buildBracket(team);
+        this.roundIndex = 0;
+        this.opponent = this.bracket[this.roundIndex];
+        this.pendingStart = "tournament";
+        this.setupStep = "instructions";
+        this.message = `Round 1: ${this.selectedTeam.short} vs ${this.opponent.short}`;
+      },
+      startMatch() {
+        this.elapsed = 0;
+        this.timeLeft = this.mode === "tournament" ? 42 : 50;
+        this.overtime = false;
+        this.playerScore = 0;
+        this.opponentScore = 0;
+        this.player = { x: 250, y: 340 };
+        this.ball = { x: 250, y: 340, vx: 0, vy: 0, held: true };
+        this.defenders = [{ x: 520, y: 326 }, { x: 620, y: 388 }];
+        this.shotCharge = 0;
+        this.superMeter = this.mode === "tournament" ? Math.min(this.superMeter || 0, 0.45) : 0;
+        this.superFlash = 0;
+        this.dashTimer = 0;
+        this.aiTimer = Math.max(1.2, 2.6 - this.level * 0.04 - (this.opponent?.skill || 1) * 0.25);
+        this.matchPause = 0;
+        this.message = this.mode === "tournament"
+          ? `Round ${this.roundIndex + 1}: ${this.selectedTeam.short} vs ${this.opponent.short}`
+          : `${this.selectedTeam.short} vs ${this.opponent.short}`;
+      },
+      endMatch() {
+        if (this.playerScore === this.opponentScore && !this.overtime) {
+          this.overtime = true;
+          this.timeLeft = 12;
+          this.message = "Tie game. Sudden death overtime.";
+          audio.sfx("menu");
+          return;
+        }
+        this.lastMatchWon = this.playerScore > this.opponentScore;
+        this.matchPause = 1.9;
+        this.message = this.lastMatchWon ? "Win secured" : "AI wins";
+      },
+      finishHoopsRun(label = "Final Buzzer") {
+        this.message = label;
+        this.finishLabel = label;
+        baseFinish.call(this);
+      },
       update(delta) {
-        this.updateTimer(delta);
+        if (this.setup) return;
         if (this.over) return;
-        const speed = (210 + this.level * 7) * delta;
+        if (this.matchPause > 0) {
+          this.matchPause -= delta;
+          this.updateEffects(delta);
+          if (this.matchPause <= 0) {
+            if (this.mode === "tournament" && this.lastMatchWon && this.roundIndex < this.bracket.length - 1) {
+              this.roundIndex += 1;
+              this.opponent = this.bracket[this.roundIndex];
+              this.startMatch();
+              return;
+            }
+            if (this.mode === "tournament" && this.lastMatchWon) this.addScore(900, 480, 120, "Champions");
+            this.finishHoopsRun(this.lastMatchWon ? (this.mode === "tournament" ? "Tournament Champs" : "Quick Match Won") : "Final Buzzer");
+          }
+          return;
+        }
+        this.elapsed += delta;
+        this.timeLeft = Math.max(0, this.timeLeft - delta);
+        this.level = Math.min(12, playLevelStart(this.playLevel) + Math.floor((this.elapsed * playLevelPace(this.playLevel)) / levelInterval));
+        this.comboTimer = Math.max(0, this.comboTimer - delta);
+        if (this.comboTimer <= 0) this.combo = 1;
+        this.flash = Math.max(0, this.flash - delta);
+        this.updateEffects(delta);
+        if (this.timeLeft <= 0) {
+          this.endMatch();
+          return;
+        }
+        this.superFlash = Math.max(0, this.superFlash - delta);
+        this.dashTimer = Math.max(0, this.dashTimer - delta);
+        this.aiTimer -= delta;
+        if (this.aiTimer <= 0) {
+          const make = Math.random() < 0.58 + (this.opponent?.skill || 1) * 0.08 + this.level * 0.01;
+          if (make) {
+            const points = Math.random() < 0.24 + (this.opponent?.skill || 1) * 0.03 ? 3 : 2;
+            this.opponentScore += points;
+            this.messages.push({ x: 704, y: 118, text: `${this.opponent.short} +${points}`, age: 0, life: 0.9 });
+            audio.beep(220, 0.035, "sawtooth");
+          }
+          this.aiTimer = Math.max(1.05, random(1.65, 2.8) - this.level * 0.045 - (this.opponent?.skill || 1) * 0.16);
+        }
+        const blockDown = pressed.has("KeyS") || pressed.has("ArrowDown");
+        const superDown = pressed.has("KeyK") || pressed.has("KeyZ");
+        const dashDown = pressed.has("ShiftLeft") || pressed.has("ShiftRight");
+        if (dashDown && this.dashTimer <= 0) {
+          this.dashTimer = 0.32;
+          this.burst(this.player.x, this.player.y, this.selectedTeam.color, 12);
+          audio.beep(520, 0.035, "square");
+        }
+        const speedBoost = this.dashTimer > 0 ? 1.55 : blockDown ? 0.72 : 1;
+        const speed = (210 + this.level * 7) * speedBoost * delta;
         this.player.x = clamp(this.player.x + (Number(actionPressed("right")) - Number(actionPressed("left"))) * speed, 120, 820);
         this.player.y = clamp(this.player.y + (Number(actionPressed("down")) - Number(actionPressed("up"))) * speed, 190, 450);
+        if (blockDown) {
+          this.defenders.forEach((defender) => {
+            if (Math.hypot(defender.x - this.player.x, defender.y - this.player.y) < 58) {
+              defender.x += (defender.x - this.player.x) * delta * 1.8;
+              defender.y += (defender.y - this.player.y) * delta * 1.8;
+            }
+          });
+        }
         this.defenders.forEach((defender, index) => {
           defender.x += (this.player.x - defender.x) * delta * (0.7 + this.level * 0.04 + index * 0.08);
           defender.y += (this.player.y - defender.y) * delta * (0.55 + this.level * 0.035);
@@ -5776,13 +6052,24 @@
         if (this.ball.held) {
           this.ball.x = this.player.x + 18;
           this.ball.y = this.player.y - 18;
-          if (actionPressed("action")) this.shotCharge = clamp(this.shotCharge + delta * 1.35, 0, 1.25);
+          if (superDown && this.superMeter >= 1) {
+            this.superMeter = 0;
+            this.superFlash = 0.7;
+            this.playerScore += 2;
+            this.buckets += 1;
+            this.pushCombo(3);
+            this.addScore(520 + this.level * 28, this.hoop.x, this.hoop.y - 46, "SuperShot");
+            this.burst(this.hoop.x, this.hoop.y, "#ffd166", 34);
+            audio.sfx("sport");
+          } else if (actionPressed("action") || pressed.has("KeyX") || pressed.has("KeyL") || pressed.has("KeyB")) this.shotCharge = clamp(this.shotCharge + delta * 1.35, 0, 1.25);
           else if (this.shotCharge > 0) {
             const dx = this.hoop.x - this.ball.x;
             const dy = this.hoop.y - this.ball.y;
+            const shotPower = this.shotCharge;
+            const shotValue = 2;
             const power = 420 + this.shotCharge * 310;
             const distance = Math.hypot(dx, dy) || 1;
-            this.ball = { x: this.ball.x, y: this.ball.y, vx: (dx / distance) * power, vy: (dy / distance) * power - 130 * this.shotCharge, held: false };
+            this.ball = { x: this.ball.x, y: this.ball.y, vx: (dx / distance) * power, vy: (dy / distance) * power - 130 * shotPower, held: false, shotValue };
             this.shotCharge = 0;
             audio.sfx("launch");
           }
@@ -5800,7 +6087,10 @@
           this.ball.x += this.ball.vx * delta;
           this.ball.y += this.ball.vy * delta;
           if (Math.hypot(this.ball.x - this.hoop.x, this.ball.y - this.hoop.y) < 34 && this.ball.vy > -90) {
+            const points = this.ball.shotValue || 2;
+            this.playerScore += points;
             this.buckets += 1;
+            this.superMeter = clamp(this.superMeter + 0.28, 0, 1);
             this.pushCombo(2);
             this.addScore(260 + this.level * 18, this.hoop.x, this.hoop.y - 38, "Bucket");
             this.burst(this.hoop.x, this.hoop.y, "#fb923c", 22);
@@ -5815,10 +6105,62 @@
       },
       draw(context) {
         drawBasketballCourt(context, this);
-        drawBadge(context, `Buckets ${this.buckets}`, 24, 34, "#fb923c");
-        drawBadge(context, `Steals ${this.steals}`, 170, 34, "#34d6ff");
+        if (!this.setup) {
+          drawBadge(context, this.mode === "tournament" ? `Round ${this.roundIndex + 1}/3` : "Quick Match", 24, 34, "#fb923c");
+          drawBadge(context, `${this.selectedTeam.short} ${this.playerScore}`, 176, 34, this.selectedTeam.color);
+          drawBadge(context, `${this.opponent.short} ${this.opponentScore}`, 306, 34, this.opponent.color);
+        }
         this.drawEffects(context);
-        this.drawEnd(context, "Final Buzzer");
+        this.drawEnd(context, this.finishLabel || "Final Buzzer");
+      },
+      pointerDown(x, y) {
+        if (!this.setup) return;
+        if (this.setupStep === "home") {
+          const hit = this.homeButtons.find((button) => x >= button.x && x <= button.x + button.w && y >= button.y && y <= button.y + button.h);
+          if (!hit) return;
+          if (hit.id === "quick") this.startQuickMatch();
+          if (hit.id === "tournament") {
+            this.setupStep = "teams";
+            this.message = "Pick your tournament team";
+          }
+          audio.beep(620, 0.06, "triangle");
+          return;
+        }
+        if (this.setupStep === "instructions") {
+          const button = this.instructionButton;
+          if (x >= button.x && x <= button.x + button.w && y >= button.y && y <= button.y + button.h) {
+            this.confirmStart();
+            audio.sfx("sport");
+          }
+          return;
+        }
+        const teamButton = this.teamButtons.find((button) => x >= button.x && x <= button.x + button.w && y >= button.y && y <= button.y + button.h);
+        if (!teamButton) return;
+        const team = this.teams.find((item) => item.id === teamButton.id) || this.teams[0];
+        this.selectedTeam = team;
+        this.startTournament(team);
+        audio.sfx("sport");
+      },
+      handleKey(event) {
+        if (!this.setup) {
+          if (["KeyA", "KeyD", "ArrowLeft", "ArrowRight"].includes(event.code)) {
+            const previous = this.lastDashTap[event.code] ?? -10;
+            if (this.elapsed - previous < 0.32) {
+              this.dashTimer = 0.32;
+              this.burst(this.player.x, this.player.y, this.selectedTeam.color, 12);
+              audio.beep(520, 0.035, "square");
+            }
+            this.lastDashTap[event.code] = this.elapsed;
+          }
+          return;
+        }
+        if (event.code === "Escape" && this.setupStep !== "home") {
+          this.setupStep = "home";
+          this.pendingStart = null;
+          return;
+        }
+        if ((event.code === "Enter" || event.code === "Space") && this.setupStep === "home") this.startQuickMatch();
+        else if ((event.code === "Enter" || event.code === "Space") && this.setupStep === "instructions") this.confirmStart();
       },
     };
   }
@@ -5880,6 +6222,314 @@
         this.drawEnd(context, "Shootaround Done");
       },
     };
+  }
+
+  function createBaseball(base) {
+    const game = {
+      ...base,
+      setup: true,
+      baseballMode: "arcade",
+      difficulty: "normal",
+      pitch: null,
+      hitBall: null,
+      cursor: { x: 480, y: 300 },
+      pitchesLeft: 10,
+      outs: 0,
+      runs: 0,
+      bases: [false, false, false],
+      swings: 0,
+      hits: 0,
+      targetHits: 0,
+      resultTimer: 0,
+      fieldingPlay: null,
+      runners: [],
+      stealCooldown: 0,
+      message: "Choose a mode",
+      setupButtons: [
+        { id: "arcade", label: "Arcade Target", x: 168, y: 356, w: 260, h: 58 },
+        { id: "ninth", label: "Bottom 9th", x: 532, y: 356, w: 260, h: 58 },
+        { id: "easy", label: "Easy", x: 236, y: 436, w: 132, h: 46 },
+        { id: "normal", label: "Normal", x: 414, y: 436, w: 132, h: 46 },
+        { id: "hard", label: "Hard", x: 592, y: 436, w: 132, h: 46 },
+        { id: "start", label: "Play Ball", x: 360, y: 494, w: 240, h: 48 },
+      ],
+      difficultySpec() {
+        return {
+          easy: { name: "Easy", speed: 0.82, score: 0.9, drift: 12 },
+          normal: { name: "Normal", speed: 1, score: 1.1, drift: 24 },
+          hard: { name: "Hard", speed: 1.22, score: 1.35, drift: 38 },
+        }[this.difficulty] || { name: "Normal", speed: 1, score: 1.1, drift: 24 };
+      },
+      startMode() {
+        this.setup = false;
+        this.elapsed = 0;
+        this.timeLeft = 60;
+        this.score = 0;
+        this.pitchesLeft = this.baseballMode === "arcade" ? 10 : 99;
+        this.outs = 0;
+        this.runs = 0;
+        this.bases = [false, false, false];
+        this.swings = 0;
+        this.hits = 0;
+        this.targetHits = 0;
+        this.resultTimer = 0;
+        this.fieldingPlay = null;
+        this.runners = [];
+        this.stealCooldown = 0;
+        this.message = this.baseballMode === "ninth" ? "Down 4. Score 5 before 3 outs." : "10 pitches. Hit the outfield target.";
+        this.spawnPitch();
+      },
+      spawnPitch() {
+        const spec = this.difficultySpec();
+        const lane = random(-1, 1);
+        this.pitch = {
+          x: 612,
+          y: 270 + lane * 42,
+          vx: -(285 + this.level * 16) * spec.speed,
+          vy: random(-18, 18) + lane * spec.drift,
+          spin: random(-3, 3),
+          age: 0,
+        };
+        this.hitBall = null;
+        this.fieldingPlay = null;
+      },
+      resolveOut(label = "Out") {
+        this.outs += 1;
+        this.breakCombo();
+        this.message = this.baseballMode === "ninth" ? `${label}. ${Math.max(0, 3 - this.outs)} outs left.` : label;
+        this.resultTimer = 0.85;
+        audio.sfx("danger");
+        if (this.baseballMode === "arcade" && this.pitchesLeft <= 0) this.resultTimer = 1.1;
+        if (this.baseballMode === "ninth" && this.outs >= 3) this.resultTimer = 1.1;
+      },
+      advanceBases(totalBases) {
+        let scored = 0;
+        for (let i = 2; i >= 0; i -= 1) {
+          if (!this.bases[i]) continue;
+          this.bases[i] = false;
+          const next = i + totalBases;
+          if (next >= 3) scored += 1;
+          else this.bases[next] = true;
+        }
+        if (totalBases >= 4) scored += 1;
+        else this.bases[totalBases - 1] = true;
+        return scored;
+      },
+      basePoint(index) {
+        return [
+          { x: 480, y: 474 },
+          { x: 306, y: 340 },
+          { x: 480, y: 214 },
+          { x: 654, y: 340 },
+        ][index] || { x: 480, y: 474 };
+      },
+      startRunnerAnimation(totalBases) {
+        const occupied = this.bases.map((hasRunner, index) => (hasRunner ? index + 1 : 0)).filter(Boolean);
+        const runners = [{ from: 0, to: Math.min(totalBases, 4), progress: 0 }];
+        occupied.forEach((baseIndex) => runners.push({ from: baseIndex, to: Math.min(baseIndex + totalBases, 4), progress: 0 }));
+        this.runners = runners;
+      },
+      resolveLiveHit(totalBases, label, color = "#22c55e") {
+        const scored = this.advanceBases(totalBases);
+        this.runs += scored;
+        this.startRunnerAnimation(totalBases);
+        this.pushCombo(totalBases >= 4 ? 3 : totalBases >= 3 ? 2 : 1);
+        this.addScore(120 * totalBases + scored * 210 + this.level * 12, this.hitBall?.landingX || 480, (this.hitBall?.landingY || 250) - 28, label);
+        this.message = scored ? `${label}: ${scored} run${scored > 1 ? "s" : ""}` : label;
+        if (this.hitBall) {
+          this.hitBall.label = label;
+          this.hitBall.color = color;
+        }
+        this.fieldingPlay = null;
+        this.resultTimer = 1.05;
+        audio.sfx(totalBases >= 4 ? "bank" : "coin");
+        if (this.runs >= 5) this.resultTimer = 1.2;
+      },
+      resolveFieldOut(label = "Thrown out") {
+        if (this.hitBall) {
+          this.hitBall.label = label;
+          this.hitBall.color = "#ff5b5b";
+        }
+        this.fieldingPlay = null;
+        this.resolveOut(label);
+      },
+      attemptSteal() {
+        if (this.setup || this.over || this.baseballMode !== "ninth" || this.stealCooldown > 0 || this.hitBall || !this.pitch) return;
+        const runnerBase = this.bases.map((hasRunner, index) => (hasRunner ? index : -1)).filter((index) => index >= 0).pop();
+        if (runnerBase === undefined || runnerBase >= 2) {
+          this.message = "No steal available";
+          this.stealCooldown = 0.8;
+          return;
+        }
+        const spec = this.difficultySpec();
+        const successChance = clamp(0.72 - spec.speed * 0.12 - runnerBase * 0.06 + random(-0.12, 0.12), 0.28, 0.82);
+        this.bases[runnerBase] = false;
+        this.stealCooldown = 1.2;
+        if (Math.random() < successChance) {
+          this.bases[runnerBase + 1] = true;
+          this.runners = [{ from: runnerBase + 1, to: runnerBase + 2, progress: 0 }];
+          this.addScore(95 + this.level * 8, this.basePoint(runnerBase + 2).x, this.basePoint(runnerBase + 2).y - 28, "Steal");
+          this.message = runnerBase === 0 ? "Stole second" : "Stole third";
+          audio.sfx("coin");
+        } else {
+          this.resolveOut("Caught stealing");
+        }
+      },
+      swing(x, y) {
+        if (this.setup || this.over || !this.pitch || this.hitBall) return;
+        this.cursor = { x, y };
+        this.swings += 1;
+        if (this.baseballMode === "arcade") this.pitchesLeft -= 1;
+        const timing = clamp(1 - Math.abs(this.pitch.x - 336) / 112, 0, 1);
+        const vertical = clamp((y - 190) / 300, 0, 1);
+        const pull = clamp((x - 480) / 380, -1, 1);
+        const contact = timing * (0.72 + (1 - Math.abs(pull) * 0.22));
+        const carry = contact * (1 - vertical * 0.22);
+        const loft = vertical;
+        const landing = {
+          x: 480 + pull * 250 + random(-34, 34),
+          y: 245 - carry * 150 + loft * 86 + random(-16, 16),
+        };
+        this.hitBall = {
+          x: 336,
+          y: this.pitch.y,
+          startX: 336,
+          startY: this.pitch.y,
+          landingX: clamp(landing.x, 154, 820),
+          landingY: clamp(landing.y, 90, 330),
+          age: 0,
+          life: 1.05,
+          good: contact > 0.26,
+          grounder: loft < 0.34,
+          popFly: loft > 0.66,
+        };
+        this.pitch = null;
+        if (contact <= 0.26) {
+          this.hitBall.label = "Whiff";
+          this.hitBall.color = "#ff5b5b";
+          this.resolveOut("Strikeout");
+          return;
+        }
+        this.hits += 1;
+        if (this.baseballMode === "arcade") {
+          const target = { x: 690, y: 160 };
+          const miss = Math.hypot(this.hitBall.landingX - target.x, this.hitBall.landingY - target.y);
+          const ring = miss < 28 ? "Bullseye" : miss < 58 ? "Center cut" : miss < 98 ? "Target hit" : "Base hit";
+          const points = Math.max(65, Math.floor((360 - Math.min(260, miss)) * this.difficultySpec().score + carry * 220));
+          if (miss < 98) this.targetHits += 1;
+          this.pushCombo(miss < 58 ? 2 : 1);
+          this.addScore(points, this.hitBall.landingX, this.hitBall.landingY - 28, ring);
+          this.message = `${ring}: +${points}`;
+          this.hitBall.label = ring;
+          this.hitBall.color = miss < 58 ? "#ffd166" : "#22c55e";
+          audio.sfx(miss < 98 ? "coin" : "launch");
+        } else {
+          const bases = carry > 0.82 ? 4 : carry > 0.68 ? 3 : carry > 0.5 ? 2 : 1;
+          const label = bases >= 4 ? "Home run" : bases === 3 ? "Triple" : bases === 2 ? "Double" : "Single";
+          const easyFly = this.hitBall.popFly && carry < 0.64;
+          const grounder = this.hitBall.grounder;
+          const catchChance = easyFly ? clamp(0.82 + this.difficultySpec().speed * 0.08 - carry * 0.2, 0.62, 0.95) : 0;
+          const throwChance = grounder ? clamp(0.76 + this.difficultySpec().speed * 0.08 - carry * 0.35 - bases * 0.06, 0.22, 0.9) : 0;
+          this.fieldingPlay = {
+            type: easyFly ? "fly" : grounder ? "ground" : "drive",
+            bases,
+            label,
+            catchChance,
+            throwChance,
+            resolved: false,
+            actionTime: easyFly ? this.hitBall.life * 0.78 : grounder ? 0.52 : this.hitBall.life,
+          };
+          this.message = easyFly ? "Pop fly. Fielders tracking it." : grounder ? "Grounder. Defense throws to the lead base." : "Line drive. Runner takes off.";
+          this.startRunnerAnimation(bases);
+        }
+        if (this.baseballMode === "arcade" && this.resultTimer <= 0) this.resultTimer = 1.05;
+      },
+      update(delta) {
+        if (this.setup) return;
+        this.updateTimer(delta);
+        if (this.over) return;
+        this.stealCooldown = Math.max(0, this.stealCooldown - delta);
+        this.runners.forEach((runner) => {
+          runner.progress = clamp(runner.progress + delta * 1.8, 0, 1);
+        });
+        this.runners = this.runners.filter((runner) => runner.progress < 1);
+        if (this.fieldingPlay && this.hitBall) {
+          this.hitBall.age = Math.min(this.hitBall.life, this.hitBall.age + delta);
+          if (!this.fieldingPlay.resolved && this.hitBall.age >= this.fieldingPlay.actionTime) {
+            this.fieldingPlay.resolved = true;
+            if (this.fieldingPlay.type === "fly" && Math.random() < this.fieldingPlay.catchChance) {
+              this.resolveFieldOut("Flyout");
+              return;
+            }
+            if (this.fieldingPlay.type === "ground" && Math.random() < this.fieldingPlay.throwChance) {
+              const target = this.fieldingPlay.bases >= 2 && this.bases[0] ? "second" : "first";
+              this.resolveFieldOut(`Out at ${target}`);
+              return;
+            }
+            this.resolveLiveHit(this.fieldingPlay.bases, this.fieldingPlay.label, this.fieldingPlay.bases >= 4 ? "#ffd166" : "#22c55e");
+          }
+          return;
+        }
+        if (this.resultTimer > 0) {
+          this.resultTimer -= delta;
+          if (this.hitBall) this.hitBall.age = Math.min(this.hitBall.life, this.hitBall.age + delta);
+          if (this.resultTimer <= 0) {
+            if (this.baseballMode === "arcade" && this.pitchesLeft <= 0) {
+              this.finish();
+              return;
+            }
+            if (this.baseballMode === "ninth" && (this.runs >= 5 || this.outs >= 3)) {
+              this.finish();
+              return;
+            }
+            this.spawnPitch();
+          }
+          return;
+        }
+        if (this.hitBall) this.hitBall.age = Math.min(this.hitBall.life, this.hitBall.age + delta);
+        if (this.pitch) {
+          this.pitch.age += delta;
+          this.pitch.x += this.pitch.vx * delta;
+          this.pitch.y += this.pitch.vy * delta + Math.sin(this.pitch.age * 8) * this.pitch.spin;
+          if (this.pitch.x < 248) {
+            this.pitch = null;
+            if (this.baseballMode === "arcade") this.pitchesLeft -= 1;
+            this.resolveOut(this.baseballMode === "arcade" ? "Pitch missed" : "Strike");
+          }
+        }
+        this.score += delta * (this.baseballMode === "ninth" ? 3 + this.runs : 4 + this.targetHits);
+      },
+      draw(context) {
+        drawBaseballField(context, this);
+        drawBadge(context, this.baseballMode === "ninth" ? `Runs ${this.runs}/5` : `Pitches ${this.pitchesLeft}/10`, 24, 34, "#22c55e");
+        drawBadge(context, `Outs ${this.outs}/3`, 176, 34, "#ff5b5b");
+        drawBadge(context, this.baseballMode === "arcade" ? `Targets ${this.targetHits}` : `Hits ${this.hits}`, 304, 34, "#ffd166");
+        this.drawEffects(context);
+        this.drawEnd(context, this.baseballMode === "ninth" ? (this.runs >= 5 ? "Walk-Off Win" : "Game Over") : "Batting Round");
+      },
+      pointerMove(x, y) {
+        this.cursor = { x, y };
+      },
+      pointerDown(x, y) {
+        this.cursor = { x, y };
+        if (this.setup) {
+          const hit = this.setupButtons.find((button) => x >= button.x && x <= button.x + button.w && y >= button.y && y <= button.y + button.h);
+          if (!hit) return;
+          if (hit.id === "arcade" || hit.id === "ninth") this.baseballMode = hit.id;
+          else if (["easy", "normal", "hard"].includes(hit.id)) this.difficulty = hit.id;
+          else if (hit.id === "start") this.startMode();
+          audio.beep(hit.id === "start" ? 720 : 520, 0.05, "triangle");
+          return;
+        }
+        this.swing(x, y);
+      },
+      handleKey(event) {
+        if (this.setup && event.code === "Enter") this.startMode();
+        if (!this.setup && event.code === "KeyS") this.attemptSteal();
+        if (!this.setup && event.code === "Space") this.swing(this.cursor.x, this.cursor.y);
+      },
+    };
+    return game;
   }
 
   function createRallyRush(base) {
@@ -6064,8 +6714,27 @@
   }
 
   function createArcheryRange(base) {
+    const worldTourEnabled = base.definition?.id === "archeryrange";
+    const tournaments = [
+      { name: "Kyoto Garden", country: "Japan", wind: 0.22, targetSpeed: 34, needed: 3 },
+      { name: "Alpine Finals", country: "Switzerland", wind: 0.34, targetSpeed: 58, needed: 4 },
+      { name: "Sahara Cup", country: "Morocco", wind: 0.48, targetSpeed: 76, needed: 5 },
+    ];
+    const tourney = (index) => tournaments[index % tournaments.length];
     return {
       ...base,
+      setup: worldTourEnabled,
+      setupStep: "home",
+      archeryMode: "tour",
+      tournamentIndex: 0,
+      tournamentHits: 0,
+      challengeHits: 0,
+      aimingWithPointer: false,
+      cursor: { x: 318, y: 344 },
+      modeButtons: [
+        { id: "tour", label: "World Tour", x: 180, y: 374, w: 250, h: 62 },
+        { id: "challenge", label: "Challenge", x: 530, y: 374, w: 250, h: 62 },
+      ],
       aim: 0,
       power: 0,
       charging: false,
@@ -6074,23 +6743,65 @@
       arrow: null,
       hits: 0,
       misses: 0,
+      activeTournament() {
+        return tourney(this.tournamentIndex);
+      },
+      configureRound() {
+        const event = this.activeTournament();
+        this.wind = this.archeryMode === "challenge" ? random(-0.7, 0.7) : event.wind * (Math.random() > 0.5 ? 1 : -1);
+        this.target = {
+          x: this.archeryMode === "challenge" ? random(640, 830) : 760,
+          y: this.archeryMode === "challenge" ? random(150, 390) : 250,
+          vy: (this.archeryMode === "challenge" ? random(80, 150) : event.targetSpeed) * (Math.random() > 0.5 ? 1 : -1),
+        };
+        this.arrow = null;
+        this.power = 0;
+        this.charging = false;
+        this.aimingWithPointer = false;
+      },
+      startArcheryMode(mode) {
+        this.archeryMode = mode;
+        this.setup = false;
+        this.elapsed = 0;
+        this.timeLeft = mode === "challenge" ? 60 : 75;
+        this.score = 0;
+        this.hits = 0;
+        this.misses = 0;
+        this.tournamentHits = 0;
+        this.challengeHits = 0;
+        this.tournamentIndex = 0;
+        this.configureRound();
+        this.message = mode === "challenge" ? "Moving target challenge" : `${this.activeTournament().name} tournament`;
+      },
+      aimAt(x, y) {
+        this.cursor = { x, y };
+        const angle = Math.atan2(350 - y, Math.max(120, x - 180));
+        this.aim = clamp(angle - 0.42, -0.75, 0.75);
+      },
+      releaseArrow() {
+        if (this.setup || this.over || this.arrow || !this.charging) return;
+        this.arrow = { x: 180, y: 350, vx: 520 + this.power * 280, vy: -Math.sin(this.aim + 0.42) * 560 - this.power * 130 };
+        this.power = 0;
+        this.charging = false;
+        this.aimingWithPointer = false;
+        audio.sfx("launch");
+      },
       update(delta) {
+        if (this.setup) return;
         this.updateTimer(delta);
         if (this.over) return;
         this.target.y += this.target.vy * delta;
         if (this.target.y < 150 || this.target.y > 405) this.target.vy *= -1;
         this.wind += Math.sin(this.elapsed * 0.7) * delta * 0.12;
         this.wind = clamp(this.wind, -0.7, 0.7);
-        this.aim = clamp(this.aim + (Number(actionPressed("up")) - Number(actionPressed("down"))) * delta * 1.3, -0.75, 0.75);
+        if (!this.aimingWithPointer) this.aim = clamp(this.aim + (Number(actionPressed("up")) - Number(actionPressed("down"))) * delta * 1.3, -0.75, 0.75);
         if (!this.arrow && actionPressed("action")) {
           this.charging = true;
           this.power = clamp(this.power + delta * 0.8, 0, 1);
-        } else if (!this.arrow && this.charging) {
-          this.arrow = { x: 180, y: 350, vx: 520 + this.power * 260, vy: -Math.sin(this.aim + 0.42) * 520 - this.power * 120 };
-          this.power = 0;
-          this.charging = false;
-          audio.sfx("launch");
+        } else if (!this.arrow && this.charging && !this.aimingWithPointer) {
+          this.releaseArrow();
         }
+        if (this.charging && this.aimingWithPointer) this.power = clamp(this.power + delta * 0.8, 0, 1);
         if (this.arrow) {
           this.arrow.vx += this.wind * 120 * delta;
           this.arrow.vy += 310 * delta;
@@ -6100,27 +6811,64 @@
           if (dist < 55) {
             const bull = dist < 18;
             this.hits += 1;
+            this.tournamentHits += this.archeryMode === "tour" ? 1 : 0;
+            this.challengeHits += this.archeryMode === "challenge" ? 1 : 0;
             this.pushCombo(bull ? 2 : 1);
             this.addScore(bull ? 240 + this.level * 16 : 120 + this.level * 8, this.target.x, this.target.y - 40, bull ? "Bullseye" : "Hit");
             this.burst(this.target.x, this.target.y, bull ? "#84cc16" : "#ffd166", bull ? 26 : 14);
             this.arrow = null;
-            this.target = { x: random(690, 820), y: random(160, 390), vy: random(60, 120) * (Math.random() > 0.5 ? 1 : -1) };
+            if (this.archeryMode === "tour" && this.tournamentHits >= this.activeTournament().needed) {
+              this.addScore(420 + this.tournamentIndex * 180, this.target.x, this.target.y - 84, "Tourney won");
+              this.tournamentIndex += 1;
+              this.tournamentHits = 0;
+              if (this.tournamentIndex >= tournaments.length) {
+                this.finishLabel = "World Tour Champion";
+                this.finish();
+                return;
+              }
+            }
+            this.configureRound();
             audio.sfx("coin");
           } else if (this.arrow.x > 960 || this.arrow.y > 540 || this.arrow.y < -40) {
             this.misses += 1;
             this.breakCombo();
             this.arrow = null;
+            if (this.archeryMode === "tour" && this.misses >= 5) this.finishLabel = "Tournament Lost";
             audio.sfx("danger");
+            if (this.archeryMode === "tour" && this.misses >= 5) this.finish();
           }
         }
         this.score += delta * (5 + this.hits * 0.7);
       },
       draw(context) {
         drawArcheryRange(context, this, false);
-        drawBadge(context, `Hits ${this.hits}`, 24, 34, "#84cc16");
-        drawBadge(context, `Wind ${this.wind > 0 ? ">" : "<"}`, 138, 34, "#34d6ff");
+        drawBadge(context, this.archeryMode === "tour" ? this.activeTournament().country : "Challenge", 24, 34, "#84cc16");
+        drawBadge(context, this.archeryMode === "tour" ? `Hits ${this.tournamentHits}/${this.activeTournament().needed}` : `Hits ${this.challengeHits}`, 170, 34, "#ffd166");
+        drawBadge(context, `Miss ${this.misses}/5`, 330, 34, "#ff5b5b");
+        drawBadge(context, `Wind ${this.wind > 0 ? ">" : "<"}`, 470, 34, "#34d6ff");
         this.drawEffects(context);
-        this.drawEnd(context, "Range Closed");
+        this.drawEnd(context, this.finishLabel || "Range Closed");
+      },
+      pointerDown(x, y) {
+        if (this.setup) {
+          const button = this.modeButtons.find((item) => x >= item.x && x <= item.x + item.w && y >= item.y && y <= item.y + item.h);
+          if (button) {
+            this.startArcheryMode(button.id);
+            audio.sfx("sport");
+          }
+          return;
+        }
+        if (this.over || this.arrow) return;
+        this.aimingWithPointer = true;
+        this.charging = true;
+        this.aimAt(x, y);
+      },
+      pointerMove(x, y) {
+        if (this.setup || !this.aimingWithPointer) return;
+        this.aimAt(x, y);
+      },
+      pointerUp() {
+        this.releaseArrow();
       },
     };
   }
@@ -6570,9 +7318,28 @@
     }
     context.lineTo(gameCanvas.width, gameCanvas.height);
     context.fill();
-    context.fillStyle = "rgba(15,23,42,0.7)";
-    roundedRect(context, game.puzzle.gapStart, 430, game.puzzle.gapEnd - game.puzzle.gapStart, 90, 12);
+    const leftEdgeY = game.terrain(game.puzzle.gapStart, game.puzzleLevel);
+    const rightEdgeY = game.terrain(game.puzzle.gapEnd, game.puzzleLevel);
+    context.save();
+    context.fillStyle = "rgba(15,23,42,0.18)";
+    context.beginPath();
+    context.moveTo(game.puzzle.gapStart + 4, leftEdgeY + 12);
+    context.lineTo(game.puzzle.gapEnd - 4, rightEdgeY + 12);
+    context.lineTo(game.puzzle.gapEnd - 18, gameCanvas.height);
+    context.lineTo(game.puzzle.gapStart + 18, gameCanvas.height);
+    context.closePath();
     context.fill();
+    context.strokeStyle = "rgba(15,23,42,0.42)";
+    context.lineWidth = 3;
+    context.setLineDash([8, 9]);
+    context.beginPath();
+    context.moveTo(game.puzzle.gapStart, leftEdgeY - 4);
+    context.lineTo(game.puzzle.gapStart, gameCanvas.height);
+    context.moveTo(game.puzzle.gapEnd, rightEdgeY - 4);
+    context.lineTo(game.puzzle.gapEnd, gameCanvas.height);
+    context.stroke();
+    context.setLineDash([]);
+    context.restore();
     game.lines.forEach((line) => {
       context.strokeStyle = "#111827";
       context.lineWidth = 9;
@@ -6664,6 +7431,78 @@
     context.restore();
   }
 
+  function drawGameTutorial(context, game) {
+    const definition = game.definition;
+    context.save();
+    context.fillStyle = "rgba(5,7,14,0.82)";
+    context.fillRect(0, 0, 960, 540);
+    const glow = context.createRadialGradient(480, 252, 40, 480, 252, 420);
+    glow.addColorStop(0, `${definition.glow || "rgba(56,189,248,0.5)"}`);
+    glow.addColorStop(1, "rgba(15,23,42,0)");
+    context.fillStyle = glow;
+    context.fillRect(0, 0, 960, 540);
+
+    context.fillStyle = "rgba(15,23,42,0.95)";
+    context.strokeStyle = definition.accent;
+    context.lineWidth = 3;
+    roundedRect(context, 154, 78, 652, 390, 24);
+    context.fill();
+    context.stroke();
+    drawText(context, "Tutorial", 480, 126, definition.accent, "1000 18px system-ui", "center");
+    drawText(context, definition.title, 480, 168, "#f8fafc", "1000 38px system-ui", "center");
+
+    const rows = [
+      { label: "Objective", text: definition.rules },
+      { label: "Controls", text: definition.controls },
+      { label: "Tip", text: definition.strategy },
+    ];
+    rows.forEach((row, index) => {
+      const y = 214 + index * 72;
+      context.fillStyle = "rgba(255,255,255,0.07)";
+      roundedRect(context, 202, y - 24, 556, 56, 14);
+      context.fill();
+      drawText(context, row.label, 226, y - 2, definition.accent, "1000 13px system-ui", "left");
+      drawWrappedText(context, row.text, 330, y - 4, 398, 16, "#dbeafe", "800 13px system-ui");
+    });
+
+    const button = game.tutorialButton || { x: 360, y: 446, w: 240, h: 52 };
+    const grad = context.createLinearGradient(button.x, button.y, button.x + button.w, button.y + button.h);
+    grad.addColorStop(0, definition.accent);
+    grad.addColorStop(1, "#f97316");
+    context.fillStyle = grad;
+    context.strokeStyle = "rgba(255,255,255,0.28)";
+    context.lineWidth = 2;
+    roundedRect(context, button.x, button.y, button.w, button.h, 17);
+    context.fill();
+    context.stroke();
+    drawText(context, "Start", button.x + button.w / 2, button.y + 34, "#f8fafc", "1000 21px system-ui", "center");
+    drawText(context, "Enter / Space also starts", 480, 496, "#94a3b8", "800 12px system-ui", "center");
+    context.restore();
+  }
+
+  function drawWrappedText(context, text, x, y, maxWidth, lineHeight, color, font) {
+    context.save();
+    context.fillStyle = color;
+    context.font = font;
+    context.textAlign = "left";
+    context.textBaseline = "alphabetic";
+    const words = String(text || "").split(/\s+/);
+    let line = "";
+    let lineY = y;
+    words.forEach((word) => {
+      const test = line ? `${line} ${word}` : word;
+      if (context.measureText(test).width > maxWidth && line) {
+        context.fillText(line, x, lineY);
+        line = word;
+        lineY += lineHeight;
+      } else {
+        line = test;
+      }
+    });
+    if (line) context.fillText(line, x, lineY);
+    context.restore();
+  }
+
   function drawBubbleCannon(context, game) {
     context.save();
     const gradient = context.createLinearGradient(0, 0, 0, gameCanvas.height);
@@ -6713,30 +7552,400 @@
   function drawBasketballCourt(context, game) {
     drawGameBackground(context, game.elapsed);
     context.save();
-    const floor = context.createLinearGradient(0, 160, 0, 540);
-    floor.addColorStop(0, "#7c3f1d");
-    floor.addColorStop(1, "#2b1608");
+    const homeTeam = game.selectedTeam || { short: "YOU", name: "Your Team", color: "#38bdf8", trim: "#f8fafc" };
+    const awayTeam = game.opponent || { short: "CPU", name: "AI Team", color: "#ef4444", trim: "#fee2e2" };
+    const wall = context.createLinearGradient(0, 0, 0, 220);
+    wall.addColorStop(0, "#cbd5e1");
+    wall.addColorStop(0.6, "#64748b");
+    wall.addColorStop(1, "#273449");
+    context.fillStyle = wall;
+    context.fillRect(72, 80, 816, 150);
+    context.fillStyle = "rgba(15,23,42,0.24)";
+    for (let i = 0; i < 14; i += 1) {
+      const x = 112 + i * 56;
+      context.fillRect(x, 116 + (i % 2) * 8, 34, 38);
+      context.fillRect(x + 6, 166, 34, 38);
+    }
+    context.fillStyle = "rgba(255,255,255,0.2)";
+    context.fillRect(176, 98, 156, 70);
+    context.fillRect(628, 98, 156, 70);
+
+    const floor = context.createLinearGradient(0, 170, 0, 540);
+    floor.addColorStop(0, "#d69a45");
+    floor.addColorStop(0.55, "#b66c27");
+    floor.addColorStop(1, "#5b2a0e");
     context.fillStyle = floor;
-    context.fillRect(80, 150, 800, 340);
-    context.strokeStyle = "rgba(255,255,255,0.7)";
-    context.lineWidth = 4;
-    context.strokeRect(80, 150, 800, 340);
-    context.beginPath();
-    context.arc(480, 320, 72, 0, Math.PI * 2);
-    context.moveTo(760, 150);
-    context.lineTo(760, 490);
-    context.stroke();
-    drawHoop(context, game.hoop.x, game.hoop.y);
-    drawBaller(context, game.player.x, game.player.y, "#34d6ff", game.ball.held);
-    game.defenders.forEach((defender) => drawBaller(context, defender.x, defender.y, "#ff5b5b", false));
-    if (!game.ball.held) drawBall(context, game.ball.x, game.ball.y, 13, "#fb923c");
-    if (game.ball.held) {
-      context.strokeStyle = "#ffd166";
-      context.lineWidth = 6;
+    roundedRect(context, 72, 176, 816, 322, 18);
+    context.fill();
+    context.save();
+    context.globalAlpha = 0.24;
+    context.strokeStyle = "#7c2d12";
+    context.lineWidth = 2;
+    for (let y = 198; y < 494; y += 28) {
       context.beginPath();
-      context.arc(game.player.x, game.player.y - 42, 26 + game.shotCharge * 18, -Math.PI * 0.8, -Math.PI * 0.2);
+      context.moveTo(92, y);
+      context.lineTo(868, y + Math.sin(y) * 2);
       context.stroke();
     }
+    context.restore();
+
+    context.strokeStyle = "rgba(255,255,255,0.78)";
+    context.lineWidth = 4;
+    roundedRect(context, 92, 196, 776, 280, 10);
+    context.stroke();
+    context.beginPath();
+    context.moveTo(480, 196);
+    context.lineTo(480, 476);
+    context.arc(480, 336, 66, -Math.PI / 2, Math.PI * 1.5);
+    context.stroke();
+    context.strokeRect(92, 254, 148, 164);
+    context.strokeRect(720, 254, 148, 164);
+    context.beginPath();
+    context.arc(240, 336, 76, -Math.PI / 2, Math.PI / 2);
+    context.arc(720, 336, 76, Math.PI / 2, Math.PI * 1.5);
+    context.stroke();
+
+    drawHoop(context, 190, 248, "left");
+    drawHoop(context, game.hoop.x, game.hoop.y, "right");
+    game.defenders.forEach((defender, index) => drawBaller(context, defender.x, defender.y, awayTeam.color, false, index ? awayTeam.short : "AI", "away"));
+    drawBaller(context, game.player.x, game.player.y, homeTeam.color, game.ball.held, homeTeam.short, "home");
+    if (!game.ball.held) {
+      context.save();
+      context.strokeStyle = "rgba(251,146,60,0.34)";
+      context.lineWidth = 6;
+      context.beginPath();
+      context.moveTo(game.ball.x - game.ball.vx * 0.08, game.ball.y - game.ball.vy * 0.08);
+      context.lineTo(game.ball.x, game.ball.y);
+      context.stroke();
+      context.restore();
+      drawBall(context, game.ball.x, game.ball.y, 13, "#fb923c");
+    }
+    if (game.ball.held) {
+      context.strokeStyle = "rgba(255,209,102,0.9)";
+      context.lineWidth = 7;
+      context.beginPath();
+      context.arc(game.player.x + 8, game.player.y - 38, 28 + game.shotCharge * 22, -Math.PI * 0.86, -Math.PI * 0.15);
+      context.stroke();
+      context.fillStyle = "rgba(255,255,255,0.16)";
+      roundedRect(context, game.player.x - 46, game.player.y + 58, 92, 10, 999);
+      context.fill();
+      context.fillStyle = "#ffd166";
+      roundedRect(context, game.player.x - 46, game.player.y + 58, 92 * clamp(game.shotCharge / 1.25, 0, 1), 10, 999);
+      context.fill();
+    }
+    context.fillStyle = "rgba(15,23,42,0.78)";
+    roundedRect(context, 314, 88, 332, 76, 16);
+    context.fill();
+    drawText(context, `${homeTeam.short} ${game.playerScore || 0}`, 404, 128, homeTeam.color, "1000 28px system-ui", "center");
+    drawText(context, `${awayTeam.short} ${game.opponentScore || 0}`, 556, 128, awayTeam.color, "1000 28px system-ui", "center");
+    drawText(context, game.setup ? "RETRO HOOPS" : `${Math.ceil(game.timeLeft || 0)}s ${game.overtime ? "OT" : ""}`, 480, 151, "#f8fafc", "900 14px system-ui", "center");
+    if (!game.setup) {
+      context.fillStyle = "rgba(255,255,255,0.13)";
+      roundedRect(context, 116, 102, 152, 16, 999);
+      context.fill();
+      context.fillStyle = game.superMeter >= 1 || game.superFlash > 0 ? "#ffd166" : "#38bdf8";
+      roundedRect(context, 116, 102, 152 * clamp(game.superMeter || 0, 0, 1), 16, 999);
+      context.fill();
+      drawText(context, game.superMeter >= 1 ? "SUPERSHOT READY: K/Z" : "SUPERSHOT", 192, 93, "#f8fafc", "900 12px system-ui", "center");
+    }
+    if (!game.setup && game.message) {
+      context.fillStyle = "rgba(15,23,42,0.66)";
+      roundedRect(context, 276, 174, 408, 34, 999);
+      context.fill();
+      drawText(context, game.message, 480, 197, "#f8fafc", "900 15px system-ui", "center");
+    }
+    if (game.matchPause > 0) drawBasketballResult(context, game);
+    if (game.setup) drawBasketballSetup(context, game);
+    context.restore();
+  }
+
+  function drawBasketballSetup(context, game) {
+    context.save();
+    context.fillStyle = "rgba(5,7,14,0.74)";
+    context.fillRect(0, 0, 960, 540);
+    const glow = context.createRadialGradient(480, 260, 40, 480, 260, 460);
+    glow.addColorStop(0, "rgba(129,140,248,0.34)");
+    glow.addColorStop(0.55, "rgba(59,130,246,0.16)");
+    glow.addColorStop(1, "rgba(15,23,42,0)");
+    context.fillStyle = glow;
+    context.fillRect(0, 0, 960, 540);
+    context.fillStyle = "rgba(15,23,42,0.94)";
+    context.strokeStyle = "#38bdf8";
+    context.lineWidth = 3;
+    roundedRect(context, 70, 68, 820, 420, 24);
+    context.fill();
+    context.stroke();
+    drawText(context, "HOOPS PROS", 480, 116, "#f8fafc", "1000 46px system-ui", "center");
+    drawText(context, game.setupStep === "home" ? "Choose a mode" : "Select your tournament team", 480, 150, "#ffd166", "1000 20px system-ui", "center");
+
+    if (game.setupStep === "instructions") {
+      drawBasketballInstructions(context, game);
+      context.restore();
+      return;
+    }
+
+    if (game.setupStep === "home") {
+      drawBaller(context, 214, 304, "#facc15", true, "MVP", "home");
+      drawBaller(context, 746, 304, "#22c55e", false, "CPU", "away");
+      drawBasketballTeamLogo(context, game.teams[0], 356, 262, 52);
+      drawBasketballTeamLogo(context, game.teams[7], 604, 262, 52);
+      drawHoop(context, 480, 256, "right");
+      drawBall(context, 480, 254, 19, "#fb923c");
+      game.homeButtons.forEach((button) => {
+        const quick = button.id === "quick";
+        const grad = context.createLinearGradient(button.x, button.y, button.x + button.w, button.y + button.h);
+        grad.addColorStop(0, quick ? "#38bdf8" : "#fb7185");
+        grad.addColorStop(1, quick ? "#2563eb" : "#f97316");
+        context.fillStyle = grad;
+        context.strokeStyle = "rgba(255,255,255,0.26)";
+        context.lineWidth = 2;
+        roundedRect(context, button.x, button.y, button.w, button.h, 18);
+        context.fill();
+        context.stroke();
+        drawText(context, button.label, button.x + button.w / 2, button.y + 39, "#f8fafc", "1000 22px system-ui", "center");
+      });
+      drawText(context, "Quick Match randomizes teams. Tournament opens the full bracket.", 480, 456, "#94a3b8", "800 14px system-ui", "center");
+      context.restore();
+      return;
+    }
+
+    drawBasketballBracketPreview(context, game);
+    game.teamButtons.forEach((button) => {
+      const team = game.teams.find((item) => item.id === button.id) || game.teams[0];
+      context.fillStyle = "rgba(255,255,255,0.075)";
+      context.strokeStyle = team.color;
+      context.lineWidth = 2;
+      roundedRect(context, button.x, button.y, button.w, button.h, 13);
+      context.fill();
+      context.stroke();
+      drawBasketballTeamLogo(context, team, button.x + 28, button.y + 27, 23);
+      drawText(context, team.short, button.x + 62, button.y + 26, "#f8fafc", "1000 17px system-ui", "left");
+      drawText(context, team.name.replace(/^\w+\s/, ""), button.x + 62, button.y + 43, "#94a3b8", "800 10px system-ui", "left");
+    });
+    context.fillStyle = "rgba(255,255,255,0.08)";
+    roundedRect(context, 204, 454, 552, 24, 999);
+    context.fill();
+    drawText(context, "Pick any club. Your road: Quarterfinal > Semifinal > Final", 480, 471, "#f8fafc", "900 13px system-ui", "center");
+    context.restore();
+  }
+
+  function drawBasketballBracketPreview(context, game) {
+    context.save();
+    context.fillStyle = "rgba(15,23,42,0.74)";
+    context.strokeStyle = "rgba(255,255,255,0.14)";
+    context.lineWidth = 2;
+    roundedRect(context, 300, 154, 360, 58, 15);
+    context.fill();
+    context.stroke();
+    drawText(context, "TOURNAMENT GRID", 480, 178, "#ffd166", "1000 18px system-ui", "center");
+    drawText(context, "16 teams available", 480, 198, "#c7d2fe", "850 12px system-ui", "center");
+    const seeds = game.teams.slice(0, 8);
+    seeds.forEach((team, index) => {
+      const side = index < 4 ? -1 : 1;
+      const row = index % 4;
+      const x = side < 0 ? 118 : 842;
+      const y = 180 + row * 58;
+      drawBasketballTeamLogo(context, team, x, y, 18);
+      context.strokeStyle = "rgba(255,255,255,0.18)";
+      context.lineWidth = 2;
+      context.beginPath();
+      context.moveTo(x + side * 24, y);
+      context.lineTo(480 + side * 110, y);
+      context.stroke();
+    });
+    context.restore();
+  }
+
+  function drawBasketballTeamLogo(context, team, x, y, radius = 32) {
+    context.save();
+    context.translate(x, y);
+    context.shadowColor = team.color;
+    context.shadowBlur = radius * 0.55;
+    const badge = context.createRadialGradient(-radius * 0.32, -radius * 0.32, 4, 0, 0, radius);
+    badge.addColorStop(0, "#ffffff");
+    badge.addColorStop(0.24, team.color);
+    badge.addColorStop(1, team.trim || "#0f172a");
+    context.fillStyle = badge;
+    context.strokeStyle = "#f8fafc";
+    context.lineWidth = Math.max(2, radius * 0.1);
+    context.beginPath();
+    context.arc(0, 0, radius, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+    context.shadowBlur = 0;
+    context.fillStyle = "rgba(15,23,42,0.72)";
+    context.beginPath();
+    context.arc(0, 0, radius * 0.68, 0, Math.PI * 2);
+    context.fill();
+    drawLogoMark(context, team.logo || "star", team.color, radius);
+    context.restore();
+  }
+
+  function drawLogoMark(context, type, color, radius) {
+    context.save();
+    context.strokeStyle = "#f8fafc";
+    context.fillStyle = color;
+    context.lineWidth = Math.max(2, radius * 0.08);
+    if (type === "comet") {
+      context.beginPath();
+      context.moveTo(-radius * 0.65, radius * 0.2);
+      context.quadraticCurveTo(-radius * 0.15, -radius * 0.5, radius * 0.58, -radius * 0.1);
+      context.quadraticCurveTo(radius * 0.06, -radius * 0.05, -radius * 0.65, radius * 0.2);
+      context.fill();
+      context.stroke();
+      drawBall(context, radius * 0.18, -radius * 0.04, radius * 0.28, "#fb923c");
+    } else if (type === "fang" || type === "claw") {
+      context.beginPath();
+      context.moveTo(-radius * 0.34, -radius * 0.48);
+      context.lineTo(-radius * 0.08, radius * 0.52);
+      context.lineTo(radius * 0.05, -radius * 0.12);
+      context.lineTo(radius * 0.34, radius * 0.52);
+      context.lineTo(radius * 0.48, -radius * 0.48);
+      context.closePath();
+      context.fill();
+      context.stroke();
+    } else if (type === "flame" || type === "storm") {
+      context.beginPath();
+      context.moveTo(-radius * 0.1, radius * 0.52);
+      context.quadraticCurveTo(-radius * 0.62, radius * 0.04, -radius * 0.08, -radius * 0.55);
+      context.quadraticCurveTo(radius * 0.02, -radius * 0.12, radius * 0.38, -radius * 0.42);
+      context.quadraticCurveTo(radius * 0.58, radius * 0.12, -radius * 0.1, radius * 0.52);
+      context.fill();
+      context.stroke();
+    } else if (type === "crown") {
+      context.beginPath();
+      context.moveTo(-radius * 0.52, radius * 0.3);
+      context.lineTo(-radius * 0.34, -radius * 0.28);
+      context.lineTo(-radius * 0.08, radius * 0.08);
+      context.lineTo(radius * 0.18, -radius * 0.36);
+      context.lineTo(radius * 0.48, radius * 0.28);
+      context.closePath();
+      context.fill();
+      context.stroke();
+    } else if (type === "shield") {
+      context.beginPath();
+      context.moveTo(0, -radius * 0.58);
+      context.lineTo(radius * 0.48, -radius * 0.26);
+      context.lineTo(radius * 0.32, radius * 0.48);
+      context.lineTo(0, radius * 0.64);
+      context.lineTo(-radius * 0.32, radius * 0.48);
+      context.lineTo(-radius * 0.48, -radius * 0.26);
+      context.closePath();
+      context.fill();
+      context.stroke();
+    } else if (type === "wave" || type === "orbit") {
+      context.beginPath();
+      context.arc(0, 0, radius * 0.46, -Math.PI * 0.15, Math.PI * 1.15);
+      context.stroke();
+      drawBall(context, radius * 0.08, -radius * 0.04, radius * 0.25, "#fb923c");
+    } else if (type === "horse" || type === "moon") {
+      context.beginPath();
+      context.arc(radius * 0.06, 0, radius * 0.42, Math.PI * 0.18, Math.PI * 1.82);
+      context.stroke();
+      context.beginPath();
+      context.arc(-radius * 0.1, -radius * 0.1, radius * 0.25, 0, Math.PI * 2);
+      context.fill();
+    } else if (type === "clover") {
+      [[0, -0.28], [-0.28, 0], [0.28, 0], [0, 0.28]].forEach(([dx, dy]) => {
+        context.beginPath();
+        context.arc(dx * radius, dy * radius, radius * 0.22, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+      });
+    } else if (type === "rocket" || type === "bolt") {
+      context.beginPath();
+      context.moveTo(radius * 0.1, -radius * 0.58);
+      context.lineTo(-radius * 0.46, radius * 0.08);
+      context.lineTo(-radius * 0.08, radius * 0.08);
+      context.lineTo(-radius * 0.22, radius * 0.58);
+      context.lineTo(radius * 0.48, -radius * 0.18);
+      context.lineTo(radius * 0.08, -radius * 0.16);
+      context.closePath();
+      context.fill();
+      context.stroke();
+    } else if (type === "tower") {
+      roundedRect(context, -radius * 0.3, -radius * 0.48, radius * 0.6, radius * 0.88, radius * 0.08);
+      context.fill();
+      context.stroke();
+      drawText(context, "NY", 0, radius * 0.12, "#f8fafc", `1000 ${Math.max(10, radius * 0.44)}px system-ui`, "center");
+    } else {
+      context.beginPath();
+      for (let i = 0; i < 10; i += 1) {
+        const r = i % 2 ? radius * 0.24 : radius * 0.56;
+        const a = -Math.PI / 2 + i * Math.PI / 5;
+        const px = Math.cos(a) * r;
+        const py = Math.sin(a) * r;
+        if (i === 0) context.moveTo(px, py);
+        else context.lineTo(px, py);
+      }
+      context.closePath();
+      context.fill();
+      context.stroke();
+    }
+    context.restore();
+  }
+
+  function drawBasketballInstructions(context, game) {
+    const homeTeam = game.selectedTeam || game.teams[0];
+    const awayTeam = game.opponent || game.teams[1];
+    context.fillStyle = "rgba(255,255,255,0.07)";
+    roundedRect(context, 176, 214, 608, 212, 18);
+    context.fill();
+    drawText(context, `${homeTeam.name} vs ${awayTeam.name}`, 480, 240, "#f8fafc", "1000 22px system-ui", "center");
+    drawText(context, game.pendingStart === "tournament" ? "Tournament: win 3 AI games to take the trophy." : "Quick Match: random teams, one fast AI showdown.", 480, 266, "#c7d2fe", "850 15px system-ui", "center");
+
+    const cards = [
+      { title: "Move", body: "WASD or Arrow Keys", icon: "↕", x: 204, y: 292 },
+      { title: "Shoot / Steal", body: "X, L, B, or Action", icon: "●", x: 390, y: 292 },
+      { title: "Pump / Block", body: "S or Down Arrow", icon: "▰", x: 576, y: 292 },
+      { title: "Dash", body: "Double tap direction or hold Shift", icon: "»", x: 204, y: 358 },
+      { title: "SuperShot", body: "Charge meter, press K or Z", icon: "★", x: 390, y: 358 },
+      { title: "Tip", body: "No 3s. Drive, block, then dunk.", icon: "!", x: 576, y: 358 },
+    ];
+    cards.forEach((card) => {
+      context.fillStyle = "rgba(15,23,42,0.88)";
+      context.strokeStyle = "rgba(255,255,255,0.14)";
+      context.lineWidth = 2;
+      roundedRect(context, card.x, card.y, 164, 48, 13);
+      context.fill();
+      context.stroke();
+      context.fillStyle = "#ffd166";
+      roundedRect(context, card.x + 10, card.y + 9, 30, 30, 9);
+      context.fill();
+      drawText(context, card.icon, card.x + 25, card.y + 31, "#111827", "1000 16px system-ui", "center");
+      drawText(context, card.title, card.x + 50, card.y + 21, "#f8fafc", "1000 13px system-ui", "left");
+      drawText(context, card.body, card.x + 50, card.y + 39, "#94a3b8", "800 10px system-ui", "left");
+    });
+
+    const button = game.instructionButton;
+    const grad = context.createLinearGradient(button.x, button.y, button.x + button.w, button.y + button.h);
+    grad.addColorStop(0, homeTeam.color);
+    grad.addColorStop(1, "#f97316");
+    context.fillStyle = grad;
+    context.strokeStyle = "rgba(255,255,255,0.28)";
+    context.lineWidth = 2;
+    roundedRect(context, button.x, button.y, button.w, button.h, 17);
+    context.fill();
+    context.stroke();
+    drawText(context, button.label, button.x + button.w / 2, button.y + 34, "#f8fafc", "1000 21px system-ui", "center");
+  }
+
+  function drawBasketballResult(context, game) {
+    context.save();
+    context.fillStyle = "rgba(5,7,14,0.62)";
+    context.fillRect(0, 0, 960, 540);
+    context.fillStyle = "rgba(15,23,42,0.92)";
+    context.strokeStyle = game.lastMatchWon ? "#22c55e" : "#fb7185";
+    context.lineWidth = 3;
+    roundedRect(context, 290, 178, 380, 178, 22);
+    context.fill();
+    context.stroke();
+    drawText(context, game.lastMatchWon ? "WIN" : "FINAL BUZZER", 480, 236, game.lastMatchWon ? "#86efac" : "#fecdd3", "1000 42px system-ui", "center");
+    drawText(context, `${game.selectedTeam.short} ${game.playerScore} - ${game.opponentScore} ${game.opponent.short}`, 480, 276, "#f8fafc", "1000 24px system-ui", "center");
+    const next = game.mode === "tournament" && game.lastMatchWon && game.roundIndex < game.bracket.length - 1
+      ? `Next: ${game.bracket[game.roundIndex + 1].name}`
+      : game.mode === "tournament" && game.lastMatchWon ? "Championship run complete" : "Run ending";
+    drawText(context, next, 480, 312, "#c7d2fe", "850 16px system-ui", "center");
     context.restore();
   }
 
@@ -6773,16 +7982,26 @@
     context.restore();
   }
 
-  function drawHoop(context, x, y) {
+  function drawHoop(context, x, y, side = "right") {
     context.save();
-    context.fillStyle = "rgba(255,255,255,0.86)";
-    context.fillRect(x - 48, y - 54, 96, 58);
+    context.fillStyle = "rgba(148,163,184,0.46)";
+    context.fillRect(x + (side === "right" ? 50 : -58), y - 52, 10, 134);
+    context.fillStyle = "rgba(224,242,254,0.9)";
+    context.strokeStyle = "#38bdf8";
+    context.lineWidth = 4;
+    roundedRect(context, x - 52, y - 62, 104, 66, 8);
+    context.fill();
+    context.stroke();
+    context.strokeStyle = "rgba(15,23,42,0.55)";
+    context.lineWidth = 3;
+    roundedRect(context, x - 22, y - 38, 44, 30, 4);
+    context.stroke();
     context.strokeStyle = "#f97316";
     context.lineWidth = 6;
     context.beginPath();
     context.ellipse(x, y, 34, 10, 0, 0, Math.PI * 2);
     context.stroke();
-    context.strokeStyle = "rgba(255,255,255,0.55)";
+    context.strokeStyle = "rgba(255,255,255,0.78)";
     context.lineWidth = 2;
     for (let i = -24; i <= 24; i += 12) {
       context.beginPath();
@@ -6793,25 +8012,82 @@
     context.restore();
   }
 
-  function drawBaller(context, x, y, color, hasBall) {
+  function drawBaller(context, x, y, color, hasBall, label = "", team = "home") {
     context.save();
-    context.fillStyle = color;
+    context.translate(x, y);
+    const dark = team === "home" ? "#0f172a" : "#450a0a";
     context.shadowColor = color;
     context.shadowBlur = 18;
+    context.fillStyle = "rgba(0,0,0,0.24)";
     context.beginPath();
-    context.arc(x, y - 34, 14, 0, Math.PI * 2);
+    context.ellipse(0, 54, 34, 9, 0, 0, Math.PI * 2);
     context.fill();
-    roundedRect(context, x - 18, y - 20, 36, 44, 10);
-    context.fill();
-    context.strokeStyle = "#f5f7ff";
+
+    context.strokeStyle = "#1f2937";
+    context.lineWidth = 10;
+    context.lineCap = "round";
+    context.beginPath();
+    context.moveTo(-13, 18);
+    context.lineTo(-26, 47);
+    context.moveTo(13, 18);
+    context.lineTo(27, 47);
+    context.stroke();
+    context.strokeStyle = "#f8fafc";
     context.lineWidth = 5;
     context.beginPath();
-    context.moveTo(x - 12, y + 22);
-    context.lineTo(x - 24, y + 48);
-    context.moveTo(x + 12, y + 22);
-    context.lineTo(x + 24, y + 48);
+    context.moveTo(-26, 47);
+    context.lineTo(-39, 47);
+    context.moveTo(27, 47);
+    context.lineTo(40, 47);
     context.stroke();
-    if (hasBall) drawBall(context, x + 24, y - 20, 10, "#fb923c");
+
+    context.strokeStyle = "#8b5e34";
+    context.lineWidth = 8;
+    context.beginPath();
+    context.moveTo(-24, -9);
+    context.lineTo(-42, 8);
+    context.moveTo(24, -9);
+    context.lineTo(42, hasBall ? -22 : 8);
+    context.stroke();
+
+    context.fillStyle = color;
+    roundedRect(context, -24, -22, 48, 48, 13);
+    context.fill();
+    context.fillStyle = "rgba(255,255,255,0.88)";
+    context.font = "1000 15px system-ui";
+    context.textAlign = "center";
+    context.fillText(team === "home" ? "01" : "D", 0, 8);
+    context.fillStyle = dark;
+    roundedRect(context, -17, 20, 34, 15, 5);
+    context.fill();
+
+    context.fillStyle = "#9f6a3a";
+    context.beginPath();
+    context.arc(0, -43, 18, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = team === "home" ? "#111827" : "#7f1d1d";
+    context.beginPath();
+    context.arc(0, -49, 19, Math.PI, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "#111827";
+    context.beginPath();
+    context.arc(-6, -42, 2, 0, Math.PI * 2);
+    context.arc(7, -42, 2, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = "rgba(255,255,255,0.38)";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(-7, -34);
+    context.lineTo(8, -34);
+    context.stroke();
+
+    if (label) {
+      context.fillStyle = "rgba(15,23,42,0.78)";
+      roundedRect(context, -36, 64, 72, 20, 999);
+      context.fill();
+      drawText(context, label, 0, 79, "#f5f7ff", "900 11px system-ui", "center");
+    }
+    if (hasBall) drawBall(context, 39, -24, 12, "#fb923c");
     context.restore();
   }
 
@@ -6823,6 +8099,297 @@
     context.beginPath();
     context.arc(x, y, radius, 0, Math.PI * 2);
     context.fill();
+    context.stroke();
+    context.strokeStyle = "rgba(5,6,12,0.45)";
+    context.lineWidth = 1.5;
+    context.beginPath();
+    context.moveTo(x - radius, y);
+    context.lineTo(x + radius, y);
+    context.moveTo(x, y - radius);
+    context.lineTo(x, y + radius);
+    context.arc(x, y, radius * 0.55, -Math.PI / 2, Math.PI / 2);
+    context.arc(x, y, radius * 0.55, Math.PI / 2, Math.PI * 1.5);
+    context.stroke();
+    context.restore();
+  }
+
+  function drawBaseballField(context, game) {
+    context.save();
+    const sky = context.createLinearGradient(0, 0, 0, 540);
+    sky.addColorStop(0, "#82d8ff");
+    sky.addColorStop(0.34, "#dbeafe");
+    sky.addColorStop(0.35, "#1f7a3b");
+    sky.addColorStop(1, "#14532d");
+    context.fillStyle = sky;
+    context.fillRect(0, 0, 960, 540);
+    context.fillStyle = "rgba(15,23,42,0.28)";
+    for (let i = 0; i < 18; i += 1) {
+      context.fillRect(60 + i * 48, 150 + (i % 2) * 10, 34, 28);
+    }
+    context.fillStyle = "#166534";
+    context.beginPath();
+    context.moveTo(480, 490);
+    context.lineTo(120, 160);
+    context.quadraticCurveTo(480, 40, 840, 160);
+    context.closePath();
+    context.fill();
+    context.save();
+    context.globalAlpha = 0.24;
+    context.strokeStyle = "#bbf7d0";
+    context.lineWidth = 16;
+    for (let x = 170; x <= 800; x += 76) {
+      context.beginPath();
+      context.moveTo(480, 490);
+      context.lineTo(x, 145);
+      context.stroke();
+    }
+    context.restore();
+    context.fillStyle = "#b77935";
+    context.beginPath();
+    context.moveTo(480, 490);
+    context.lineTo(306, 340);
+    context.lineTo(480, 214);
+    context.lineTo(654, 340);
+    context.closePath();
+    context.fill();
+    context.strokeStyle = "rgba(255,255,255,0.82)";
+    context.lineWidth = 4;
+    context.beginPath();
+    context.moveTo(480, 490);
+    context.lineTo(306, 340);
+    context.lineTo(480, 214);
+    context.lineTo(654, 340);
+    context.closePath();
+    context.stroke();
+    drawBase(context, 480, 474, "HOME");
+    drawBase(context, 306, 340, "1B", game.bases?.[0]);
+    drawBase(context, 480, 214, "2B", game.bases?.[1]);
+    drawBase(context, 654, 340, "3B", game.bases?.[2]);
+    context.fillStyle = "#a16207";
+    context.beginPath();
+    context.arc(586, 282, 34, 0, Math.PI * 2);
+    context.fill();
+    drawBaseballPlayer(context, 595, 262, "#f8fafc", "#2563eb", "P");
+    [
+      [332, 340, "1B"],
+      [480, 244, "2B"],
+      [640, 342, "3B"],
+      [246, 226, "LF"],
+      [480, 150, "CF"],
+      [720, 226, "RF"],
+    ].forEach(([fx, fy, label]) => drawBaseballPlayer(context, fx, fy, "#f8fafc", "#2563eb", label));
+    drawBatter(context, 326, 408, game.cursor);
+    game.runners?.forEach((runner) => {
+      const from = game.basePoint ? game.basePoint(runner.from) : { x: 480, y: 474 };
+      const to = game.basePoint ? game.basePoint(runner.to) : { x: 480, y: 474 };
+      const x = from.x + (to.x - from.x) * runner.progress;
+      const y = from.y + (to.y - from.y) * runner.progress;
+      drawBaseRunner(context, x, y);
+    });
+    if (game.baseballMode === "arcade") drawOutfieldTarget(context, 690, 160);
+    if (game.pitch) drawBaseballBall(context, game.pitch.x, game.pitch.y, 9);
+    if (game.hitBall) {
+      const t = clamp(game.hitBall.age / game.hitBall.life, 0, 1);
+      const x = game.hitBall.startX + (game.hitBall.landingX - game.hitBall.startX) * t;
+      const y = game.hitBall.startY + (game.hitBall.landingY - game.hitBall.startY) * t - Math.sin(t * Math.PI) * 92;
+      context.strokeStyle = "rgba(255,255,255,0.48)";
+      context.lineWidth = 4;
+      context.beginPath();
+      context.moveTo(game.hitBall.startX, game.hitBall.startY);
+      context.quadraticCurveTo((game.hitBall.startX + game.hitBall.landingX) / 2, Math.min(y, game.hitBall.landingY) - 92, game.hitBall.landingX, game.hitBall.landingY);
+      context.stroke();
+      drawBaseballBall(context, x, y, 8);
+      context.fillStyle = game.hitBall.color || "#ffd166";
+      context.globalAlpha = 0.28;
+      context.beginPath();
+      context.arc(game.hitBall.landingX, game.hitBall.landingY, 26, 0, Math.PI * 2);
+      context.fill();
+      context.globalAlpha = 1;
+      if (game.hitBall.label) drawText(context, game.hitBall.label, game.hitBall.landingX, game.hitBall.landingY - 32, "#f8fafc", "1000 16px system-ui", "center");
+    }
+    if (game.fieldingPlay) {
+      context.strokeStyle = game.fieldingPlay.type === "ground" ? "rgba(255,255,255,0.72)" : "rgba(255,209,102,0.56)";
+      context.lineWidth = 4;
+      context.setLineDash(game.fieldingPlay.type === "ground" ? [8, 8] : []);
+      context.beginPath();
+      context.moveTo(game.hitBall?.landingX || 480, game.hitBall?.landingY || 250);
+      const targetBase = game.fieldingPlay.type === "ground" && game.fieldingPlay.bases >= 2 && game.bases?.[0] ? game.basePoint(2) : game.basePoint(1);
+      context.lineTo(targetBase.x, targetBase.y);
+      context.stroke();
+      context.setLineDash([]);
+    }
+    drawBaseballScoreboard(context, game);
+    if (!game.setup) {
+      context.strokeStyle = "rgba(255,209,102,0.9)";
+      context.lineWidth = 3;
+      context.beginPath();
+      context.arc(game.cursor.x, game.cursor.y, 18, 0, Math.PI * 2);
+      context.moveTo(game.cursor.x - 28, game.cursor.y);
+      context.lineTo(game.cursor.x + 28, game.cursor.y);
+      context.moveTo(game.cursor.x, game.cursor.y - 28);
+      context.lineTo(game.cursor.x, game.cursor.y + 28);
+      context.stroke();
+      drawText(context, game.message, 480, 90, "#f8fafc", "1000 24px system-ui", "center");
+      const stealReady = game.baseballMode === "ninth" && game.pitch && game.bases?.some(Boolean);
+      drawText(context, stealReady ? "Press S to steal. AI runners handle every hit." : "Click lower for higher launch. AI runners advance after contact.", 480, 118, "#dbeafe", "800 15px system-ui", "center");
+    }
+    if (game.setup) drawBaseballSetup(context, game);
+    context.restore();
+  }
+
+  function drawBase(context, x, y, label, occupied = false) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(Math.PI / 4);
+    context.fillStyle = occupied ? "#ffd166" : "#f8fafc";
+    context.strokeStyle = occupied ? "#f97316" : "rgba(15,23,42,0.5)";
+    context.lineWidth = 3;
+    roundedRect(context, -15, -15, 30, 30, 4);
+    context.fill();
+    context.stroke();
+    context.restore();
+    if (label) drawText(context, label, x, y + 38, "#f8fafc", "900 12px system-ui", "center");
+  }
+
+  function drawOutfieldTarget(context, x, y) {
+    context.save();
+    ["rgba(255,255,255,0.28)", "rgba(34,197,94,0.34)", "rgba(255,209,102,0.55)", "rgba(239,68,68,0.62)"].forEach((color, index) => {
+      context.fillStyle = color;
+      context.beginPath();
+      context.arc(x, y, 98 - index * 24, 0, Math.PI * 2);
+      context.fill();
+    });
+    drawText(context, "TARGET", x, y + 5, "#0f172a", "1000 17px system-ui", "center");
+    context.restore();
+  }
+
+  function drawBaseballScoreboard(context, game) {
+    context.save();
+    context.fillStyle = "rgba(15,23,42,0.82)";
+    roundedRect(context, 342, 18, 276, 56, 14);
+    context.fill();
+    const title = game.baseballMode === "ninth" ? "BOTTOM 9TH" : `ARCADE ${game.difficultySpec().name.toUpperCase()}`;
+    drawText(context, title, 480, 40, "#dbeafe", "900 14px system-ui", "center");
+    const detail = game.baseballMode === "ninth" ? `Need 5 runs | Outs ${game.outs}/3` : `${game.pitchesLeft} pitches | ${game.targetHits} target hits`;
+    drawText(context, detail, 480, 63, "#ffd166", "1000 20px system-ui", "center");
+    context.restore();
+  }
+
+  function drawBaseballSetup(context, game) {
+    context.save();
+    context.fillStyle = "rgba(5,7,14,0.76)";
+    context.fillRect(0, 0, 960, 540);
+    context.fillStyle = "rgba(15,23,42,0.94)";
+    context.strokeStyle = "#22c55e";
+    context.lineWidth = 3;
+    roundedRect(context, 150, 92, 660, 412, 22);
+    context.fill();
+    context.stroke();
+    drawText(context, "Bottom Ninth Baseball", 480, 150, "#f8fafc", "1000 42px system-ui", "center");
+    drawText(context, "Click a mode, choose difficulty, then swing with the cursor.", 480, 190, "#dbeafe", "800 18px system-ui", "center");
+    drawText(context, "Bottom 9th: down 4, score 5 before 3 outs. Arcade: 10 pitches into the target.", 480, 224, "#a7f3d0", "800 16px system-ui", "center");
+    game.setupButtons.forEach((button) => {
+      const active = button.id === game.baseballMode || button.id === game.difficulty;
+      context.fillStyle = button.id === "start"
+        ? "rgba(34,197,94,0.88)"
+        : active ? "rgba(255,209,102,0.22)" : "rgba(255,255,255,0.08)";
+      context.strokeStyle = active || button.id === "start" ? "#ffd166" : "rgba(255,255,255,0.18)";
+      context.lineWidth = 2;
+      roundedRect(context, button.x, button.y, button.w, button.h, 13);
+      context.fill();
+      context.stroke();
+      drawText(context, button.label, button.x + button.w / 2, button.y + button.h / 2 + 7, button.id === "start" ? "#052e16" : "#f8fafc", "1000 18px system-ui", "center");
+    });
+    context.restore();
+  }
+
+  function drawBaseballPlayer(context, x, y, pants, jersey, label) {
+    context.save();
+    context.translate(x, y);
+    context.fillStyle = "rgba(0,0,0,0.22)";
+    context.beginPath();
+    context.ellipse(0, 66, 28, 8, 0, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = pants;
+    context.strokeStyle = "#1f2937";
+    context.lineWidth = 8;
+    context.beginPath();
+    context.moveTo(-10, 24);
+    context.lineTo(-22, 58);
+    context.moveTo(10, 24);
+    context.lineTo(22, 58);
+    context.stroke();
+    context.fillStyle = jersey;
+    roundedRect(context, -22, -20, 44, 48, 12);
+    context.fill();
+    context.fillStyle = "#9f6a3a";
+    context.beginPath();
+    context.arc(0, -38, 16, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "#111827";
+    context.fillRect(-16, -50, 32, 8);
+    drawText(context, label, 0, 9, "#f8fafc", "1000 17px system-ui", "center");
+    context.restore();
+  }
+
+  function drawBaseRunner(context, x, y) {
+    context.save();
+    context.translate(x, y - 10);
+    context.fillStyle = "rgba(0,0,0,0.24)";
+    context.beginPath();
+    context.ellipse(0, 28, 18, 6, 0, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "#22c55e";
+    context.strokeStyle = "#f8fafc";
+    context.lineWidth = 3;
+    roundedRect(context, -13, -10, 26, 30, 8);
+    context.fill();
+    context.stroke();
+    context.fillStyle = "#9f6a3a";
+    context.beginPath();
+    context.arc(0, -19, 10, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = "#14532d";
+    context.lineWidth = 5;
+    context.lineCap = "round";
+    context.beginPath();
+    context.moveTo(-8, 16);
+    context.lineTo(-20, 31);
+    context.moveTo(8, 16);
+    context.lineTo(20, 30);
+    context.stroke();
+    context.restore();
+  }
+
+  function drawBatter(context, x, y, cursor) {
+    drawBaseballPlayer(context, x, y, "#f8fafc", "#22c55e", "B");
+    context.save();
+    context.translate(x, y);
+    const angle = -0.95 + clamp((cursor.y - 220) / 280, 0, 1) * 0.55;
+    context.strokeStyle = "#92400e";
+    context.lineWidth = 9;
+    context.lineCap = "round";
+    context.beginPath();
+    context.moveTo(24, -18);
+    context.lineTo(24 + Math.cos(angle) * 92, -18 + Math.sin(angle) * 92);
+    context.stroke();
+    context.restore();
+  }
+
+  function drawBaseballBall(context, x, y, radius) {
+    context.save();
+    context.fillStyle = "#f8fafc";
+    context.strokeStyle = "#b91c1c";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+    context.strokeStyle = "#dc2626";
+    context.lineWidth = 1.4;
+    context.beginPath();
+    context.arc(x - radius * 0.28, y, radius * 0.55, -Math.PI / 2, Math.PI / 2);
+    context.arc(x + radius * 0.28, y, radius * 0.55, Math.PI / 2, Math.PI * 1.5);
     context.stroke();
     context.restore();
   }
@@ -6986,24 +8553,45 @@
   }
 
   function drawArcheryRange(context, game, storm = false) {
-    drawGameBackground(context, game.elapsed);
     context.save();
-    context.fillStyle = storm ? "#1e1635" : "#173016";
-    context.fillRect(0, 280, 960, 260);
-    context.fillStyle = "#7c4a1d";
-    context.fillRect(146, 314, 16, 132);
-    context.strokeStyle = "#f5f7ff";
-    context.lineWidth = 6;
-    context.beginPath();
-    context.arc(162, 360, 42, -Math.PI / 2, Math.PI / 2);
-    context.stroke();
-    context.strokeStyle = "#ffd166";
-    context.lineWidth = 4;
-    context.beginPath();
-    context.moveTo(162, 360);
-    context.lineTo(162 + 112, 360 - Math.sin(game.aim + 0.42) * 112);
-    context.stroke();
-    drawArcheryTarget(context, game.target.x, game.target.y, 56);
+    const sky = context.createLinearGradient(0, 0, 0, 540);
+    sky.addColorStop(0, storm ? "#21143d" : "#9edcff");
+    sky.addColorStop(0.45, storm ? "#312352" : "#dbeafe");
+    sky.addColorStop(1, storm ? "#101827" : "#8fcf64");
+    context.fillStyle = sky;
+    context.fillRect(0, 0, 960, 540);
+    context.fillStyle = storm ? "#1e293b" : "#5fa83a";
+    context.fillRect(0, 286, 960, 254);
+    context.save();
+    context.globalAlpha = 0.52;
+    for (let x = -40; x < 980; x += 90) {
+      context.fillStyle = storm ? "#334155" : x % 180 === 0 ? "#4d8b32" : "#74b957";
+      context.beginPath();
+      context.moveTo(x, 286);
+      context.lineTo(x + 60, 190);
+      context.lineTo(x + 120, 286);
+      context.closePath();
+      context.fill();
+    }
+    context.restore();
+
+    context.strokeStyle = storm ? "rgba(192,132,252,0.24)" : "rgba(255,255,255,0.36)";
+    context.lineWidth = 2;
+    [650, 740, 830].forEach((x, index) => {
+      context.beginPath();
+      context.moveTo(176, 456);
+      context.lineTo(x, 286 + index * 14);
+      context.stroke();
+    });
+    context.fillStyle = "rgba(255,255,255,0.56)";
+    roundedRect(context, 580, 338, 90, 34, 4);
+    context.fill();
+    drawText(context, "30m", 625, 362, "#334155", "1000 24px system-ui", "center");
+
+    drawArcheryTarget(context, game.target.x, game.target.y, 64);
+    drawCompoundBow(context, 172, 356, game.aim, game.power, game.charging, storm);
+    drawArcherHand(context, 118, 406, storm);
+    drawSightReticle(context, 312 + Math.sin(game.aim + 0.42) * 120, 344 - Math.sin(game.aim + 0.42) * 80, storm);
     if (storm) {
       game.shields?.forEach((shield) => {
         context.fillStyle = "rgba(192,132,252,0.22)";
@@ -7022,28 +8610,190 @@
         context.stroke();
       });
     }
+    context.fillStyle = "rgba(15,23,42,0.78)";
+    roundedRect(context, 54, 66, 132, 120, 16);
+    context.fill();
+    drawText(context, "ARROWS", 120, 91, "#d6deff", "900 13px system-ui", "center");
+    for (let i = 0; i < 5; i += 1) drawMiniArrow(context, 82 + i * 16, 124, storm ? "#c084fc" : "#84cc16");
+    drawText(context, `${Math.max(0, 5 - game.misses)}/5`, 120, 170, "#f5f7ff", "1000 34px system-ui", "center");
+
+    context.fillStyle = "rgba(15,23,42,0.72)";
+    roundedRect(context, 340, 72, 250, 56, 14);
+    context.fill();
     context.fillStyle = game.wind > 0 ? "#34d6ff" : "#ff3d81";
-    context.fillRect(360, 84, Math.abs(game.wind) * 180, 8);
+    roundedRect(context, 382, 103, Math.max(18, Math.abs(game.wind) * 180), 9, 999);
+    context.fill();
+    drawText(context, `WIND ${game.wind > 0 ? "RIGHT" : "LEFT"}`, 465, 94, "#f5f7ff", "900 14px system-ui", "center");
     if (game.charging) {
       context.fillStyle = "rgba(255,255,255,0.14)";
-      roundedRect(context, 96, 470, 220, 14, 7);
+      roundedRect(context, 86, 470, 250, 18, 999);
       context.fill();
       context.fillStyle = storm ? "#c084fc" : "#84cc16";
-      roundedRect(context, 96, 470, 220 * game.power, 14, 7);
+      roundedRect(context, 86, 470, 250 * game.power, 18, 999);
       context.fill();
+      drawText(context, "DRAW POWER", 211, 464, "#f5f7ff", "900 13px system-ui", "center");
     }
     if (game.arrow) drawArrow(context, game.arrow.x, game.arrow.y, Math.atan2(game.arrow.vy, game.arrow.vx), storm ? "#c084fc" : "#84cc16");
+    if (game.setup) drawArcherySetup(context, game);
+    context.restore();
+  }
+
+  function drawArcherySetup(context, game) {
+    context.save();
+    context.fillStyle = "rgba(5,7,14,0.68)";
+    context.fillRect(0, 0, 960, 540);
+    context.fillStyle = "rgba(15,23,42,0.94)";
+    context.strokeStyle = "#84cc16";
+    context.lineWidth = 3;
+    roundedRect(context, 132, 92, 696, 376, 24);
+    context.fill();
+    context.stroke();
+    drawText(context, "Archery World Tour", 480, 154, "#f8fafc", "1000 42px system-ui", "center");
+    drawText(context, "Hold left mouse or touch to aim. Release to fire.", 480, 190, "#d9f99d", "850 18px system-ui", "center");
+    drawText(context, "Win tournaments around the world, then test moving targets in Challenge mode.", 480, 222, "#c7d2fe", "800 15px system-ui", "center");
+
+    drawArcheryTarget(context, 480, 302, 48);
+    drawCompoundBow(context, 292, 305, 0.08, 0.72, true, false);
+    drawSightReticle(context, 612, 294, false);
+
+    game.modeButtons.forEach((button) => {
+      const tour = button.id === "tour";
+      const grad = context.createLinearGradient(button.x, button.y, button.x + button.w, button.y + button.h);
+      grad.addColorStop(0, tour ? "#84cc16" : "#38bdf8");
+      grad.addColorStop(1, tour ? "#22c55e" : "#2563eb");
+      context.fillStyle = grad;
+      context.strokeStyle = "rgba(255,255,255,0.28)";
+      context.lineWidth = 2;
+      roundedRect(context, button.x, button.y, button.w, button.h, 18);
+      context.fill();
+      context.stroke();
+      drawText(context, button.label, button.x + button.w / 2, button.y + 39, "#082f1a", "1000 22px system-ui", "center");
+    });
+    drawText(context, "World Tour: 3 tournament stops. Challenge: score as many moving targets as possible.", 480, 454, "#94a3b8", "800 13px system-ui", "center");
     context.restore();
   }
 
   function drawArcheryTarget(context, x, y, radius) {
     context.save();
+    context.strokeStyle = "#7c4a1d";
+    context.lineWidth = 12;
+    context.beginPath();
+    context.moveTo(x - 30, y + radius - 4);
+    context.lineTo(x - 54, y + radius + 88);
+    context.moveTo(x + 30, y + radius - 4);
+    context.lineTo(x + 54, y + radius + 88);
+    context.stroke();
+    context.fillStyle = "#8b5e34";
+    roundedRect(context, x - 76, y + radius + 72, 152, 18, 5);
+    context.fill();
+    context.fillStyle = "#d9b98b";
+    context.beginPath();
+    context.arc(x, y, radius + 10, 0, Math.PI * 2);
+    context.fill();
     ["#f8fafc", "#ef4444", "#f8fafc", "#2563eb", "#facc15"].forEach((color, index) => {
       context.fillStyle = color;
       context.beginPath();
       context.arc(x, y, radius - index * 10, 0, Math.PI * 2);
       context.fill();
     });
+    context.strokeStyle = "rgba(15,23,42,0.36)";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(x - radius, y);
+    context.lineTo(x + radius, y);
+    context.moveTo(x, y - radius);
+    context.lineTo(x, y + radius);
+    context.stroke();
+    context.restore();
+  }
+
+  function drawCompoundBow(context, x, y, aim, power, charging, storm = false) {
+    context.save();
+    context.translate(x, y);
+    const bowColor = storm ? "#93c5fd" : "#2563eb";
+    const stringPull = charging ? 34 + power * 24 : 22;
+    context.lineWidth = 13;
+    context.lineCap = "round";
+    context.strokeStyle = bowColor;
+    context.shadowColor = bowColor;
+    context.shadowBlur = 14;
+    context.beginPath();
+    context.moveTo(18, -110);
+    context.bezierCurveTo(70, -68, 56, 68, 18, 110);
+    context.stroke();
+    context.lineWidth = 4;
+    context.strokeStyle = "#dbeafe";
+    context.beginPath();
+    context.moveTo(18, -104);
+    context.quadraticCurveTo(-stringPull, 0, 18, 104);
+    context.stroke();
+    context.fillStyle = "#0f172a";
+    context.beginPath();
+    context.arc(20, -112, 22, 0, Math.PI * 2);
+    context.arc(20, 112, 22, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = bowColor;
+    context.lineWidth = 4;
+    context.stroke();
+    context.fillStyle = "#111827";
+    roundedRect(context, 18, -20, 34, 40, 8);
+    context.fill();
+    context.strokeStyle = storm ? "#c084fc" : "#84cc16";
+    context.lineWidth = 5;
+    context.beginPath();
+    context.moveTo(38, 0);
+    context.lineTo(150, -Math.sin(aim + 0.42) * 92);
+    context.stroke();
+    context.restore();
+  }
+
+  function drawArcherHand(context, x, y, storm = false) {
+    context.save();
+    context.fillStyle = "#9f6a3a";
+    context.beginPath();
+    context.arc(x, y, 24, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = storm ? "#4c1d95" : "#1e3a8a";
+    roundedRect(context, x - 52, y + 18, 84, 32, 12);
+    context.fill();
+    context.restore();
+  }
+
+  function drawSightReticle(context, x, y, storm = false) {
+    context.save();
+    context.strokeStyle = storm ? "#c084fc" : "#111827";
+    context.lineWidth = 6;
+    context.shadowColor = storm ? "#c084fc" : "#34d6ff";
+    context.shadowBlur = 18;
+    context.beginPath();
+    context.arc(x, y, 38, 0, Math.PI * 2);
+    context.stroke();
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(x - 28, y);
+    context.lineTo(x + 28, y);
+    context.moveTo(x, y - 28);
+    context.lineTo(x, y + 28);
+    context.stroke();
+    context.restore();
+  }
+
+  function drawMiniArrow(context, x, y, color) {
+    context.save();
+    context.strokeStyle = color;
+    context.lineWidth = 4;
+    context.lineCap = "round";
+    context.beginPath();
+    context.moveTo(x - 22, y + 22);
+    context.lineTo(x + 18, y - 18);
+    context.stroke();
+    context.fillStyle = "#f8fafc";
+    context.beginPath();
+    context.moveTo(x + 22, y - 22);
+    context.lineTo(x + 8, y - 17);
+    context.lineTo(x + 17, y - 8);
+    context.closePath();
+    context.fill();
     context.restore();
   }
 
@@ -9240,8 +10990,10 @@
     audio.beep(680, 0.08, "square");
   });
   wireClick("#restartButton", () => {
-    if (activeGame) startGame(activeGame.definition.id, activeRunContext ? { ...activeRunContext } : null);
+    restartCurrentGame();
   });
+  wireClick("#restartTopButton", restartCurrentGame);
+  wireClick("#nextGameButton", startNextRecommendedGame);
   wireClick("#quitButton", () => {
     const destination = activeRunContext?.tournament ? "tournament" : "games";
     cancelTournamentRun();
@@ -9370,6 +11122,11 @@
       const index = digit === 0 ? 9 : digit - 1;
       const game = gameDefinitions[index];
       if (game) startGame(game.id);
+      return;
+    }
+    if (currentScreen === "play" && event.code === "KeyR") {
+      event.preventDefault();
+      restartCurrentGame();
       return;
     }
     if (currentScreen === "play" && activeGame?.handleKey) activeGame.handleKey(event);
